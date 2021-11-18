@@ -36,7 +36,7 @@ namespace Combloonation
                     terms[k] = 1 + d;
                 }
             }
-            public Bloonomial Product(Bloonomial p, bool cull = true)
+            public Bloonomial Product(Bloonomial p, bool cull = false)
             {
                 //polynomial product
                 var r = new Bloonomial();
@@ -116,6 +116,7 @@ namespace Combloonation
                 fusion.maxHealth = fusands.Select(f => f.maxHealth).Max();
                 fusion.leakDamage = fusands.Select(f => f.leakDamage).Max();
                 fusion.totalLeakDamage = fusands.Select(f => f.totalLeakDamage).Max();
+                fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
                 return this;
             }
 
@@ -136,6 +137,7 @@ namespace Combloonation
 
             public BloonsionReactor MergeDisplay()
             {
+                fusion.radius = fusands.Max(f => f.radius);
                 //TODO: this lol
                 //  rotate
                 //  display
@@ -194,7 +196,7 @@ namespace Combloonation
             if (size <= 0 || size >= span) return new BloonGroupModel[] { first };
             var last = group.Duplicate();
             var step = size == 1 ? 0 : (group.end - group.start) / (span - 1);
-            first.end = last.start = group.start + size * step;
+            last.start = (first.end = group.start + size * step) + step;
             return new BloonGroupModel[] { first, last };
         }
 
