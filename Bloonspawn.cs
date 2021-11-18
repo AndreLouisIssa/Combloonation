@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace Combloonation
 {
 
-    public static class BloonFactory
+    public static class Bloonspawn
     {
         //TODO: statically cache BloonModel based on Id
         //  possibly by mutating Game.instance.model.bloonsByName
@@ -60,31 +60,31 @@ namespace Combloonation
             }
         }
 
-        public class BloonAdapter
+        public class Bloonsion
         {
             public readonly IEnumerable<BloonModel> fusands;
             public readonly BloonModel fusion;
 
-            public BloonAdapter(IEnumerable<BloonModel> bloons)
+            public Bloonsion(IEnumerable<BloonModel> bloons)
             {
 
                 fusands = bloons.Distinct().OrderBy(f => f.id);
                 fusion = Clone(fusands.First());
             }
 
-            public BloonAdapter Merge()
+            public Bloonsion Merge()
             {
                 return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
             }
 
-            public BloonAdapter MergeId()
+            public Bloonsion MergeId()
             {
                 fusion.id = $"Fusion~{string.Join("_", fusands.Select(f => f.id))}";
                 fusion.baseId = fusion.id;
                 return this;
             }
 
-            public BloonAdapter MergeProperties()
+            public Bloonsion MergeProperties()
             {
                 fusion.bloonProperties = fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
 
@@ -101,7 +101,7 @@ namespace Combloonation
                 return this;
             }
 
-            public BloonAdapter MergeHealth()
+            public Bloonsion MergeHealth()
             {
                 fusion.maxHealth = fusands.Select(f => f.maxHealth).Max();
                 fusion.leakDamage = fusands.Select(f => f.leakDamage).Max();
@@ -109,14 +109,14 @@ namespace Combloonation
                 return this;
             }
 
-            public BloonAdapter MergeSpeed()
+            public Bloonsion MergeSpeed()
             {
                 fusion.speed = fusands.Select(f => f.speed).Max();
                 fusion.speedFrames = fusands.Select(f => f.speed).Max();
                 return this;
             }
 
-            public BloonAdapter MergeChildren()
+            public Bloonsion MergeChildren()
             {
                 fusion.updateChildBloonModels = true;
 
@@ -127,7 +127,7 @@ namespace Combloonation
                 return this;
             }
 
-            public BloonAdapter MergeDisplay()
+            public Bloonsion MergeDisplay()
             {
                 //TODO: this lol
                 //  rotate
@@ -136,7 +136,7 @@ namespace Combloonation
                 return this;
             }
 
-            public BloonAdapter MergeBehaviors()
+            public Bloonsion MergeBehaviors()
             {
                 //TODO: maybe this
                 //  behaviors
@@ -162,7 +162,7 @@ namespace Combloonation
             //DEBUG TEST INSTANCE
             foreach (RoundSetModel round in Game.instance.model.roundSets)
             {
-                var fusion = (new BloonAdapter(round.rounds[15].groups.Select(g => Game.instance.model.bloonsByName[g.bloon]))).Merge().fusion;
+                var fusion = (new Bloonsion(round.rounds[15].groups.Select(g => Game.instance.model.bloonsByName[g.bloon]))).Merge().fusion;
                 Register(fusion);
                 foreach (var roundss in round.rounds)
                 {
