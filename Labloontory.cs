@@ -4,27 +4,29 @@ using Assets.Scripts.Models.Bloons;
 using Assets.Scripts.Models.Rounds;
 using BTD_Mod_Helper.Extensions;
 using System.Collections.Generic;
+using Assets.Scripts.Models.Bloons.Behaviors;
+using MelonLoader;
 
 namespace Combloonation
 {
 
-    public static class Bloonspawn
+    public static class Labloontory
     {
-        //TODO: statically cache BloonModel based on Id
-        //  possibly by mutating Game.instance.model.bloonsByName
-        //  maybe it already gets mutated by the setter of Game.instance.model.bloons
 
-        //TODO: canonical weighting of base bloons to determine priority for visuals
-
+        public static string BloonString(IEnumerable<BloonModel> bloons, bool fusion = false)
+        {
+            if (fusion) return $"Fusion~{BloonString(bloons)}";
+            return string.Join("_", bloons.Select(f => f.id));
+        }
         public class Bloonomial {
 
             public readonly Dictionary<HashSet<BloonModel>, int> terms = new Dictionary<HashSet<BloonModel>, int>(HashSet<BloonModel>.CreateSetComparer());
 
             public Bloonomial(IEnumerable<BloonModel> bloons = null)
             {
-                terms[new HashSet<BloonModel> { }] = 1;
                 if (bloons == null) return;
-                foreach(BloonModel bloon in bloons)
+                terms[new HashSet<BloonModel> { }] = 1;
+                foreach (BloonModel bloon in bloons)
                 {
                     var k = new HashSet<BloonModel> { bloon };
                     terms.TryGetValue(k, out int d);
@@ -47,44 +49,49 @@ namespace Combloonation
                 if (cull)
                 {
                     //cull lower order terms
+                    var rem = new List<HashSet<BloonModel>>();
                     int n = r.terms.Keys.Max(k => k.Count);
                     foreach (var k in r.terms.Keys)
                     {
                         if (k.Count > 0 && k.Count < n)
                         {
-                            r.terms.Remove(k);
+                            rem.Add(k);
                         }
+                    }
+                    foreach (var k in rem)
+                    {
+                        r.terms.Remove(k);
                     }
                 }
                 return r;
             }
         }
 
-        public class Bloonsion
+        public class BloonsionReactor
         {
             public readonly IEnumerable<BloonModel> fusands;
             public readonly BloonModel fusion;
 
-            public Bloonsion(IEnumerable<BloonModel> bloons)
+            public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
 
                 fusands = bloons.Distinct().OrderBy(f => f.id);
                 fusion = Clone(fusands.First());
             }
 
-            public Bloonsion Merge()
+            public BloonsionReactor Merge()
             {
                 return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
             }
 
-            public Bloonsion MergeId()
+            public BloonsionReactor MergeId()
             {
-                fusion.id = $"Fusion~{string.Join("_", fusands.Select(f => f.id))}";
+                fusion.id = BloonString(fusands, true);
                 fusion.baseId = fusion.id;
                 return this;
             }
 
-            public Bloonsion MergeProperties()
+            public BloonsionReactor MergeProperties()
             {
                 fusion.bloonProperties = fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
 
@@ -101,7 +108,7 @@ namespace Combloonation
                 return this;
             }
 
-            public Bloonsion MergeHealth()
+            public BloonsionReactor MergeHealth()
             {
                 fusion.maxHealth = fusands.Select(f => f.maxHealth).Max();
                 fusion.leakDamage = fusands.Select(f => f.leakDamage).Max();
@@ -109,34 +116,41 @@ namespace Combloonation
                 return this;
             }
 
-            public Bloonsion MergeSpeed()
+            public BloonsionReactor MergeSpeed()
             {
                 fusion.speed = fusands.Select(f => f.speed).Max();
                 fusion.speedFrames = fusands.Select(f => f.speed).Max();
                 return this;
             }
 
-            public Bloonsion MergeChildren()
+            public BloonsionReactor MergeChildren()
             {
-                fusion.updateChildBloonModels = true;
+                var children = fusands.Select(f => new Bloonomial(f.GetBehavior<SpawnChildrenModel>().children.Select(s => Game.instance.model.bloonsByName[s])))
+                    .Aggregate((a, b) => a.Product(b)).terms.SelectMany(p => Fuse(p.Key, p.Value));
+                fusion.GetBehavior<SpawnChildrenModel>().children = children.Select(c => c.id).ToArray();
 
-                var product = fusands.Select(f => new Bloonomial(f.childBloonModels.ToList())).Aggregate((a, b) => a.Product(b));
+                //fusion.updateChildBloonModels = true;
+                //fusion.childBloonModels = new Il2CppSystem.Collections.Generic.List<BloonModel> { };
+                //foreach (var child in children)
+                //{
+                //    fusion.childBloonModels.Add(child);
+                //}
+                //fusion.childBloonModels = fusion.childBloonModels;
 
-                //TODO: turn product into a list for fusion.childBloonModels
-                //TODO: figure out GetComponent<SpawnChildrenModel>.children
                 return this;
             }
 
-            public Bloonsion MergeDisplay()
+            public BloonsionReactor MergeDisplay()
             {
                 //TODO: this lol
                 //  rotate
                 //  display
                 //  etc
+                //TODO: canonical weighting of base bloons to determine priority for visuals
                 return this;
             }
 
-            public Bloonsion MergeBehaviors()
+            public BloonsionReactor MergeBehaviors()
             {
                 //TODO: maybe this
                 //  behaviors
@@ -145,16 +159,33 @@ namespace Combloonation
             }
         }
 
+        public static IEnumerable<BloonModel> Fuse(IEnumerable<BloonModel> bloons, int count = 1)
+        {
+            if (bloons.Count() == 0) return Enumerable.Empty<BloonModel>();
+            var reactor = new BloonsionReactor(bloons).MergeId();
+            var bloon = reactor.fusion;
+            var lookup = Game.instance.model.bloonsByName;
+            if (lookup.ContainsKey(bloon.id))
+            {
+                bloon = lookup[bloon.id];
+            }
+            else
+            {
+                Register(reactor.Merge().fusion);
+            }
+            return Enumerable.Repeat(bloon, count);
+        }
+
         public static BloonModel Clone(BloonModel bloon)
         {
             return bloon.Clone().Cast<BloonModel>();
         }
 
-        public static void Register(BloonModel bloon)
+        public static BloonModel Register(BloonModel bloon)
         {
             var game = Game.instance.model;
             game.bloons = game.bloons.Prepend(bloon).ToArray();
-            //game.bloonsByName.Add(bloon.id, bloon);
+            return bloon;
         }
 
         public static void MutateRounds()
@@ -162,7 +193,7 @@ namespace Combloonation
             //DEBUG TEST INSTANCE
             foreach (RoundSetModel round in Game.instance.model.roundSets)
             {
-                var fusion = (new Bloonsion(round.rounds[15].groups.Select(g => Game.instance.model.bloonsByName[g.bloon]))).Merge().fusion;
+                var fusion = (new BloonsionReactor(round.rounds[15].groups.Select(g => Game.instance.model.bloonsByName[g.bloon]))).Merge().fusion;
                 Register(fusion);
                 foreach (var roundss in round.rounds)
                 {
