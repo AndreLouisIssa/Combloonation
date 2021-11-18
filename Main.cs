@@ -2,6 +2,7 @@
 using HarmonyLib;
 using Assets.Main.Scenes;
 using BTD_Mod_Helper;
+using Assets.Scripts.Unity;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "beta-r0", "MagicGonads")]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -22,6 +23,7 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix()
             {
+                Labloontory.lookup = Game.instance.model.bloonsByName;
                 Labloontory.MutateRounds();
             }
         }

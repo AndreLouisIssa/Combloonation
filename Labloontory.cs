@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using Assets.Scripts.Unity;
 using Assets.Scripts.Models.Bloons;
 using Assets.Scripts.Models.Rounds;
 using BTD_Mod_Helper.Extensions;
@@ -7,6 +6,7 @@ using System.Collections.Generic;
 using Assets.Scripts.Models.Bloons.Behaviors;
 using MelonLoader;
 using System;
+using Assets.Scripts.Unity;
 
 namespace Combloonation
 {
@@ -15,23 +15,23 @@ namespace Combloonation
     {
 
         public static readonly Random random = new Random();
+        public static Il2CppSystem.Collections.Generic.Dictionary<string, BloonModel> lookup;
 
-        public static string BloonString(IEnumerable<BloonModel> bloons, bool fusion = false)
+        public static string BloonString(IEnumerable<BloonModel> bloons)
         {
-            if (fusion) return $"Fusion~{BloonString(bloons)}";
             return string.Join("_", bloons.Select(f => f.id));
         }
         public class Bloonomial {
 
-            public readonly Dictionary<HashSet<BloonModel>, int> terms = new Dictionary<HashSet<BloonModel>, int>(HashSet<BloonModel>.CreateSetComparer());
+            public readonly Dictionary<HashSet<string>, int> terms = new Dictionary<HashSet<string>, int>(HashSet<string>.CreateSetComparer());
 
-            public Bloonomial(IEnumerable<BloonModel> bloons = null)
+            public Bloonomial(IEnumerable<string> bloons = null)
             {
                 if (bloons == null) return;
-                terms[new HashSet<BloonModel> { }] = 1;
-                foreach (BloonModel bloon in bloons)
+                terms[new HashSet<string> { }] = 1;
+                foreach (string bloon in bloons)
                 {
-                    var k = new HashSet<BloonModel> { bloon };
+                    var k = new HashSet<string> { bloon };
                     terms.TryGetValue(k, out int d);
                     terms[k] = 1 + d;
                 }
@@ -44,7 +44,7 @@ namespace Combloonation
                 {
                     foreach (var j in p.terms.Keys)
                     {
-                        var k = new HashSet<BloonModel>(i.Concat(j));
+                        var k = new HashSet<string>(i.Concat(j));
                         r.terms.TryGetValue(k, out int d);
                         r.terms[k] = terms[i] * p.terms[j] + d;
                     }
@@ -52,7 +52,7 @@ namespace Combloonation
                 if (cull)
                 {
                     //cull lower order terms
-                    var rem = new List<HashSet<BloonModel>>();
+                    var rem = new List<HashSet<string>>();
                     int n = r.terms.Keys.Max(k => k.Count);
                     foreach (var k in r.terms.Keys)
                     {
@@ -78,7 +78,7 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
 
-                fusands = new HashSet<BloonModel>(bloons);
+                fusands = new HashSet<string>(bloons.Select(b => b.id)).Select(s => lookup[s]);
                 fusion = Clone(fusands.First());
             }
 
@@ -89,7 +89,7 @@ namespace Combloonation
 
             public BloonsionReactor MergeId()
             {
-                fusion.id = BloonString(fusands, true);
+                fusion.id = BloonString(fusands);
                 fusion.baseId = fusion.id;
                 return this;
             }
@@ -128,18 +128,9 @@ namespace Combloonation
 
             public BloonsionReactor MergeChildren()
             {
-                var children = fusands.Select(f => new Bloonomial(f.GetBehavior<SpawnChildrenModel>().children.Select(s => Game.instance.model.bloonsByName[s])))
+                var children = fusands.Select(f => new Bloonomial(f.GetBehavior<SpawnChildrenModel>().children))
                     .Aggregate((a, b) => a.Product(b)).terms.SelectMany(p => Fuse(p.Key, p.Value));
                 fusion.GetBehavior<SpawnChildrenModel>().children = children.Select(c => c.id).ToArray();
-
-                //fusion.updateChildBloonModels = true;
-                //fusion.childBloonModels = new Il2CppSystem.Collections.Generic.List<BloonModel> { };
-                //foreach (var child in children)
-                //{
-                //    fusion.childBloonModels.Add(child);
-                //}
-                //fusion.childBloonModels = fusion.childBloonModels;
-
                 return this;
             }
 
@@ -161,13 +152,15 @@ namespace Combloonation
                 return this;
             }
         }
-
+        public static IEnumerable<BloonModel> Fuse(IEnumerable<string> bloons, int count = 1)
+        {
+            return Fuse(bloons.Select(b => lookup[b]), count);
+        }
         public static IEnumerable<BloonModel> Fuse(IEnumerable<BloonModel> bloons, int count = 1)
         {
             if (bloons.Count() == 0) return Enumerable.Empty<BloonModel>();
             var reactor = new BloonsionReactor(bloons).MergeId();
             var bloon = reactor.fusion;
-            var lookup = Game.instance.model.bloonsByName;
             if (lookup.ContainsKey(bloon.id))
             {
                 bloon = lookup[bloon.id];
@@ -187,6 +180,7 @@ namespace Combloonation
         public static BloonModel Register(BloonModel bloon)
         {
             var game = Game.instance.model;
+            MelonLogger.Msg("Creating " + bloon.id);
             game.bloons = game.bloons.Prepend(bloon).ToArray();
             game.bloonsByName[bloon.id] = bloon;
             return bloon;
@@ -211,7 +205,6 @@ namespace Combloonation
 
         public static BloonGroupModel[] Split(RoundModel round, int[] sizes, Func<BloonModel[], BloonModel> fuser)
         {
-            var lookup = Game.instance.model.bloonsByName;
             var groups = new List<BloonGroupModel>();
             var subgroups = new List<BloonGroupModel>();
             var bloons = new List<BloonModel>();
