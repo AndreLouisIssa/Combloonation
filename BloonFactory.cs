@@ -16,6 +16,50 @@ namespace Combloonation
 
         //TODO: canonical weighting of base bloons to determine priority for visuals
 
+        public class Bloonomial {
+
+            public readonly Dictionary<HashSet<BloonModel>, int> terms = new Dictionary<HashSet<BloonModel>, int>(HashSet<BloonModel>.CreateSetComparer());
+
+            public Bloonomial(IEnumerable<BloonModel> bloons = null)
+            {
+                terms[new HashSet<BloonModel> { }] = 1;
+                if (bloons == null) return;
+                foreach(BloonModel bloon in bloons)
+                {
+                    var k = new HashSet<BloonModel> { bloon };
+                    terms.TryGetValue(k, out int d);
+                    terms[k] = 1 + d;
+                }
+            }
+            public Bloonomial Product(Bloonomial p, bool cull = true)
+            {
+                //polynomial product
+                var r = new Bloonomial();
+                foreach (var i in terms.Keys)
+                {
+                    foreach (var j in p.terms.Keys)
+                    {
+                        var k = new HashSet<BloonModel>(i.Concat(j));
+                        r.terms.TryGetValue(k, out int d);
+                        r.terms[k] = terms[i] * p.terms[j] + d;
+                    }
+                }
+                if (cull)
+                {
+                    //cull lower order terms
+                    int n = r.terms.Keys.Max(k => k.Count);
+                    foreach (var k in r.terms.Keys)
+                    {
+                        if (k.Count < n)
+                        {
+                            r.terms.Remove(k);
+                        }
+                    }
+                }
+                return r;
+            }
+        }
+
         public class BloonAdapter
         {
             public readonly IEnumerable<BloonModel> fusands;
@@ -30,7 +74,7 @@ namespace Combloonation
 
             public BloonAdapter Merge()
             {
-                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeChildren();
+                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
             }
 
             public BloonAdapter MergeId()
@@ -74,10 +118,11 @@ namespace Combloonation
 
             public BloonAdapter MergeChildren()
             {
+                fusion.updateChildBloonModels = true;
+
                 //TODO: this lol
-                //  updateChildBloonModels
                 //  childBloonModels
-                //  childDependents
+
                 //  GetComponent<SpawnChildrenModel>.children
                 return this;
             }
@@ -91,6 +136,13 @@ namespace Combloonation
                 return this;
             }
 
+            public BloonAdapter MergeBehaviors()
+            {
+                //TODO: maybe this
+                //  behaviors
+                //  childDependents
+                return this;
+            }
         }
 
         public static BloonModel Clone(BloonModel bloon)
