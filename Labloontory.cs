@@ -113,17 +113,17 @@ namespace Combloonation
 
             public BloonsionReactor MergeHealth()
             {
-                fusion.maxHealth = fusands.Select(f => f.maxHealth).Max();
-                fusion.leakDamage = fusands.Select(f => f.leakDamage).Max();
-                fusion.totalLeakDamage = fusands.Select(f => f.totalLeakDamage).Max();
+                fusion.maxHealth = fusands.Sum(f => f.maxHealth);
+                fusion.leakDamage = fusands.Sum(f => f.leakDamage);
+                fusion.totalLeakDamage = fusands.Sum(f => f.totalLeakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
                 return this;
             }
 
             public BloonsionReactor MergeSpeed()
             {
-                fusion.speed = fusands.Select(f => f.speed).Max();
-                fusion.speedFrames = fusands.Select(f => f.speed).Max();
+                fusion.speed = fusands.Sum(f => f.speed);
+                fusion.speedFrames = fusands.Sum(f => f.speed);
                 return this;
             }
 
@@ -137,7 +137,7 @@ namespace Combloonation
 
             public BloonsionReactor MergeDisplay()
             {
-                fusion.radius = fusands.Max(f => f.radius);
+                fusion.radius = fusands.Sum(f => f.radius);
                 //TODO: this lol
                 //  rotate
                 //  display
