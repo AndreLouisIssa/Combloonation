@@ -93,7 +93,7 @@ namespace Combloonation
             {
                 fusion.id = BloonString(fusands);
                 fusion.baseId = fusion.id;
-                if (real) MelonLogger.Msg("Creating " + fusion.id + " :");
+                if (real) MelonLogger.Msg("Creating " + fusion.id + ":");
                 return this;
             }
 
@@ -138,7 +138,7 @@ namespace Combloonation
                 var fusand_children = fusands.Select(f => f.GetBehavior<SpawnChildrenModel>().children);
                 var bound = fusand_children.Max(c => c.Count());
                 var children = fusand_children.Select(c => new Bloonomial(c)).Aggregate((a, b) => a.Product(b)).terms;
-                if (real) MelonLogger.Msg("     - children: " + string.Join(" ", children.Where(p => p.Key.Count() > 0).Select(p => (p.Value != 1 ? ((p.Value > bound ? bound : p.Value) + "*") : "" ) + string.Join("_", p.Key))));
+                if (real) MelonLogger.Msg("     - " + string.Join(" ", children.Where(p => p.Key.Count() > 0).Select(p => (p.Value != 1 ? ((p.Value > bound ? bound : p.Value) + "*") : "" ) + string.Join("_", p.Key))));
                 fusion.GetBehavior<SpawnChildrenModel>().children = children.SelectMany(p => Fuse(p.Key, p.Value > bound ? bound : p.Value)).Select(c => c.id).ToArray();
                 return this;
             }
