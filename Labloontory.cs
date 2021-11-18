@@ -36,7 +36,7 @@ namespace Combloonation
                     terms[k] = 1 + d;
                 }
             }
-            public Bloonomial Product(Bloonomial p, bool cull = false)
+            public Bloonomial Product(Bloonomial p, bool cull = true)
             {
                 //polynomial product
                 var r = new Bloonomial();
@@ -74,6 +74,7 @@ namespace Combloonation
         {
             public readonly IEnumerable<BloonModel> fusands;
             public readonly BloonModel fusion;
+            public bool real = false;
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
@@ -84,6 +85,7 @@ namespace Combloonation
 
             public BloonsionReactor Merge()
             {
+                real = true;
                 return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
             }
 
@@ -91,6 +93,7 @@ namespace Combloonation
             {
                 fusion.id = BloonString(fusands);
                 fusion.baseId = fusion.id;
+                if (real) MelonLogger.Msg("Creating " + fusion.id + " :");
                 return this;
             }
 
@@ -107,30 +110,36 @@ namespace Combloonation
 
                 fusion.distributeDamageToChildren = fusands.Any(f => f.distributeDamageToChildren);
                 fusion.tags = fusands.SelectMany(f => f.tags).Distinct().ToArray();
+                if (real) MelonLogger.Msg("     - " + fusion.tags.Length + " tags");
 
                 return this;
             }
 
             public BloonsionReactor MergeHealth()
             {
-                fusion.maxHealth = fusands.Sum(f => f.maxHealth);
-                fusion.leakDamage = fusands.Sum(f => f.leakDamage);
-                fusion.totalLeakDamage = fusands.Sum(f => f.totalLeakDamage);
+                fusion.maxHealth = fusands.Max(f => f.maxHealth);
+                fusion.leakDamage = fusands.Max(f => f.leakDamage);
+                fusion.totalLeakDamage = fusands.Max(f => f.totalLeakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
+                if (real) MelonLogger.Msg("     - " + fusion.maxHealth + " health");
                 return this;
             }
 
             public BloonsionReactor MergeSpeed()
             {
-                fusion.speed = fusands.Sum(f => f.speed);
-                fusion.speedFrames = fusands.Sum(f => f.speed);
+                fusion.speed = fusands.Max(f => f.speed);
+                fusion.speedFrames = fusands.Max(f => f.speed);
+                if (real) MelonLogger.Msg("     - " + fusion.speed + " speed");
                 return this;
             }
 
             public BloonsionReactor MergeChildren()
             {
-                var children = fusands.Select(f => new Bloonomial(f.GetBehavior<SpawnChildrenModel>().children))
-                    .Aggregate((a, b) => a.Product(b)).terms.SelectMany(p => Fuse(p.Key, p.Value));
+                var children_tmp = fusands.Select(f => new Bloonomial(f.GetBehavior<SpawnChildrenModel>().children))
+                    .Aggregate((a, b) => a.Product(b)).terms;
+                if (real) MelonLogger.Msg("     - children: " + string.Join(" ", children_tmp.Where(p => p.Key.Count() > 0).Select(p => (p.Value != 1 ? (p.Value + "*") : "" ) + string.Join("_", p.Key))));
+                var children = children_tmp.SelectMany(p => Fuse(p.Key, p.Value));
+
                 fusion.GetBehavior<SpawnChildrenModel>().children = children.Select(c => c.id).ToArray();
                 return this;
             }
@@ -182,7 +191,6 @@ namespace Combloonation
         public static BloonModel Register(BloonModel bloon)
         {
             var game = Game.instance.model;
-            MelonLogger.Msg("Creating " + bloon.id + " with children: " + string.Join(" ",bloon.GetBehavior<SpawnChildrenModel>().children));
             game.bloons = game.bloons.Prepend(bloon).ToArray();
             game.bloonsByName[bloon.id] = bloon;
             return bloon;
@@ -212,25 +220,25 @@ namespace Combloonation
             var bloons = new List<BloonModel>();
             var i = 0; var size = sizes[i];
             var j = 0; var group = round.groups[j];
-            while (i < sizes.Length - 1 && j < round.groups.Length - 1)
+            while (i < sizes.Length && j < round.groups.Length)
             {
                 bloons.Add(lookup[group.bloon]);
                 var split = Split(group, size, out size);
                 subgroups.Add(split.First());
                 if (size > 0)
                 {
-                    group = round.groups[++j];
+                    if (++j < round.groups.Length) group = round.groups[j];
                     continue;
                 }
                 if (size == 0)
                 {
                     group = split.Last();
                 }
-                else
-                {
-                    group = round.groups[++j];
+                else {
+                    if (++j < round.groups.Length) group = round.groups[j];
                 }
-                size = sizes[++i];
+                
+                if (++i < sizes.Length) size = sizes[i];
 
                 var bloon = Fuse(bloons).First();
                 foreach (var subgroup in subgroups)
@@ -271,9 +279,9 @@ namespace Combloonation
                 foreach (var rounds in round.rounds)
                 {
                     var size = RoundSize(rounds);
-                    var parts = random.Next(1, size + 1);
-                    MelonLogger.Msg("Splitting round " + (i++) + " of size " + size + " into " + parts + " parts!");
-                    rounds.groups = Split(rounds, Partition(size, parts));
+                    //var parts = random.Next(1, size + 1);
+                    //MelonLogger.Msg("Splitting round " + (i++) + " of size " + size + " into " + parts + " parts!");
+                    rounds.groups = Split(rounds, new int[] { size });//Partition(size, parts));
                     if (i > 30) break;
                 }
             }
