@@ -6,12 +6,15 @@ using BTD_Mod_Helper.Extensions;
 using System.Collections.Generic;
 using Assets.Scripts.Models.Bloons.Behaviors;
 using MelonLoader;
+using System;
 
 namespace Combloonation
 {
 
     public static class Labloontory
     {
+
+        public static readonly Random random = new Random();
 
         public static string BloonString(IEnumerable<BloonModel> bloons, bool fusion = false)
         {
@@ -189,20 +192,94 @@ namespace Combloonation
             return bloon;
         }
 
+        public static BloonGroupModel[] Split(BloonGroupModel group, int size, out int excess)
+        {
+            var first = group.Duplicate();
+            var span = group.count;
+            excess = size - span;
+            if (size <= 0 || size >= span) return new BloonGroupModel[] { first };
+            var last = group.Duplicate();
+            var step = size == 1 ? 0 : (group.end - group.start) / (span - 1);
+            first.end = last.start = group.start + size * step;
+            return new BloonGroupModel[] { first, last };
+        }
+
+        public static BloonGroupModel[] Split(RoundModel round, int[] sizes)
+        {
+            return Split(round, sizes, bloons => Fuse(bloons).First());
+        }
+
+        public static BloonGroupModel[] Split(RoundModel round, int[] sizes, Func<BloonModel[], BloonModel> fuser)
+        {
+            var lookup = Game.instance.model.bloonsByName;
+            var groups = new List<BloonGroupModel>();
+            var subgroups = new List<BloonGroupModel>();
+            var bloons = new List<BloonModel>();
+            var i = 0; var size = sizes[i];
+            var j = 0; var group = round.groups[j];
+            while (i < sizes.Length - 1 && j < round.groups.Length - 1)
+            {
+                bloons.Add(lookup[group.bloon]);
+                var split = Split(group, size, out size);
+                subgroups.Add(split.First());
+                if (size > 0)
+                {
+                    group = round.groups[++j];
+                    continue;
+                }
+                if (size == 0)
+                {
+                    group = split.Last();
+                }
+                else
+                {
+                    group = round.groups[++j];
+                }
+                size = sizes[++i];
+
+                var bloon = Fuse(bloons).First();
+                foreach (var subgroup in subgroups)
+                {
+                    subgroup.bloon = bloon.id;
+                    groups.Add(subgroup);
+                }
+                bloons.Clear();
+                subgroups.Clear();
+            }
+            return groups.ToArray();
+        }
+
+        public static int RoundSize(RoundModel round)
+        {
+            return round.groups.Sum(g => g.count);
+        }
+
+        public static int[] Partition(int size, int parts)
+        {
+            var pivots = new HashSet<int>(Enumerable.Repeat(0, parts - 1).Select(z => random.Next(1, size)).Append(0).Append(size));
+            var sizes = new List<int> { };
+            size = pivots.First();
+            foreach (var pivot in pivots.Skip(1))
+            {
+                sizes.Add(pivot - size);
+                size = pivot;
+            }
+            return sizes.ToArray();
+        }
+
         public static void MutateRounds()
         {
-            //DEBUG TEST INSTANCE
+            MelonLogger.Msg("Mutating rounds...");
             foreach (RoundSetModel round in Game.instance.model.roundSets)
             {
-                var fusion = Fuse(round.rounds[35].groups.Select(g => Game.instance.model.bloonsByName[g.bloon])).First();
-                foreach (var roundss in round.rounds)
+                var i = 1;
+                foreach (var rounds in round.rounds)
                 {
-                    foreach (var group in roundss.groups)
-                    {
-                        group.bloon = fusion.id;
-                        group.count = 1;
-                        group.end = group.start;
-                    }
+                    var size = RoundSize(rounds);
+                    var parts = random.Next(1, size + 1);
+                    MelonLogger.Msg("Splitting round " + (i++) + " of size " + size + " into " + parts + " parts!");
+                    rounds.groups = Split(rounds, Partition(size, parts));
+                    if (i > 30) break;
                 }
             }
         }
