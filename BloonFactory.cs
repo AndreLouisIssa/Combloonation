@@ -14,6 +14,8 @@ namespace Combloonation
         //  possibly by mutating Game.instance.model.bloonsByName
         //  maybe it already gets mutated by the setter of Game.instance.model.bloons
 
+        //TODO: canonical weighting of base bloons to determine priority for visuals
+
         public class BloonAdapter
         {
             public readonly IEnumerable<BloonModel> fusands;
@@ -21,8 +23,9 @@ namespace Combloonation
 
             public BloonAdapter(IEnumerable<BloonModel> bloons)
             {
-                fusion = Clone(bloons.First());
-                fusands = bloons.Distinct().OrderByDescending(f => f.baseId);
+
+                fusands = bloons.Distinct().OrderBy(f => f.id);
+                fusion = Clone(fusands.First());
             }
 
             public BloonAdapter Merge()
@@ -82,6 +85,9 @@ namespace Combloonation
             public BloonAdapter MergeDisplay()
             {
                 //TODO: this lol
+                //  rotate
+                //  display
+                //  etc
                 return this;
             }
 
@@ -104,10 +110,17 @@ namespace Combloonation
             //DEBUG TEST INSTANCE
             foreach (RoundSetModel round in Game.instance.model.roundSets)
             {
-                var fusion = (new BloonAdapter(round.rounds[2].groups.Select(g => Game.instance.model.bloonsByName[g.bloon]))).Merge().fusion;
+                var fusion = (new BloonAdapter(round.rounds[15].groups.Select(g => Game.instance.model.bloonsByName[g.bloon]))).Merge().fusion;
                 Register(fusion);
-                round.rounds[14].groups[0].bloon = fusion.id;
-                round.rounds[14].groups[0].count = 1;
+                foreach (var roundss in round.rounds)
+                {
+                    foreach (var group in roundss.groups)
+                    {
+                        group.bloon = fusion.id;
+                        group.count = 1;
+                        group.end = group.start;
+                    }
+                }
             }
         }
     }
