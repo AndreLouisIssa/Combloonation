@@ -22,7 +22,7 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix()
             {
-                BloonFactory.MutateRounds();
+                Bloonspawn.MutateRounds();
             }
         }
     }
