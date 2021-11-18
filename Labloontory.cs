@@ -182,7 +182,7 @@ namespace Combloonation
         public static BloonModel Register(BloonModel bloon)
         {
             var game = Game.instance.model;
-            MelonLogger.Msg("Creating " + bloon.id);
+            MelonLogger.Msg("Creating " + bloon.id + " with children: " + string.Join(" ",bloon.GetBehavior<SpawnChildrenModel>().children));
             game.bloons = game.bloons.Prepend(bloon).ToArray();
             game.bloonsByName[bloon.id] = bloon;
             return bloon;
