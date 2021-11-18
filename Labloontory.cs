@@ -75,7 +75,7 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
 
-                fusands = bloons.Distinct().OrderBy(f => f.id);
+                fusands = new HashSet<BloonModel>(bloons);
                 fusion = Clone(fusands.First());
             }
 
@@ -185,6 +185,7 @@ namespace Combloonation
         {
             var game = Game.instance.model;
             game.bloons = game.bloons.Prepend(bloon).ToArray();
+            game.bloonsByName[bloon.id] = bloon;
             return bloon;
         }
 
@@ -193,8 +194,7 @@ namespace Combloonation
             //DEBUG TEST INSTANCE
             foreach (RoundSetModel round in Game.instance.model.roundSets)
             {
-                var fusion = (new BloonsionReactor(round.rounds[15].groups.Select(g => Game.instance.model.bloonsByName[g.bloon]))).Merge().fusion;
-                Register(fusion);
+                var fusion = Fuse(round.rounds[35].groups.Select(g => Game.instance.model.bloonsByName[g.bloon])).First();
                 foreach (var roundss in round.rounds)
                 {
                     foreach (var group in roundss.groups)
