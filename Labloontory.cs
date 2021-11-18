@@ -135,12 +135,11 @@ namespace Combloonation
 
             public BloonsionReactor MergeChildren()
             {
-                var children_tmp = fusands.Select(f => new Bloonomial(f.GetBehavior<SpawnChildrenModel>().children))
-                    .Aggregate((a, b) => a.Product(b)).terms;
-                if (real) MelonLogger.Msg("     - children: " + string.Join(" ", children_tmp.Where(p => p.Key.Count() > 0).Select(p => (p.Value != 1 ? (p.Value + "*") : "" ) + string.Join("_", p.Key))));
-                var children = children_tmp.SelectMany(p => Fuse(p.Key, p.Value));
-
-                fusion.GetBehavior<SpawnChildrenModel>().children = children.Select(c => c.id).ToArray();
+                var fusand_children = fusands.Select(f => f.GetBehavior<SpawnChildrenModel>().children);
+                var bound = fusand_children.Max(c => c.Count());
+                var children = fusand_children.Select(c => new Bloonomial(c)).Aggregate((a, b) => a.Product(b)).terms;
+                if (real) MelonLogger.Msg("     - children: " + string.Join(" ", children.Where(p => p.Key.Count() > 0).Select(p => (p.Value != 1 ? ((p.Value > bound ? bound : p.Value) + "*") : "" ) + string.Join("_", p.Key))));
+                fusion.GetBehavior<SpawnChildrenModel>().children = children.SelectMany(p => Fuse(p.Key, p.Value > bound ? bound : p.Value)).Select(c => c.id).ToArray();
                 return this;
             }
 
@@ -279,10 +278,10 @@ namespace Combloonation
                 foreach (var rounds in round.rounds)
                 {
                     var size = RoundSize(rounds);
-                    //var parts = random.Next(1, size + 1);
-                    //MelonLogger.Msg("Splitting round " + (i++) + " of size " + size + " into " + parts + " parts!");
-                    rounds.groups = Split(rounds, new int[] { size });//Partition(size, parts));
-                    if (i > 30) break;
+                    var parts = random.Next(1, size + 1);
+                    MelonLogger.Msg("Splitting round " + (i++) + " of size " + size + " into " + parts + " parts!");
+                    rounds.groups = Split(rounds, Partition(size, parts));
+                    if (i > 50) break;
                 }
             }
         }
