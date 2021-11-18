@@ -3,6 +3,8 @@ using HarmonyLib;
 using Assets.Main.Scenes;
 using BTD_Mod_Helper;
 
+[assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "beta-r0", "MagicGonads")]
+[assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
 namespace Combloonation
 {
     public class Main : BloonsMod
