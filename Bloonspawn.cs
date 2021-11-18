@@ -50,7 +50,7 @@ namespace Combloonation
                     int n = r.terms.Keys.Max(k => k.Count);
                     foreach (var k in r.terms.Keys)
                     {
-                        if (k.Count < n)
+                        if (k.Count > 0 && k.Count < n)
                         {
                             r.terms.Remove(k);
                         }
@@ -120,10 +120,10 @@ namespace Combloonation
             {
                 fusion.updateChildBloonModels = true;
 
-                //TODO: this lol
-                //  childBloonModels
+                var product = fusands.Select(f => new Bloonomial(f.childBloonModels.ToList())).Aggregate((a, b) => a.Product(b));
 
-                //  GetComponent<SpawnChildrenModel>.children
+                //TODO: turn product into a list for fusion.childBloonModels
+                //TODO: figure out GetComponent<SpawnChildrenModel>.children
                 return this;
             }
 
