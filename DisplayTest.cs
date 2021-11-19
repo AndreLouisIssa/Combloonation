@@ -7,6 +7,7 @@ using Assets.Scripts.Simulation.Bloons;
 using UnityEngine;
 using System.Linq;
 using Assets.Scripts.Unity.Bridge;
+using Assets.Scripts.Simulation.Display;
 using MelonLoader;
 
 namespace Combloonation
@@ -25,25 +26,35 @@ namespace Combloonation
 
         public static void SetBloonAppearance(Bloon bloon)
         {
-            if (bloon.Node.graphic?.gameObject != null && !bloon.bloonModel.isMoab)
+            MelonLogger.Msg("Setting Appearance: " + bloon.bloonModel.id + " " + bloon.Id);
+            DisplayNode node = null;
+            try
             {
-                var gameObject = bloon.Node.graphic?.gameObject;
+                node = bloon.Node;
+            }
+            catch (UnhollowerBaseLib.Il2CppException e)
+            {
+                MelonLogger.Msg(e.Message.TrimEnd());
+            }
+            if (node == null) { MelonLogger.Msg("Null: Node"); return; }
+            var graphic = node.graphic;
+            if (graphic == null) { MelonLogger.Msg("Null: graphic"); return; }
+            graphic.Scale *= 3;
+            var gameObject = graphic.gameObject;
+            if (gameObject == null) { MelonLogger.Msg("Null: gameObject"); return; }
+            if (!bloon.bloonModel.isMoab)
+            {
                 gameObject.GetComponent<SpriteRenderer>().color = new Color(.5f, .5f, .5f);
             }
         }
 
-        [HarmonyPatch(typeof(Bloon), nameof(Bloon.UpdateDisplay))]
+        [HarmonyPatch(typeof(Bloon), nameof(Bloon.Initialise))]
         class BloonInitialize_Patch
         {
             [HarmonyPostfix]
             public static void Postfix(Bloon __instance)
             {
-                MelonLogger.Msg("TEST " + __instance.Id);
                 SetBloonAppearance(__instance);
-                //foreach (var bloon in InGame.Bridge.GetAllBloons().ToList().Select(b => b.GetBloon()))
-                //{
-                //    SetBloonAppearance(bloon);
-                //}
             }
         }
     }
