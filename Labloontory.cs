@@ -7,6 +7,11 @@ using Assets.Scripts.Models.Bloons.Behaviors;
 using MelonLoader;
 using System;
 using Assets.Scripts.Unity;
+using UnityEngine;
+using BTD_Mod_Helper.Api;
+using BTD_Mod_Helper.Api.Display;
+using Random = System.Random;
+using Object = UnityEngine.Object;
 
 namespace Combloonation
 {
@@ -146,6 +151,8 @@ namespace Combloonation
             public BloonsionReactor MergeDisplay()
             {
                 fusion.radius = fusands.Sum(f => f.radius);
+                MelonLogger.Msg($"     - DISPLAY: {fusion.display}");
+                //Object.FindObjectsOfType<GameObject>().Where(o => o.GetInstanceID);
                 //TODO: this lol
                 //  rotate
                 //  display

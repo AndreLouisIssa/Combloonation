@@ -9,11 +9,16 @@ using System.Linq;
 using Assets.Scripts.Unity.Bridge;
 using Assets.Scripts.Simulation.Display;
 using MelonLoader;
+using Assets.Scripts.Unity.Display;
+using System.Collections;
+using Assets.Scripts.Simulation.Behaviors;
 
 namespace Combloonation
 {
     class DisplayTest
     {
+        static IEnumerable<Bloon> toModify = new Queue<Bloon>();
+
         static Dictionary<string, Color> colors = new Dictionary<string, Color>()
         {
             { "red", new Color(1f, 0f, 0f) },
@@ -24,38 +29,44 @@ namespace Combloonation
             { "white", new Color(1f, 0f, 0f) },
         };
 
-        public static void SetBloonAppearance(Bloon bloon)
+        public static bool SetBloonAppearance(Bloon bloon)
         {
             MelonLogger.Msg("Setting Appearance: " + bloon.bloonModel.id + " " + bloon.Id);
-            DisplayNode node = null;
-            try
-            {
-                node = bloon.Node;
-            }
-            catch (UnhollowerBaseLib.Il2CppException e)
-            {
-                MelonLogger.Msg(e.Message.TrimEnd());
-            }
-            if (node == null) { MelonLogger.Msg("Null: Node"); return; }
+            var display = bloon.display;
+            if (display == null) { MelonLogger.Msg("Null: display"); return false; }
+            var node = display.node;
+            if (node == null) { MelonLogger.Msg("Null: node"); return false; }
             var graphic = node.graphic;
-            if (graphic == null) { MelonLogger.Msg("Null: graphic"); return; }
+            if (graphic == null) { MelonLogger.Msg("Null: graphic"); return false; }
             graphic.Scale *= 3;
             var gameObject = graphic.gameObject;
-            if (gameObject == null) { MelonLogger.Msg("Null: gameObject"); return; }
+            if (gameObject == null) { MelonLogger.Msg("Null: gameObject"); return false; }
             if (!bloon.bloonModel.isMoab)
             {
                 gameObject.GetComponent<SpriteRenderer>().color = new Color(.5f, .5f, .5f);
             }
+            return true;
         }
 
-        [HarmonyPatch(typeof(Bloon), nameof(Bloon.Initialise))]
-        class BloonInitialize_Patch
+        [HarmonyPatch(typeof(Bloon), nameof(Bloon.OnSpawn))]
+        class Patch_Bloon
         {
             [HarmonyPostfix]
             public static void Postfix(Bloon __instance)
             {
-                SetBloonAppearance(__instance);
+                toModify = toModify.Append(__instance);
             }
         }
+
+        public static void OnUpdate()
+        {
+            var toRemove = new Queue<Bloon>();
+            foreach (var bloon in toModify)
+            {
+                if (SetBloonAppearance(bloon)) toRemove.Enqueue(bloon);
+            }
+            toModify = toModify.Except(toRemove);
+        }
+
     }
 }

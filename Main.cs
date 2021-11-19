@@ -27,5 +27,11 @@ namespace Combloonation
                 Labloontory.MutateRounds();
             }
         }
+
+        public override void OnUpdate()
+        {
+            base.OnUpdate();
+            DisplayTest.OnUpdate();
+        }
     }
 }
