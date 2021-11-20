@@ -48,13 +48,23 @@ namespace Combloonation
             return true;
         }
 
-        [HarmonyPatch(typeof(Bloon), nameof(Bloon.OnSpawn))]
-        class Patch_Bloon
+        [HarmonyPatch(typeof(Bloon), nameof(Bloon.Initialise))]
+        class Patch_Bloon_Initalise
         {
             [HarmonyPostfix]
             public static void Postfix(Bloon __instance)
             {
                 toModify = toModify.Append(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(Bloon), nameof(Bloon.ClearCreatedChildren))]
+        class Patch_Bloon_ClearCreatedChildren
+        {
+            [HarmonyPostfix]
+            public static void Postfix(Bloon __instance)
+            {
+                toModify = toModify.Concat(__instance.childrenCreatedOut.ToArray());
             }
         }
 
