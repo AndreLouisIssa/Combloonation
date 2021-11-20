@@ -288,7 +288,7 @@ namespace Combloonation
                     var parts = random.Next(1, size + 1);
                     MelonLogger.Msg("Splitting round " + (i++) + " of size " + size + " into " + parts + " parts!");
                     rounds.groups = Split(rounds, Partition(size, parts));
-                    //if (i > 50) break;
+                    if (i >= 40) break;
                 }
             }
         }
