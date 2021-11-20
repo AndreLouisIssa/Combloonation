@@ -4,7 +4,7 @@ using Assets.Main.Scenes;
 using BTD_Mod_Helper;
 using Assets.Scripts.Unity;
 
-[assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "beta-r0", "MagicGonads")]
+[assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "0-beta-r0", "MagicGonads")]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
 namespace Combloonation
 {
