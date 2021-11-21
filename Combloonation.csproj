@@ -59,6 +59,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Combinomial.cs" />
     <Compile Include="DisplayTest.cs" />
     <Compile Include="Labloontory.cs" />
     <Compile Include="Main.cs" />

@@ -12,6 +12,7 @@ using BTD_Mod_Helper.Api;
 using BTD_Mod_Helper.Api.Display;
 using Random = System.Random;
 using Object = UnityEngine.Object;
+using UnhollowerBaseLib;
 
 namespace Combloonation
 {
@@ -25,54 +26,6 @@ namespace Combloonation
         public static string BloonString(IEnumerable<BloonModel> bloons)
         {
             return string.Join("_", bloons.Select(f => f.id));
-        }
-        public class Bloonomial {
-
-            public readonly Dictionary<HashSet<string>, int> terms = new Dictionary<HashSet<string>, int>(HashSet<string>.CreateSetComparer());
-
-            public Bloonomial(IEnumerable<string> bloons = null)
-            {
-                if (bloons == null) return;
-                terms[new HashSet<string> { }] = 1;
-                foreach (string bloon in bloons)
-                {
-                    var k = new HashSet<string> { bloon };
-                    terms.TryGetValue(k, out int d);
-                    terms[k] = 1 + d;
-                }
-            }
-            public Bloonomial Product(Bloonomial p, bool cull = true)
-            {
-                //polynomial product
-                var r = new Bloonomial();
-                foreach (var i in terms.Keys)
-                {
-                    foreach (var j in p.terms.Keys)
-                    {
-                        var k = new HashSet<string>(i.Concat(j));
-                        r.terms.TryGetValue(k, out int d);
-                        r.terms[k] = terms[i] * p.terms[j] + d;
-                    }
-                }
-                if (cull)
-                {
-                    //cull lower order terms
-                    var rem = new List<HashSet<string>>();
-                    int n = r.terms.Keys.Max(k => k.Count);
-                    foreach (var k in r.terms.Keys)
-                    {
-                        if (k.Count > 0 && k.Count < n)
-                        {
-                            rem.Add(k);
-                        }
-                    }
-                    foreach (var k in rem)
-                    {
-                        r.terms.Remove(k);
-                    }
-                }
-                return r;
-            }
         }
 
         public class BloonsionReactor
@@ -142,17 +95,15 @@ namespace Combloonation
             {
                 var fusand_children = fusands.Select(f => f.GetBehavior<SpawnChildrenModel>().children);
                 var bound = fusand_children.Max(c => c.Count());
-                var children = fusand_children.Select(c => new Bloonomial(c)).Aggregate((a, b) => a.Product(b)).terms;
-                if (real) MelonLogger.Msg("     - " + string.Join(" ", children.Where(p => p.Key.Count() > 0).Select(p => (p.Value != 1 ? ((p.Value > bound ? bound : p.Value) + "*") : "" ) + string.Join("_", p.Key))));
-                fusion.GetBehavior<SpawnChildrenModel>().children = children.SelectMany(p => Fuse(p.Key, p.Value > bound ? bound : p.Value)).Select(c => c.id).ToArray();
+                var children = fusand_children.Select(c => new Combinomial(c)).Aggregate((a, b) => a.Product(b).Cull().Bound(bound));
+                if (real) MelonLogger.Msg("     - " + children);
+                fusion.GetBehavior<SpawnChildrenModel>().children = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value)).Select(c => c.id).ToArray();
                 return this;
             }
 
             public BloonsionReactor MergeDisplay()
             {
                 fusion.radius = fusands.Sum(f => f.radius);
-                MelonLogger.Msg($"     - DISPLAY: {fusion.display}");
-                //Object.FindObjectsOfType<GameObject>().Where(o => o.GetInstanceID);
                 //TODO: this lol
                 //  rotate
                 //  display
@@ -169,13 +120,13 @@ namespace Combloonation
                 return this;
             }
         }
-        public static IEnumerable<BloonModel> Fuse(IEnumerable<string> bloons, int count = 1)
+        public static BloonModel Fuse(IEnumerable<string> bloons)
         {
-            return Fuse(bloons.Select(b => lookup[b]), count);
+            return Fuse(bloons.Select(b => lookup[b]));
         }
-        public static IEnumerable<BloonModel> Fuse(IEnumerable<BloonModel> bloons, int count = 1)
+        public static BloonModel Fuse(IEnumerable<BloonModel> bloons)
         {
-            if (bloons.Count() == 0) return Enumerable.Empty<BloonModel>();
+            if (bloons.Count() == 0) return null;
             var reactor = new BloonsionReactor(bloons).MergeId();
             var bloon = reactor.fusion;
             if (lookup.ContainsKey(bloon.id))
@@ -186,7 +137,7 @@ namespace Combloonation
             {
                 Register(reactor.Merge().fusion);
             }
-            return Enumerable.Repeat(bloon, count);
+            return bloon;
         }
 
         public static BloonModel Clone(BloonModel bloon)
@@ -214,26 +165,26 @@ namespace Combloonation
             return new BloonGroupModel[] { first, last };
         }
 
-        public static BloonGroupModel[] Split(RoundModel round, int[] sizes)
+        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes)
         {
-            return Split(round, sizes, bloons => Fuse(bloons).First());
+            return Split(roundGroups, sizes, bloons => Fuse(bloons));
         }
 
-        public static BloonGroupModel[] Split(RoundModel round, int[] sizes, Func<BloonModel[], BloonModel> fuser)
+        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes, Func<BloonModel[], BloonModel> fuser)
         {
             var groups = new List<BloonGroupModel>();
             var subgroups = new List<BloonGroupModel>();
             var bloons = new List<BloonModel>();
             var i = 0; var size = sizes[i];
-            var j = 0; var group = round.groups[j];
-            while (i < sizes.Length && j < round.groups.Length)
+            var j = 0; var group = roundGroups[j];
+            while (i < sizes.Length && j < roundGroups.Length)
             {
                 bloons.Add(lookup[group.bloon]);
                 var split = Split(group, size, out size);
                 subgroups.Add(split.First());
                 if (size > 0)
                 {
-                    if (++j < round.groups.Length) group = round.groups[j];
+                    if (++j < roundGroups.Length) group = roundGroups[j];
                     continue;
                 }
                 if (size == 0)
@@ -241,12 +192,12 @@ namespace Combloonation
                     group = split.Last();
                 }
                 else {
-                    if (++j < round.groups.Length) group = round.groups[j];
+                    if (++j < roundGroups.Length) group = roundGroups[j];
                 }
                 
                 if (++i < sizes.Length) size = sizes[i];
 
-                var bloon = Fuse(bloons).First();
+                var bloon = Fuse(bloons);
                 foreach (var subgroup in subgroups)
                 {
                     subgroup.bloon = bloon.id;
@@ -258,9 +209,15 @@ namespace Combloonation
             return groups.ToArray();
         }
 
-        public static int RoundSize(RoundModel round)
+        //https://stackoverflow.com/a/5807166
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> list)
         {
-            return round.groups.Sum(g => g.count);
+            var r = new Random();
+            var shuffledList = list.
+                Select(x => new { Number = r.Next(), Item = x }).
+                OrderBy(x => x.Number).
+                Select(x => x.Item);
+            return shuffledList.ToList();
         }
 
         public static int[] Partition(int size, int parts)
@@ -284,11 +241,11 @@ namespace Combloonation
                 var i = 1;
                 foreach (var rounds in round.rounds)
                 {
-                    var size = RoundSize(rounds);
+                    var size = rounds.groups.Sum(g => g.count);
                     var parts = random.Next(1, size + 1);
                     MelonLogger.Msg("Splitting round " + (i++) + " of size " + size + " into " + parts + " parts!");
-                    rounds.groups = Split(rounds, Partition(size, parts));
-                    if (i >= 40) break;
+                    rounds.groups = Split(rounds.groups, Partition(size, parts));
+                    //if (i >= 40) break;
                 }
             }
         }
