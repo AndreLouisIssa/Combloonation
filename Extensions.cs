@@ -1,7 +1,5 @@
 ﻿using UnityEngine;
-using UnhollowerBaseLib;
 using Object = Il2CppSystem.Object;
-using System.Linq;
 
 namespace Combloonation
 {
@@ -29,7 +27,7 @@ namespace Combloonation
 
         public static void SetPropertyValue(this object obj, string name, object value)
         {
-            obj.GetPropertyInfo(name).SetValue(obj, value);
+            obj.GetPropertyInfo(name).SetValue(obj, value, null);
         }
 
         public static object GetPropertyValue(this object obj, string name)
@@ -61,7 +59,7 @@ namespace Combloonation
         {
             var info = obj.GetPropertyInfo(name);
             var index = info.GetIndexParameters();
-            info.SetValue(obj, value, (Il2CppReferenceArray<Object>)Enumerable.Repeat(new Object(), index.Count).ToArray().Cast<Il2CppReferenceArray<Object>>());
+            info.SetValue(obj, value, null);
         }
 
         public static Object GetPropertyValue(this Object obj, string name)
