@@ -1,5 +1,4 @@
-﻿using Assets.Scripts.Unity;
-using BTD_Mod_Helper.Extensions;
+﻿using BTD_Mod_Helper.Extensions;
 using System.Collections.Generic;
 using HarmonyLib;
 using Assets.Scripts.Unity.UI_New.InGame;
@@ -10,72 +9,73 @@ using Assets.Scripts.Unity.Bridge;
 using Assets.Scripts.Simulation.Display;
 using MelonLoader;
 using Assets.Scripts.Unity.Display;
-using System.Collections;
 using Assets.Scripts.Simulation.Behaviors;
-using Assets.Scripts.Utils;
-using System.Reflection;
-using Assets.Scripts.Models.Rounds;
-using UnhollowerBaseLib;
-using Assets.Scripts.Simulation.Bloons.Behaviors;
-using Color = UnityEngine.Color;
 
 namespace Combloonation
 {
-    public class DisplayTest
+    public static class DisplayTest
     {
         public static readonly Dictionary<int, Bloon> bloonCache = new Dictionary<int, Bloon>();
         public static readonly HashSet<int> skipExtra = new HashSet<int>();
 
-        public static void SetBloonAppearance(Bloon bloon, DisplayBehavior display, DisplayNode node, UnityDisplayNode graphic, GameObject gameObject)
+        public static void SetBloonAppearance(Bloon bloon, DisplayBehavior display, DisplayNode node, UnityDisplayNode graphic)
         {
-            //graphic.Scale *= 3;
-            if (!bloon.bloonModel.isMoab)
+            MelonLogger.Msg("bloon: " + bloon.bloonModel.id + " " + bloon.Id);
+            var sprite = graphic.sprite;
+            if (sprite != null)
             {
-                gameObject.GetComponent<SpriteRenderer>().color = new Color(.5f, .5f, .5f);
+                var s = sprite.sprite;
+                var t = s.texture.Duplicate();
+                foreach (var xy in t.GetEnumerator())
+                {
+                    var x = xy.Item1; var y = xy.Item2;
+                    var c = t.GetPixel(x, y);
+                    c.r = c.g = c.b = new float[] { c.r, c.g, c.b }.Max();
+                    t.SetPixel(x, y, c);
+                }
+                s.SetPropertyValue("texture", t);
             }
-            else
+            else foreach (var renderer in graphic.genericRenderers)
             {
-                gameObject.GetComponent<MeshRenderer>().material.color = new Color(.5f, .5f, .5f);
+                var texture = renderer.material.mainTexture;
+                Texture2D texture2D = new Texture2D(texture.width, texture.height);
+                texture2D.LoadFromFile($"Test/Desaturated/{bloon.bloonModel.id.ToString().Replace("Fortified","")}.png");
+                renderer.material.mainTexture = texture2D;
             }
         }
         public static void SetBloonAppearanceA(Bloon bloon)
         {
-            MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);
+            //MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);
             var display = bloon.display;
-            if (display == null) { MelonLogger.Msg("! display"); return; }
+            if (display == null) return;//{ MelonLogger.Msg("! display"); return; }
             bloonCache[display.entity.Id] = bloon;
-            MelonLogger.Msg($"  display: {display.Id} {display.entity.Id}");
+            //MelonLogger.Msg($"  display: {display.Id} {display.entity.Id}");
             var node = display.node;
-            if (node == null) { MelonLogger.Msg("! node"); return; }
-            MelonLogger.Msg($"  node: {node.objectId} {node.groupId}");
+            if (node == null) return;//{ MelonLogger.Msg("! node"); return; }
+            //MelonLogger.Msg($"  node: {node.objectId} {node.groupId}");
             var graphic = node.graphic;
-            if (graphic == null) { MelonLogger.Msg("! graphic"); return; }
-            MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
-            var gameObject = graphic.gameObject;
-            if (gameObject == null) { MelonLogger.Msg("! gameObject"); return; }
-            MelonLogger.Msg($"  gameObject: {gameObject.name} {gameObject.GetInstanceID()}");
+            if (graphic == null) return;//{ MelonLogger.Msg("! graphic"); return; }
+            //MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
+            skipExtra.Add(bloon.Id);
 
-            SetBloonAppearance(bloon, display, node, graphic, gameObject);
+            SetBloonAppearance(bloon, display, node, graphic);
         }
         public static void SetBloonAppearanceB(Bloon bloon)
         {
             if (skipExtra.Contains(bloon.Id)) return;
-            MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);
+            //MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);
             var display = bloon.display;
-            if (display == null) { MelonLogger.Msg("! display"); return; }
-            MelonLogger.Msg($"  display: {display.Id} {display.entity.Id}");
+            if (display == null) return;//{ MelonLogger.Msg("! display"); return; }
+            //MelonLogger.Msg($"  display: {display.Id} {display.entity.Id}");
             var node = display.node;
-            if (node == null) { MelonLogger.Msg("! node"); return; }
-            MelonLogger.Msg($"  node: {node.objectId} {node.groupId}");
+            if (node == null) return;//{ MelonLogger.Msg("! node"); return; }
+            //MelonLogger.Msg($"  node: {node.objectId} {node.groupId}");
             var graphic = node.graphic;
-            if (graphic == null) { MelonLogger.Msg("! graphic"); return; }
-            MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
-            var gameObject = graphic.gameObject;
-            if (gameObject == null) { MelonLogger.Msg("! gameObject"); return; }
-            MelonLogger.Msg($"  gameObject: {gameObject.name} {gameObject.GetInstanceID()}");
+            if (graphic == null) return;//{ MelonLogger.Msg("! graphic"); return; }
+            //MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
             skipExtra.Add(bloon.Id);
 
-            SetBloonAppearance(bloon, display, node, graphic, gameObject);
+            SetBloonAppearance(bloon, display, node, graphic);
         }
 
         [HarmonyPatch(typeof(DisplayNode), nameof(DisplayNode.Graphic), MethodType.Setter)]
@@ -105,7 +105,17 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(InGame __instance)
             {
-                foreach (var bloonSim in __instance.bridge.GetAllBloons())
+                if (__instance.bridge == null) return;
+                Il2CppSystem.Collections.Generic.List<BloonToSimulation> bloonSims;
+                try
+                {
+                    bloonSims = __instance.bridge.GetAllBloons();
+                }
+                catch
+                {
+                    return;
+                }
+                foreach (var bloonSim in bloonSims)
                 {
                     SetBloonAppearanceB(bloonSim.GetBloon());
                 }
