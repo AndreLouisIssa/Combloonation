@@ -24,7 +24,7 @@ namespace Combloonation
             public static void Postfix()
             {
                 Labloontory.lookup = Game.instance.model.bloonsByName;
-                Labloontory.MutateRounds();
+                //Labloontory.MutateRounds();
             }
         }
 
