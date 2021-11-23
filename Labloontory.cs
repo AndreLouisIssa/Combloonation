@@ -217,7 +217,7 @@ namespace Combloonation
                 Select(x => new { Number = r.Next(), Item = x }).
                 OrderBy(x => x.Number).
                 Select(x => x.Item);
-            return shuffledList.ToList();
+            return shuffledList;
         }
 
         public static int[] Partition(int size, int parts)
