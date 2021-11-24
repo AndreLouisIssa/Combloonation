@@ -92,7 +92,7 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
 
-                fusands = new HashSet<string>(bloons.Select(b => b.id)).Select(s => lookup[s]).OrderByDescending(f => f.danger);
+                fusands = bloons.Select(b => b.id).Distinct().Select(s => lookup[s]).OrderByDescending(f => f.danger);
                 fusion = Clone(fusands.First());
                 // assume that the most 'danger' is the best pick for the display (and max danger can be left unset)
             }
@@ -100,7 +100,7 @@ namespace Combloonation
             public BloonsionReactor Merge()
             {
                 real = true;
-                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
+                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors();//.MergeChildren();
             }
 
             public BloonsionReactor MergeId()
@@ -163,9 +163,6 @@ namespace Combloonation
                 fusion.rotate = fusands.Any(f => f.rotate);
                 fusion.rotateToFollowPath = fusands.Any(f => f.rotateToFollowPath);
                 fusion.icon = fusands.First(f => f.icon != null).icon;
-                var color = fusands.Select(f => f.GetBaseColor()).Where(c => c != null).Select(c => (Color)c)
-                    .Aggregate((a, b) => a + b);
-                baseColors.Add(fusion.id, color);
                 return this;
             }
 
