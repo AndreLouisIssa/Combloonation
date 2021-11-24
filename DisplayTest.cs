@@ -21,6 +21,7 @@ namespace Combloonation
         public static void SetBloonAppearance(Bloon bloon, DisplayBehavior display, DisplayNode node, UnityDisplayNode graphic)
         {
             MelonLogger.Msg("bloon: " + bloon.bloonModel.id + " " + bloon.Id);
+            return;
             var sprite = graphic.sprite;
             if (sprite != null)
             {

@@ -24,6 +24,43 @@ namespace Combloonation
         public static readonly Random random = new Random();
         public static Il2CppSystem.Collections.Generic.Dictionary<string, BloonModel> lookup;
 
+        public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
+        {
+            { "Red",     HexColor("ed1919") },
+            { "Blue",    HexColor("2495df") },
+            { "Green",   HexColor("74a70c") },
+            { "Yellow",  HexColor("ffd40f") },
+            { "Pink",    HexColor("f04d5e") },
+            { "White",   HexColor("e7e7e7") },
+            { "Black",   HexColor("141414") },
+            { "Lead",    HexColor("8d95a7") },
+            { "Purple",  HexColor("9426e0") },
+            { "Zebra",   HexColor("9e9e9e") },
+            { "Rainbow", HexColor("ffab21") },
+            { "Ceramic", HexColor("bd6b1c") },
+            { "Moab",    HexColor("063ab5") },
+            { "Bfb",     HexColor("6b0000") },
+            { "Zomg",    HexColor("cefc02") },
+            { "Ddt",     HexColor("454b41") },
+            { "Bad",     HexColor("e800ed") },
+        };
+
+        public static Color HexColor(string hex)
+        {
+            byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+            byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+            byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+            return new Color32(r, g, b, 255);
+        }
+
+        public static Color? GetBaseColor(BloonModel bloon)
+        {
+            var id = bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "");
+            var got = baseColors.TryGetValue(id, out var col);
+            if (got) return col;
+            return null;
+        }
+
         public static string BloonString(IEnumerable<BloonModel> bloons)
         {
             return string.Join("_", bloons.Select(f => f.id));
