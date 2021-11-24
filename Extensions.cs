@@ -1,72 +1,12 @@
-﻿using UnityEngine;
-using Object = Il2CppSystem.Object;
+﻿using Assets.Scripts.Simulation.Bloons;
+using BTD_Mod_Helper.Extensions;
+using System.IO;
+using UnityEngine;
 
 namespace Combloonation
 {
     public static class Extensions
     {
-        public static System.Reflection.FieldInfo GetFieldInfo(this object obj, string name)
-        {
-            return obj.GetType().GetField($"<{name}>k__BackingField", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-        }
-
-        public static void SetFieldValue(this object obj, string name, object value)
-        {
-            obj.GetFieldInfo(name).SetValue(obj, value);
-        }
-
-        public static object GetFieldValue(this object obj, string name)
-        {
-            return obj.GetFieldInfo(name).GetValue(obj);
-        }
-
-        public static System.Reflection.PropertyInfo GetPropertyInfo(this object obj, string name)
-        {
-            return obj.GetType().GetProperty(name, System.Reflection.BindingFlags.Instance);
-        }
-
-        public static void SetPropertyValue(this object obj, string name, object value)
-        {
-            obj.GetPropertyInfo(name).SetValue(obj, value, null);
-        }
-
-        public static object GetPropertyValue(this object obj, string name)
-        {
-            return obj.GetPropertyInfo(name).GetValue(obj);
-        }
-
-        public static Il2CppSystem.Reflection.FieldInfo GetFieldInfo(this Object obj, string name)
-        {
-            return obj.GetIl2CppType().GetField($"<{name}>k__BackingField", Il2CppSystem.Reflection.BindingFlags.Instance);
-        }
-
-        public static void SetFieldValue(this Object obj, string name, Object value)
-        {
-            obj.GetFieldInfo(name).SetValue(obj, value);
-        }
-
-        public static Object GetFieldValue(this Object obj, string name)
-        {
-            return obj.GetFieldInfo(name).GetValue(obj);
-        }
-
-        public static Il2CppSystem.Reflection.PropertyInfo GetPropertyInfo(this Object obj, string name)
-        {
-            return obj.GetIl2CppType().GetProperty(name, Il2CppSystem.Reflection.BindingFlags.Instance);
-        }
-
-        public static void SetPropertyValue(this Object obj, string name, Object value)
-        {
-            var info = obj.GetPropertyInfo(name);
-            var index = info.GetIndexParameters();
-            info.SetValue(obj, value, null);
-        }
-
-        public static Object GetPropertyValue(this Object obj, string name)
-        {
-            return obj.GetPropertyInfo(name).GetValue(obj);
-        }
-
         public static System.Collections.Generic.IEnumerable<System.Tuple<int, int>> GetEnumerator(this Texture2D texture)
         {
             for (int x = 0; x < texture.width; x++)
@@ -78,7 +18,7 @@ namespace Combloonation
             }
         }
 
-        public static Texture2D Duplicate(this Texture2D texture)
+        public static Texture2D Duplicate(this Texture texture)
         {
             texture.filterMode = FilterMode.Point;
             RenderTexture rt = RenderTexture.GetTemporary(texture.width, texture.height);
@@ -92,7 +32,7 @@ namespace Combloonation
             return texture2;
         }
 
-        public static Texture2D Duplicate(this Texture2D texture, System.Func<int, int, Color, Color> func)
+        public static Texture2D Duplicate(this Texture texture, System.Func<int, int, Color, Color> func)
         {
             var t = texture.Duplicate();
             foreach (var xy in t.GetEnumerator())
@@ -101,6 +41,35 @@ namespace Combloonation
                 t.SetPixel(x, y, func(x, y, t.GetPixel(x, y)));
             }
             return t;
+        }
+
+        public static Texture2D TintMask(this Texture texture, Color tint)
+        {
+            return texture.Duplicate((x, y, c) => Labloontory.TintMask(tint, c));
+        }
+
+        public static Texture2D GenerateTexture(this Bloon bloon, Texture oldTexture)
+        {
+            var model = bloon.bloonModel;
+            var exists = Labloontory.computedTextures.TryGetValue(model, out var texture);
+            if (exists) return texture;
+            var color = model.GetBaseColor();
+            if (color is Color tint)
+            {
+                texture = oldTexture.TintMask(tint);
+                var path = $"{Main.folderPath}/{model.id}.png";
+                if (File.Exists(path))
+                {
+                    texture.LoadFromFile(path);
+                }
+                else
+                {
+                    texture.SaveToPNG(path);
+                }
+                Labloontory.computedTextures[model] = texture;
+                return texture;
+            }
+            return null;
         }
     }
 }
