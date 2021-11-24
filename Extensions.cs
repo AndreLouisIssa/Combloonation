@@ -1,5 +1,7 @@
 ﻿using Assets.Scripts.Simulation.Bloons;
 using BTD_Mod_Helper.Extensions;
+using MelonLoader;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -8,7 +10,7 @@ namespace Combloonation
 {
     public static class Extensions
     {
-        public static System.Collections.Generic.IEnumerable<System.Tuple<int, int>> GetEnumerator(this Texture2D texture)
+        public static IEnumerable<System.Tuple<int, int>> GetEnumerator(this Texture2D texture)
         {
             for (int x = 0; x < texture.width; x++ )
             {
@@ -58,18 +60,33 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => Labloontory.TintMask(tint, c), proj);
         }
 
+        public static int SplitRange(int lo, int hi, int n, int i)
+        {
+            int j = i - lo;
+            int m = hi - lo;
+            int mn = m / n;
+            return j / mn;
+        }
+
+        public static Texture2D TintMask(this Texture texture, List<Color> tints, Rect? proj = null)
+        {
+            int h = texture.height;
+            if (proj is Rect rect) h = (int)rect.height;
+            return texture.Duplicate((x, y, c) => Labloontory.TintMask(tints[SplitRange(0, texture.height, tints.Count, y)], c), proj);
+        }
+
         public static Texture2D GenerateTexture(this Bloon bloon, Texture oldTexture, Rect? proj = null)
         {
             var model = bloon.bloonModel;
             var exists = Labloontory.computedTextures.TryGetValue(model, out var texture);
             if (exists) return texture;
-            var color = model.GetBaseColor();
-            if (color is Color tint)
+            var tints = model.GetBaseColors();
+            if (tints.Count > 0)
             {
                 var path = $"{Main.folderPath}/{model.id}.png";
                 if (!File.Exists(path))
                 {
-                    texture = oldTexture.TintMask(tint, proj);
+                    texture = oldTexture.TintMask(tints, proj);
                     texture.SaveToPNGAlt(path);
                 }
                 texture.LoadFromFile(path);
