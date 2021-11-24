@@ -10,6 +10,7 @@ using Assets.Scripts.Simulation.Display;
 using MelonLoader;
 using Assets.Scripts.Unity.Display;
 using Assets.Scripts.Simulation.Behaviors;
+using System;
 
 namespace Combloonation
 {
@@ -25,17 +26,28 @@ namespace Combloonation
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var texture = bloon.GenerateTexture(sprite.sprite.texture);
-                if (texture != null) sprite.SetMainTexture(texture);
-
+                var texture = bloon.GenerateTexture(sprite.sprite.texture, sprite.sprite.textureRect);
+                if (texture != null)
+                {
+                    sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit, sprite.sprite.pivot);
+                    sprite.material.mainTexture = texture;
+                    sprite.sharedMaterial.mainTexture = texture;
+                    foreach (var m in sprite.materials.Concat(sprite.sharedMaterials)) m.mainTexture = texture;
+                }
             }
             else
             {
                 var renderer = graphic.genericRenderers.First(r => r.name == "Body");
                 var texture = bloon.GenerateTexture(renderer.material.mainTexture);
-                if (texture != null) renderer.SetMainTexture(texture);
+                if (texture != null) foreach (var r in graphic.genericRenderers) r.SetMainTexture(texture);
             }
         }
+
+        private static Sprite CreateSpriteFromTexture()
+        {
+            throw new NotImplementedException();
+        }
+
         public static void SetBloonAppearanceA(Bloon bloon)
         {
             //MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);
