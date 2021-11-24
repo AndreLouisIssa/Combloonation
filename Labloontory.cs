@@ -21,20 +21,20 @@ namespace Combloonation
 
         public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
         {
-            { "Red",     HexColor("ed1919") },
-            { "Blue",    HexColor("2495df") },
-            { "Green",   HexColor("74a70c") },
-            { "Yellow",  HexColor("ffd40f") },
-            { "Pink",    HexColor("f04d5e") },
+            { "Red",     HexColor("fe2A2A") },
+            { "Blue",    HexColor("35a6fa") },
+            { "Green",   HexColor("85b81d") },
+            { "Yellow",  HexColor("ffe511") },
+            { "Pink",    HexColor("f15d6e") },
             { "White",   HexColor("e7e7e7") },
-            { "Black",   HexColor("141414") },
+            { "Black",   HexColor("252525") },
             { "Lead",    HexColor("8d95a7") },
             { "Purple",  HexColor("9426e0") },
-            { "Zebra",   HexColor("9e9e9e") },
-            { "Rainbow", HexColor("ffab21") },
+            { "Zebra",   HexColor("9f9f9f") },
+            { "Rainbow", HexColor("ffbd21") },
             { "Ceramic", HexColor("bd6b1c") },
-            { "Moab",    HexColor("063ab5") },
-            { "Bfb",     HexColor("6b0000") },
+            { "Moab",    HexColor("55c5ed") },
+            { "Bfb",     HexColor("be0202") },
             { "Zomg",    HexColor("cefc02") },
             { "Ddt",     HexColor("454b41") },
             { "Bad",     HexColor("e800ed") },
@@ -45,7 +45,9 @@ namespace Combloonation
 
         public static Color TintMask(Color tint, Color mask)
         {
-            var col = tint.RGBMultiplied(mask.grayscale);
+            Color.RGBToHSV(mask, out var mh, out var ms, out var mv);
+            Color.RGBToHSV(tint, out var th, out var ts, out var tv);
+            var col = Color.HSVToRGB(th, ms, mv);
             col.a = mask.a;
             return col;
         }
