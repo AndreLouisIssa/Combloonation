@@ -8,12 +8,7 @@ using MelonLoader;
 using System;
 using Assets.Scripts.Unity;
 using UnityEngine;
-using BTD_Mod_Helper.Api;
-using BTD_Mod_Helper.Api.Display;
 using Random = System.Random;
-using Object = UnityEngine.Object;
-using UnhollowerBaseLib;
-using Assets.Scripts.Models;
 
 namespace Combloonation
 {
@@ -45,6 +40,15 @@ namespace Combloonation
             { "Bad",     HexColor("e800ed") },
         };
 
+        public static Dictionary<BloonModel, Texture2D> computedTextures = new Dictionary<BloonModel, Texture2D>();
+        
+
+        public static Color TintMask(Color tint, Color mask)
+        {
+            var col = tint.RGBMultiplied(mask.grayscale);
+            col.a = mask.a;
+            return col;
+        }
         public static Color HexColor(string hex)
         {
             byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
@@ -53,7 +57,7 @@ namespace Combloonation
             return new Color32(r, g, b, 255);
         }
 
-        public static Color? GetBaseColor(BloonModel bloon)
+        public static Color? GetBaseColor(this BloonModel bloon)
         {
             var id = bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "");
             var got = baseColors.TryGetValue(id, out var col);
@@ -75,9 +79,9 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
 
-                fusands = new HashSet<string>(bloons.Select(b => b.id)).Select(s => lookup[s]);
-                fusion = Clone(fusands.ArgMax(f => f.danger));
-                // assume that the most 'danger' is the best pick for the display and danger
+                fusands = new HashSet<string>(bloons.Select(b => b.id)).Select(s => lookup[s]).OrderByDescending(f => f.danger);
+                fusion = Clone(fusands.First());
+                // assume that the most 'danger' is the best pick for the display (and max danger can be left unset)
             }
 
             public BloonsionReactor Merge()
@@ -145,6 +149,10 @@ namespace Combloonation
                 fusion.radius = fusands.Max(f => f.radius);
                 fusion.rotate = fusands.Any(f => f.rotate);
                 fusion.rotateToFollowPath = fusands.Any(f => f.rotateToFollowPath);
+                fusion.icon = fusands.First(f => f.icon != null).icon;
+                var color = fusands.Select(f => f.GetBaseColor()).Where(c => c != null).Select(c => (Color)c)
+                    .Aggregate((a, b) => a + b);
+                baseColors.Add(fusion.id, color);
                 return this;
             }
 

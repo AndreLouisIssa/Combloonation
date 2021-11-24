@@ -18,31 +18,22 @@ namespace Combloonation
         public static readonly Dictionary<int, Bloon> bloonCache = new Dictionary<int, Bloon>();
         public static readonly HashSet<int> skipExtra = new HashSet<int>();
 
-        public static void SetBloonAppearance(Bloon bloon, DisplayBehavior display, DisplayNode node, UnityDisplayNode graphic)
+        public static void SetBloonAppearance(Bloon bloon, UnityDisplayNode graphic)
         {
             MelonLogger.Msg("bloon: " + bloon.bloonModel.id + " " + bloon.Id);
-            return;
+
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var s = sprite.sprite;
-                var t = s.texture.Duplicate();
-                foreach (var xy in t.GetEnumerator())
-                {
-                    var x = xy.Item1; var y = xy.Item2;
-                    var c = t.GetPixel(x, y);
-                    c.r = c.g = c.b = new float[] { c.r, c.g, c.b }.Max();
-                    t.SetPixel(x, y, c);
-                }
-                s.SetPropertyValue("texture", t);
-                //s.SetTexture(t);
+                var texture = bloon.GenerateTexture(sprite.sprite.texture);
+                if (texture != null) sprite.SetMainTexture(texture);
+
             }
-            else foreach (var renderer in graphic.genericRenderers)
+            else
             {
-                var texture = renderer.material.mainTexture;
-                Texture2D texture2D = new Texture2D(texture.width, texture.height);
-                texture2D.LoadFromFile($"Test/Desaturated/{bloon.bloonModel.id.ToString().Replace("Fortified","")}.png");
-                renderer.material.mainTexture = texture2D;
+                var renderer = graphic.genericRenderers.First(r => r.name == "Body");
+                var texture = bloon.GenerateTexture(renderer.material.mainTexture);
+                if (texture != null) renderer.SetMainTexture(texture);
             }
         }
         public static void SetBloonAppearanceA(Bloon bloon)
@@ -60,7 +51,7 @@ namespace Combloonation
             //MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
             skipExtra.Add(bloon.Id);
 
-            SetBloonAppearance(bloon, display, node, graphic);
+            SetBloonAppearance(bloon, graphic);
         }
         public static void SetBloonAppearanceB(Bloon bloon)
         {
@@ -77,7 +68,7 @@ namespace Combloonation
             //MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
             skipExtra.Add(bloon.Id);
 
-            SetBloonAppearance(bloon, display, node, graphic);
+            SetBloonAppearance(bloon, graphic);
         }
 
         [HarmonyPatch(typeof(DisplayNode), nameof(DisplayNode.Graphic), MethodType.Setter)]
