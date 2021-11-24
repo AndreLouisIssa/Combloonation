@@ -13,6 +13,7 @@ using BTD_Mod_Helper.Api.Display;
 using Random = System.Random;
 using Object = UnityEngine.Object;
 using UnhollowerBaseLib;
+using Assets.Scripts.Models;
 
 namespace Combloonation
 {
@@ -38,7 +39,8 @@ namespace Combloonation
             {
 
                 fusands = new HashSet<string>(bloons.Select(b => b.id)).Select(s => lookup[s]);
-                fusion = Clone(fusands.First());
+                fusion = Clone(fusands.ArgMax(f => f.danger));
+                // assume that the most 'danger' is the best pick for the display and danger
             }
 
             public BloonsionReactor Merge()
@@ -103,20 +105,16 @@ namespace Combloonation
 
             public BloonsionReactor MergeDisplay()
             {
-                fusion.radius = fusands.Sum(f => f.radius);
-                //TODO: this lol
-                //  rotate
-                //  display
-                //  etc
-                //TODO: canonical weighting of base bloons to determine priority for visuals
+                fusion.radius = fusands.Max(f => f.radius);
+                fusion.rotate = fusands.Any(f => f.rotate);
+                fusion.rotateToFollowPath = fusands.Any(f => f.rotateToFollowPath);
                 return this;
             }
 
             public BloonsionReactor MergeBehaviors()
             {
-                //TODO: maybe this
-                //  behaviors
-                //  childDependents
+                fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).ToIl2CppReferenceArray();
+                fusion.childDependants = fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
                 return this;
             }
         }
