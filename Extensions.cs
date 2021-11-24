@@ -67,13 +67,13 @@ namespace Combloonation
             return obj.GetPropertyInfo(name).GetValue(obj);
         }
 
-        public static System.Collections.Generic.IEnumerable<System.Tuple<int,int>> GetEnumerator(this Texture2D texture)
+        public static System.Collections.Generic.IEnumerable<System.Tuple<int, int>> GetEnumerator(this Texture2D texture)
         {
             for (int x = 0; x < texture.width; x++)
             {
                 for (int y = 0; y < texture.height; y++)
                 {
-                    yield return new System.Tuple<int,int>(x,y);
+                    yield return new System.Tuple<int, int>(x, y);
                 }
             }
         }
@@ -90,6 +90,17 @@ namespace Combloonation
             texture2.Apply();
             RenderTexture.active = null;
             return texture2;
+        }
+
+        public static Texture2D Duplicate(this Texture2D texture, System.Func<int, int, Color, Color> func)
+        {
+            var t = texture.Duplicate();
+            foreach (var xy in t.GetEnumerator())
+            {
+                var x = xy.Item1; var y = xy.Item2;
+                t.SetPixel(x, y, func(x, y, t.GetPixel(x, y)));
+            }
+            return t;
         }
     }
 }
