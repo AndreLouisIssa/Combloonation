@@ -21,23 +21,23 @@ namespace Combloonation
 
         public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
         {
-            { "Red",     HexColor("fe2A2A") },
-            { "Blue",    HexColor("35a6fa") },
-            { "Green",   HexColor("85b81d") },
-            { "Yellow",  HexColor("ffe511") },
-            { "Pink",    HexColor("f15d6e") },
+            { "Red",     HexColor("ee2020") },
+            { "Blue",    HexColor("2f9ae0") },
+            { "Green",   HexColor("78a911") },
+            { "Yellow",  HexColor("ffd511") },
+            { "Pink",    HexColor("f05363") },
             { "White",   HexColor("e7e7e7") },
             { "Black",   HexColor("252525") },
             { "Lead",    HexColor("8d95a7") },
-            { "Purple",  HexColor("9426e0") },
+            { "Purple",  HexColor("9326e0") },
             { "Zebra",   HexColor("9f9f9f") },
-            { "Rainbow", HexColor("ffbd21") },
+            { "Rainbow", HexColor("ffac24") },
             { "Ceramic", HexColor("bd6b1c") },
-            { "Moab",    HexColor("55c5ed") },
-            { "Bfb",     HexColor("be0202") },
+            { "Moab",    HexColor("1d83d9") },
+            { "Bfb",     HexColor("ab0000") },
             { "Zomg",    HexColor("cefc02") },
             { "Ddt",     HexColor("454b41") },
-            { "Bad",     HexColor("e800ed") },
+            { "Bad",     HexColor("bb00c6") },
         };
 
         public static Dictionary<BloonModel, Texture2D> computedTextures = new Dictionary<BloonModel, Texture2D>();
@@ -65,6 +65,17 @@ namespace Combloonation
             var got = baseColors.TryGetValue(id, out var col);
             if (got) return col;
             return null;
+        }
+
+        public static List<Color> GetBaseColors(this BloonModel bloon)
+        {
+            var cols = new List<Color>();
+            foreach (var id in bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "").Split('_').Distinct())
+            {
+                var got = baseColors.TryGetValue(id, out var col);
+                if (got) cols.Add(col);
+            }
+            return cols;
         }
 
         public static string BloonString(IEnumerable<BloonModel> bloons)
