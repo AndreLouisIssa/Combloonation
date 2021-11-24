@@ -34,6 +34,7 @@ namespace Combloonation
                     t.SetPixel(x, y, c);
                 }
                 s.SetPropertyValue("texture", t);
+                //s.SetTexture(t);
             }
             else foreach (var renderer in graphic.genericRenderers)
             {
