@@ -1,6 +1,7 @@
 ﻿using Assets.Scripts.Simulation.Bloons;
 using BTD_Mod_Helper.Extensions;
 using MelonLoader;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,11 +13,11 @@ namespace Combloonation
     {
         public static IEnumerable<System.Tuple<int, int>> GetEnumerator(this Texture2D texture)
         {
-            for (int x = 0; x < texture.width; x++ )
+            for (int x = 0; x < texture.width; x++)
             {
-                for (int y = 0; y < texture.height; y++ )
+                for (int y = 0; y < texture.height; y++)
                 {
-                    yield return new System.Tuple<int,int>(x,y);
+                    yield return new System.Tuple<int, int>(x, y);
                 }
             }
         }
@@ -34,13 +35,13 @@ namespace Combloonation
             RenderTexture.active = rt;
             Graphics.Blit(texture, rt);
             Texture2D texture2 = new Texture2D((int)rect.width, (int)rect.height);
-            texture2.ReadPixels(new Rect(rect.x,texture.height - rect.height - rect.y, rect.width, rect.height),0,0);
+            texture2.ReadPixels(new Rect(rect.x, texture.height - rect.height - rect.y, rect.width, rect.height), 0, 0);
             texture2.Apply();
             RenderTexture.active = null;
             return texture2;
         }
 
-        public static Texture2D Duplicate(this Texture texture, System.Func<int, int, Color, Color> func, Rect? proj = null)
+        public static Texture2D Duplicate(this Texture texture, Func<int, int, Color, Color> func, Rect? proj = null)
         {
             if (proj == null)
             {
@@ -60,49 +61,47 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => Labloontory.TintMask(tint, c), proj);
         }
 
-        public static int SplitRange(int lo, int hi, int n, int i)
+        public static int SplitRange(int n, int lo, int hi, int x)
         {
-            int j = i - lo;
+            int d = x - lo;
             int m = hi - lo;
             int mn = m / n;
-            return j / mn;
+            int i = d / mn;
+            return Math.Min(Math.Max(0,i),n - 1);
+        }
+
+        public static T SplitRange<T>(this List<T> list, int lo, int hi, int x)
+        {
+            return list[SplitRange(list.Count, lo, hi, x)];
         }
 
         public static Texture2D TintMask(this Texture texture, List<Color> tints, Rect? proj = null)
         {
-            int h = texture.height;
-            if (proj is Rect rect) h = (int)rect.height;
-            return texture.Duplicate((x, y, c) => Labloontory.TintMask(tints[SplitRange(0, texture.height, tints.Count, y)], c), proj);
+            if (tints == null) throw new ArgumentNullException(nameof(tints));
+            int h = proj is Rect rect ? (int)rect.height : texture.height;
+            return texture.Duplicate((x, y, c) => Labloontory.TintMask(tints.SplitRange(0, texture.height, y), c), proj);
         }
 
         public static Texture2D GenerateTexture(this Bloon bloon, Texture oldTexture, Rect? proj = null)
         {
+            if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var model = bloon.bloonModel;
             var exists = Labloontory.computedTextures.TryGetValue(model, out var texture);
             if (exists) return texture;
             var tints = model.GetBaseColors();
-            if (tints.Count > 0)
-            {
-                var path = $"{Main.folderPath}/{model.id}.png";
-                if (!File.Exists(path))
-                {
-                    texture = oldTexture.TintMask(tints, proj);
-                    texture.SaveToPNGAlt(path);
-                }
-                texture.LoadFromFile(path);
-                Labloontory.computedTextures[model] = texture;
-                return texture;
-            }
-            return null;
+            if (tints.Count == 0) return Labloontory.computedTextures[model] = null;
+            texture = oldTexture.TintMask(tints, proj);
+            texture.Reload($"{Main.folderPath}/{model.id}.png");
+            Labloontory.computedTextures[model] = texture;
+            return texture;
         }
 
-        public static void SaveToPNGAlt(this Texture2D texture, string filePath)
+        public static void Reload(this Texture2D texture, string path = null)
         {
+            if (texture == null) throw new ArgumentNullException(nameof(texture));
             byte[] bytes = ImageConversion.EncodeToPNG(texture).ToArray();
-            using (var file = new FileStream(filePath, FileMode.Create))
-            {
-                file.Write(bytes, 0, bytes.Length);
-            }
+            if (path != null) using (var file = new FileStream(path, FileMode.Create)) file.Write(bytes, 0, bytes.Length);
+            ImageConversion.LoadImage(texture, bytes);
         }
 
     }

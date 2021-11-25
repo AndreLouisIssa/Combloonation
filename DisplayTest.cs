@@ -43,11 +43,6 @@ namespace Combloonation
             }
         }
 
-        private static Sprite CreateSpriteFromTexture()
-        {
-            throw new NotImplementedException();
-        }
-
         public static void SetBloonAppearanceA(Bloon bloon)
         {
             //MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);

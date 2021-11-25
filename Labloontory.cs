@@ -9,6 +9,7 @@ using System;
 using Assets.Scripts.Unity;
 using UnityEngine;
 using Random = System.Random;
+using UnhollowerBaseLib;
 
 namespace Combloonation
 {
@@ -73,6 +74,7 @@ namespace Combloonation
             foreach (var id in bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "").Split('_').Distinct())
             {
                 var got = baseColors.TryGetValue(id, out var col);
+                MelonLogger.Msg($"{id} : {(got ? col.ToString() : got.ToString())}");
                 if (got) cols.Add(col);
             }
             return cols;
@@ -119,7 +121,6 @@ namespace Combloonation
                 fusion.isCamo = fusands.Any(f => f.isCamo);
                 fusion.isFortified = fusands.Any(f => f.isFortified);
                 fusion.isGrow = fusands.Any(f => f.isGrow);
-                fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
                 fusion.isMoab = fusands.Any(f => f.isMoab);
 
                 fusion.distributeDamageToChildren = fusands.Any(f => f.distributeDamageToChildren);
@@ -132,6 +133,7 @@ namespace Combloonation
             public BloonsionReactor MergeHealth()
             {
                 fusion.maxHealth = fusands.Max(f => f.maxHealth);
+                fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
                 fusion.leakDamage = fusands.Max(f => f.leakDamage);
                 fusion.totalLeakDamage = fusands.Max(f => f.totalLeakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
