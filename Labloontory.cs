@@ -42,7 +42,7 @@ namespace Combloonation
         };
 
         public static Dictionary<BloonModel, Texture2D> computedTextures = new Dictionary<BloonModel, Texture2D>();
-        
+
 
         public static Color TintMask(Color tint, Color mask)
         {
@@ -61,6 +61,21 @@ namespace Combloonation
             return new Color32(r, g, b, 255);
         }
 
+        public static Color AverageColor(Color a, Color b)
+        {
+            return Color.Lerp(a, b, (1 + b.a - a.a) / 2);
+        }
+
+        public static Color AverageColor(params Color[] c)
+        {
+            return c.Aggregate((a, b) => AverageColor(a, b));
+        }
+
+        public static Color AverageColor(IEnumerable<Color> c)
+        {
+            return AverageColor(c.ToArray());
+        }
+
         public static Color? GetBaseColor(this BloonModel bloon)
         {
             var id = bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "");
@@ -75,7 +90,6 @@ namespace Combloonation
             foreach (var id in bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "").Split('_').Distinct())
             {
                 var got = baseColors.TryGetValue(id, out var col);
-                MelonLogger.Msg($"{id} : {(got ? col.ToString() : got.ToString())}");
                 if (got) cols.Add(col);
             }
             return cols;
