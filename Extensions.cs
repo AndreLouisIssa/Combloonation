@@ -6,18 +6,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using static Combloonation.Labloontory;
 
 namespace Combloonation
 {
     public static class Extensions
     {
-        public static IEnumerable<System.Tuple<int, int>> GetEnumerator(this Texture2D texture)
+        public static IEnumerable<Tuple<int, int>> GetEnumerator(this Texture2D texture)
         {
             for (int x = 0; x < texture.width; x++)
             {
                 for (int y = 0; y < texture.height; y++)
                 {
-                    yield return new System.Tuple<int, int>(x, y);
+                    yield return new Tuple<int, int>(x, y);
                 }
             }
         }
@@ -39,6 +40,22 @@ namespace Combloonation
             texture2.Apply();
             RenderTexture.active = null;
             return texture2;
+        }
+
+        public static Texture2D ToTexture2D(this Texture texture)
+        {
+            return (texture is Texture2D t2D) ? t2D : texture.Duplicate();
+        }
+
+        public static Texture2D ToReadable(this Texture texture)
+        {
+            var t2D = texture.ToTexture2D();
+            return (t2D.isReadable) ? t2D : t2D.Duplicate();
+        }
+
+        public static IEnumerable<Tuple<int, int>> GetEnumerator(this Texture texture)
+        {
+            return texture.ToTexture2D().GetEnumerator();
         }
 
         public static Texture2D Duplicate(this Texture texture, Func<int, int, Color, Color> func, Rect? proj = null)
@@ -82,17 +99,23 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => Labloontory.TintMask(tints.SplitRange(0, texture.height, y), c), proj);
         }
 
+        public static IEnumerable<Color> GetColorEnumerator(this Texture texture)
+        {
+            var t2D = texture.ToReadable();
+            return t2D.GetEnumerator().Select(t => t2D.GetPixel(t.Item1, t.Item2));
+        }
+
         public static Texture2D GenerateTexture(this Bloon bloon, Texture oldTexture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var model = bloon.bloonModel;
-            var exists = Labloontory.computedTextures.TryGetValue(model, out var texture);
+            var exists = computedTextures.TryGetValue(model, out var texture);
             if (exists) return texture;
             var tints = model.GetBaseColors();
-            if (tints.Count == 0) return Labloontory.computedTextures[model] = null;
+            if (tints.Count == 0) return computedTextures[model] = null;
             texture = oldTexture.TintMask(tints, proj);
             texture.Reload($"{Main.folderPath}/{model.id}.png");
-            Labloontory.computedTextures[model] = texture;
+            computedTextures[model] = texture;
             return texture;
         }
 
