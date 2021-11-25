@@ -46,11 +46,12 @@ namespace Combloonation
 
         public static Color TintMask(Color tint, Color mask)
         {
-            Color.RGBToHSV(mask, out var mh, out var ms, out var mv);
-            Color.RGBToHSV(tint, out var th, out var ts, out var tv);
-            var col = Color.HSVToRGB(th, ms, mv);
-            col.a = mask.a;
-            return col;
+            //Color.RGBToHSV(mask, out var mh, out var ms, out var mv);
+            //Color.RGBToHSV(tint, out var th, out var ts, out var tv);
+            //var col = Color.HSVToRGB(th, ms, mv);
+            //col.a = mask.a;
+            //return col;
+            return new Color(tint.r, tint.g, tint.b, mask.a);
         }
         public static Color HexColor(string hex)
         {
