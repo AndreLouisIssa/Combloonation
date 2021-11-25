@@ -66,14 +66,14 @@ namespace Combloonation
             return Color.Lerp(a, b, (1 + b.a - a.a) / 2);
         }
 
-        public static Color AverageColor(params Color[] c)
+        public static Color AverageColor(IEnumerable<Color> c)
         {
             return c.Aggregate((a, b) => AverageColor(a, b));
         }
 
-        public static Color AverageColor(IEnumerable<Color> c)
+        public static Color AverageColor(params Color[] c)
         {
-            return AverageColor(c.ToArray());
+            return AverageColor((IEnumerable<Color>)c);
         }
 
         public static Color? GetBaseColor(this BloonModel bloon)
