@@ -7,9 +7,7 @@ using Assets.Scripts.Models.Bloons.Behaviors;
 using MelonLoader;
 using System;
 using Assets.Scripts.Unity;
-using UnityEngine;
 using Random = System.Random;
-using UnhollowerBaseLib;
 
 namespace Combloonation
 {
@@ -20,84 +18,14 @@ namespace Combloonation
         public static readonly Random random = new Random();
         public static Il2CppSystem.Collections.Generic.Dictionary<string, BloonModel> lookup;
 
-        public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
-        {
-            { "Red",     HexColor("ee2020") },
-            { "Blue",    HexColor("2f9ae0") },
-            { "Green",   HexColor("78a911") },
-            { "Yellow",  HexColor("ffd511") },
-            { "Pink",    HexColor("f05363") },
-            { "White",   HexColor("e7e7e7") },
-            { "Black",   HexColor("252525") },
-            { "Lead",    HexColor("8d95a7") },
-            { "Purple",  HexColor("9326e0") },
-            { "Zebra",   HexColor("9f9f9f") },
-            { "Rainbow", HexColor("ffac24") },
-            { "Ceramic", HexColor("bd6b1c") },
-            { "Moab",    HexColor("1d83d9") },
-            { "Bfb",     HexColor("ab0000") },
-            { "Zomg",    HexColor("cefc02") },
-            { "Ddt",     HexColor("454b41") },
-            { "Bad",     HexColor("bb00c6") },
-        };
-
-        public static Dictionary<BloonModel, Texture2D> computedTextures = new Dictionary<BloonModel, Texture2D>();
-
-
-        public static Color TintMask(Color tint, Color mask)
-        {
-            //Color.RGBToHSV(mask, out var mh, out var ms, out var mv);
-            //Color.RGBToHSV(tint, out var th, out var ts, out var tv);
-            //var col = Color.HSVToRGB(th, ms, mv);
-            //col.a = mask.a;
-            //return col;
-            return new Color(tint.r, tint.g, tint.b, mask.a);
-        }
-        public static Color HexColor(string hex)
-        {
-            byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
-            byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
-            byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
-            return new Color32(r, g, b, 255);
-        }
-
-        public static Color AverageColor(Color a, Color b)
-        {
-            return Color.Lerp(a, b, (1 + b.a - a.a) / 2);
-        }
-
-        public static Color AverageColor(IEnumerable<Color> c)
-        {
-            return c.Aggregate((a, b) => AverageColor(a, b));
-        }
-
-        public static Color AverageColor(params Color[] c)
-        {
-            return AverageColor((IEnumerable<Color>)c);
-        }
-
-        public static Color? GetBaseColor(this BloonModel bloon)
-        {
-            var id = bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "");
-            var got = baseColors.TryGetValue(id, out var col);
-            if (got) return col;
-            return null;
-        }
-
-        public static List<Color> GetBaseColors(this BloonModel bloon)
-        {
-            var cols = new List<Color>();
-            foreach (var id in bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "").Split('_').Distinct())
-            {
-                var got = baseColors.TryGetValue(id, out var col);
-                if (got) cols.Add(col);
-            }
-            return cols;
-        }
-
-        public static string BloonString(IEnumerable<BloonModel> bloons)
+        public static string BloonsToId(IEnumerable<BloonModel> bloons)
         {
             return string.Join("_", bloons.Select(f => f.id));
+        }
+
+        public static IEnumerable<BloonModel> BloonsFromId(string id)
+        {
+            return id.Split('_').Select(s => lookup[s]);
         }
 
         public class BloonsionReactor
@@ -122,7 +50,7 @@ namespace Combloonation
 
             public BloonsionReactor MergeId()
             {
-                fusion.id = BloonString(fusands);
+                fusion.id = BloonsToId(fusands);
                 fusion.baseId = fusion.id;
                 if (real) MelonLogger.Msg("Creating " + fusion.id + ":");
                 return this;
