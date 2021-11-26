@@ -13,6 +13,7 @@ using System;
 using UnityEngine;
 using System.IO;
 using static Combloonation.Labloontory;
+using Vector2 = Assets.Scripts.Simulation.SMath.Vector2;
 
 namespace Combloonation
 {
@@ -155,25 +156,15 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => TintMask(tint, c), proj);
         }
 
-        public static int SplitRange(int n, int lo, int hi, int x)
-        {
-            int d = x - lo;
-            int m = hi - lo;
-            int mn = m / n;
-            int i = d / mn;
-            return Math.Min(Math.Max(0, i), n - 1);
-        }
-
-        public static T SplitRange<T>(this List<T> list, int lo, int hi, int x)
-        {
-            return list[SplitRange(list.Count, lo, hi, x)];
-        }
-
         public static Texture2D TintMask(this Texture texture, List<Color> tints, Rect? proj = null)
         {
             if (tints == null) throw new ArgumentNullException(nameof(tints));
-            int h = proj is Rect rect ? (int)rect.height : texture.height;
-            return texture.Duplicate((x, y, c) => TintMask(tints.SplitRange(0, texture.height, y), c), proj);
+            int w = 0; int h = 0;
+            if (proj is Rect rect) { w = (int)rect.width; h = (int)rect.height; }
+            else { w = texture.width; h = texture.height; }
+            var w2 = w / 2; var h2 = h / 2;
+            var map = RegionScalarMap.Regions.vertical(-w2, w - w2, -h2, h - h2);
+            return texture.Duplicate((x, y, c) => TintMask(tints.SplitRange(map, x - w2, y - h2), c), proj);
         }
 
         public static IEnumerable<Color> GetColorEnumerator(this Texture texture)
@@ -204,7 +195,6 @@ namespace Combloonation
             if (sprite != null)
             {
                 var texture = bloon.GenerateTexture(sprite.sprite.texture, sprite.sprite.textureRect);
-                return;
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit, sprite.sprite.pivot);
