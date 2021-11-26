@@ -13,6 +13,7 @@ namespace Combloonation
             public static Func<float, float, float> horizontal = (x, y) => x;
             public static Func<float, float, float> annular = (x, y) => Magnitude(x, y);
             public static Func<float, float, float> radial = (x, y) => PositiveArgument(x, y);
+            public static Func<float, Func<float, float, float>> linear = (a) => (x, y) => Math.Cos(a) * y - Math.Sin(a) * x;
             public static Func<float, float, Func<float, float, float>> spiral = (r, a) => (x, y) =>
             {
                 return Modulo(Math.Atan2(x, y) + a * (float)System.Math.Log(Magnitude(x, y), r), Math.TWOPI);
@@ -44,6 +45,11 @@ namespace Combloonation
             public static Func<float, float, float, float, RegionScalarMap> radial = (xlo, xhi, ylo, yhi) =>
             {
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, 0, Math.TWOPI, Maps.radial);
+            };
+
+            public static Func<float, Func<float, float, float, float, RegionScalarMap>> linear = (a) => (xlo, xhi, ylo, yhi) =>
+            {
+                return new RegionScalarMap(xlo, xhi, ylo, yhi, Math.Cos(a)*ylo - Math.Sin(a)*xlo, Math.Cos(a)*yhi - Math.Sin(a)*xhi, Maps.linear(a));
             };
 
             public static Func<float, float, Func<float, float, float, float, RegionScalarMap>> spiral = (r, a) => (xlo, xhi, ylo, yhi) =>
