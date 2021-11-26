@@ -12,6 +12,7 @@ using Assets.Scripts.Models.Bloons;
 using System;
 using UnityEngine;
 using System.IO;
+using static Combloonation.Labloontory;
 
 namespace Combloonation
 {
@@ -20,6 +21,7 @@ namespace Combloonation
         public static bool enabled = false;
         public static readonly Dictionary<int, Bloon> bloonCache = new Dictionary<int, Bloon>();
         public static readonly HashSet<int> skipExtra = new HashSet<int>();
+        public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
 
         public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
         {
@@ -41,9 +43,6 @@ namespace Combloonation
             { "Ddt",     HexColor("454b41") },
             { "Bad",     HexColor("bb00c6") },
         };
-
-        public static Dictionary<BloonModel, Texture2D> computedTextures = new Dictionary<BloonModel, Texture2D>();
-
 
         public static Color TintMask(Color tint, Color mask)
         {
@@ -77,21 +76,14 @@ namespace Combloonation
             return AverageColor((IEnumerable<Color>)c);
         }
 
-        public static Color? GetBaseColor(this BloonModel bloon)
-        {
-            var id = bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "");
-            var got = baseColors.TryGetValue(id, out var col);
-            if (got) return col;
-            return null;
-        }
-
         public static List<Color> GetBaseColors(this BloonModel bloon)
         {
             var cols = new List<Color>();
-            foreach (var id in bloon.id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "").Split('_').Distinct())
+            foreach (var id in MinimalBloonIdsFromId(bloon.id))
             {
                 var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
+                MelonLogger.Msg($"{id} : {(got ? col.ToString() : got.ToString())}");
             }
             return cols;
         }
@@ -154,6 +146,7 @@ namespace Combloonation
                 var x = xy.Item1; var y = xy.Item2;
                 t.SetPixel(x, y, func(x, y, t.GetPixel(x, y)));
             }
+            t.Apply();
             return t;
         }
 
@@ -193,22 +186,14 @@ namespace Combloonation
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var model = bloon.bloonModel;
-            var exists = computedTextures.TryGetValue(model, out var texture);
+            if (oldTexture.isReadable) return null;
+            var exists = computedTextures.TryGetValue(model.id, out var texture);
             if (exists) return texture;
             var tints = model.GetBaseColors();
-            if (tints.Count == 0) return computedTextures[model] = null;
-            texture = oldTexture.TintMask(tints, proj);
-            texture.Reload($"{Main.folderPath}/{model.id}.png");
-            computedTextures[model] = texture;
+            if (tints.Count == 0) return computedTextures[model.id] = null;
+            computedTextures[model.id] = texture = oldTexture.TintMask(tints, proj);
+            texture.SaveToPNG($"{Main.folderPath}/{model.id}.png");
             return texture;
-        }
-
-        public static void Reload(this Texture2D texture, string path = null)
-        {
-            if (texture == null) throw new ArgumentNullException(nameof(texture));
-            byte[] bytes = ImageConversion.EncodeToPNG(texture).ToArray();
-            if (path != null) using (var file = new FileStream(path, FileMode.Create)) file.Write(bytes, 0, bytes.Length);
-            ImageConversion.LoadImage(texture, bytes);
         }
 
         public static void SetBloonAppearance(Bloon bloon, UnityDisplayNode graphic)
@@ -219,6 +204,7 @@ namespace Combloonation
             if (sprite != null)
             {
                 var texture = bloon.GenerateTexture(sprite.sprite.texture, sprite.sprite.textureRect);
+                return;
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit, sprite.sprite.pivot);
@@ -237,36 +223,26 @@ namespace Combloonation
 
         public static void SetBloonAppearanceA(Bloon bloon)
         {
-            //MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);
             var display = bloon.display;
-            if (display == null) return;//{ MelonLogger.Msg("! display"); return; }
+            if (display == null) return;
             bloonCache[display.entity.Id] = bloon;
-            //MelonLogger.Msg($"  display: {display.Id} {display.entity.Id}");
             var node = display.node;
-            if (node == null) return;//{ MelonLogger.Msg("! node"); return; }
-            //MelonLogger.Msg($"  node: {node.objectId} {node.groupId}");
+            if (node == null) return;
             var graphic = node.graphic;
-            if (graphic == null) return;//{ MelonLogger.Msg("! graphic"); return; }
-            //MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
+            if (graphic == null) return;
             skipExtra.Add(bloon.Id);
-
             SetBloonAppearance(bloon, graphic);
         }
         public static void SetBloonAppearanceB(Bloon bloon)
         {
             if (skipExtra.Contains(bloon.Id)) return;
-            //MelonLogger.Msg("bloon:" + bloon.bloonModel.id + " " + bloon.Id);
             var display = bloon.display;
-            if (display == null) return;//{ MelonLogger.Msg("! display"); return; }
-            //MelonLogger.Msg($"  display: {display.Id} {display.entity.Id}");
+            if (display == null) return;
             var node = display.node;
-            if (node == null) return;//{ MelonLogger.Msg("! node"); return; }
-            //MelonLogger.Msg($"  node: {node.objectId} {node.groupId}");
+            if (node == null) return;
             var graphic = node.graphic;
-            if (graphic == null) return;//{ MelonLogger.Msg("! graphic"); return; }
-            //MelonLogger.Msg($"  graphic: {graphic.name} {graphic.GetInstanceID()}");
+            if (graphic == null) return;
             skipExtra.Add(bloon.Id);
-
             SetBloonAppearance(bloon, graphic);
         }
 
