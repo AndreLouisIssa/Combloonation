@@ -50,7 +50,7 @@ namespace Combloonation
             public BloonsionReactor Merge()
             {
                 real = true;
-                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors();//.MergeChildren();
+                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay();//.MergeBehaviors();//.MergeChildren();
             }
 
             public BloonsionReactor MergeId()
@@ -119,7 +119,6 @@ namespace Combloonation
             public BloonsionReactor MergeBehaviors()
             {
                 fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).ToIl2CppReferenceArray();
-                fusion.childDependants = fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
                 return this;
             }
         }
