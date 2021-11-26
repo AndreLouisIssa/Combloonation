@@ -26,16 +26,16 @@ namespace Combloonation
 
         public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
         {
-            { "Red",     HexColor("ee2020") },
+            { "Red",     HexColor("fe2020") },
             { "Blue",    HexColor("2f9ae0") },
             { "Green",   HexColor("78a911") },
             { "Yellow",  HexColor("ffd511") },
             { "Pink",    HexColor("f05363") },
             { "White",   HexColor("e7e7e7") },
             { "Black",   HexColor("252525") },
-            { "Lead",    HexColor("8d95a7") },
+            { "Lead",    HexColor("7d85d7") },
             { "Purple",  HexColor("9326e0") },
-            { "Zebra",   HexColor("9f9f9f") },
+            { "Zebra",   HexColor("bfbfbf") },
             { "Rainbow", HexColor("ffac24") },
             { "Ceramic", HexColor("bd6b1c") },
             { "Moab",    HexColor("1d83d9") },
@@ -47,12 +47,11 @@ namespace Combloonation
 
         public static Color TintMask(Color tint, Color mask)
         {
-            //Color.RGBToHSV(mask, out var mh, out var ms, out var mv);
-            //Color.RGBToHSV(tint, out var th, out var ts, out var tv);
-            //var col = Color.HSVToRGB(th, ms, mv);
-            //col.a = mask.a;
-            //return col;
-            return new Color(tint.r, tint.g, tint.b, mask.a);
+            Color.RGBToHSV(mask, out var mh, out var ms, out var mv);
+            Color.RGBToHSV(tint, out var th, out var ts, out var tv);
+            var col = Color.HSVToRGB(th, ms, mv);
+            col.a = mask.a;
+            return Color.Lerp(col,new Color(tint.r, tint.g, tint.b, mask.a),0.75f);
         }
         public static Color HexColor(string hex)
         {
@@ -199,6 +198,7 @@ namespace Combloonation
                     sprite.material.mainTexture = texture;
                     sprite.sharedMaterial.mainTexture = texture;
                     foreach (var m in sprite.materials.Concat(sprite.sharedMaterials)) m.mainTexture = texture;
+                    foreach (var r in graphic.genericRenderers) r.SetMainTexture(texture);
                 }
             }
             else
