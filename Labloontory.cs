@@ -28,6 +28,11 @@ namespace Combloonation
             return id.Split('_').Select(s => lookup[s]);
         }
 
+        public static IEnumerable<string> MinimalBloonIdsFromId(string id)
+        {
+            return id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "").Split('_').Distinct();
+        }
+
         public class BloonsionReactor
         {
             public readonly IEnumerable<BloonModel> fusands;
