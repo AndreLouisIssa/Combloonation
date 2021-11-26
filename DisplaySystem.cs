@@ -195,7 +195,7 @@ namespace Combloonation
                 var texture = bloon.GenerateTexture(sprite.sprite.texture, sprite.sprite.textureRect);
                 if (texture != null)
                 {
-                    sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit, sprite.sprite.pivot);
+                    sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
                     sprite.material.mainTexture = texture;
                     sprite.sharedMaterial.mainTexture = texture;
                     foreach (var m in sprite.materials.Concat(sprite.sharedMaterials)) m.mainTexture = texture;
