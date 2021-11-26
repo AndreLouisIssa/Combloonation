@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MelonLoader;
+using System;
 using System.Collections.Generic;
 using Math = Assets.Scripts.Simulation.SMath.Math;
 
@@ -11,14 +12,10 @@ namespace Combloonation
             public static Func<float, float, float> vertical = (x, y) => y;
             public static Func<float, float, float> horizontal = (x, y) => x;
             public static Func<float, float, float> annular = (x, y) => Magnitude(x, y);
-            public static Func<float, float, float> radial = (x, y) => PositiveArgument(x, y) % Math.TWOPI;
-            public static Func<float, Func<float, float, float>> spiralArchimedian = r => (x, y) =>
+            public static Func<float, float, float> radial = (x, y) => PositiveArgument(x, y);
+            public static Func<float, float, Func<float, float, float>> spiral = (r, a) => (x, y) =>
             {
-                return (r * Magnitude(x, y) + PositiveArgument(x, y)) % Math.TWOPI;
-            };
-            public static Func<float, Func<float, float, float>> spiralLogarithmic = r => (x, y) =>
-            {
-                return (-r * (float)System.Math.Log(Magnitude(x, y)) + PositiveArgument(x, y)) % Math.TWOPI;
+                return Modulo(Math.Atan2(x, y) + a * (float)System.Math.Log(Magnitude(x, y), r), Math.TWOPI);
             };
         }
 
@@ -49,14 +46,9 @@ namespace Combloonation
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, 0, Math.TWOPI, Maps.radial);
             };
 
-            public static Func<float, Func<float, float, float, float, RegionScalarMap>> spiralArchimedian = r => (xlo, xhi, ylo, yhi) =>
+            public static Func<float, float, Func<float, float, float, float, RegionScalarMap>> spiral = (r, a) => (xlo, xhi, ylo, yhi) =>
             {
-                return new RegionScalarMap(xlo, xhi, ylo, yhi, 0, Math.TWOPI, Maps.spiralArchimedian(r));
-            };
-
-            public static Func<float, Func<float, float, float, float, RegionScalarMap>> spiralLogarithmic = r => (xlo, xhi, ylo, yhi) =>
-            {
-                return new RegionScalarMap(xlo, xhi, ylo, yhi, 0, Math.TWOPI, Maps.spiralLogarithmic(r));
+                return new RegionScalarMap(xlo, xhi, ylo, yhi, 0, Math.TWOPI, Maps.spiral(r, a));
             };
         }
 
@@ -71,14 +63,14 @@ namespace Combloonation
         {
             if (xhi < xlo) { this.xlo = xhi; this.xhi = xlo; } else { this.xlo = xlo; this.xhi = xhi; }
             if (yhi < ylo) { this.ylo = yhi; this.yhi = ylo; } else { this.ylo = ylo; this.yhi = yhi; }
-            if (zhi < zlo) { this.zlo = zhi; this.zhi = zlo; } else { this.zlo = zlo; this.zhi = xhi; }
+            if (zhi < zlo) { this.zlo = zhi; this.zhi = zlo; } else { this.zlo = zlo; this.zhi = zhi; }
             this.f = f;
         }
 
         public static float PositiveArgument(float x, float y)
         {
             var t = Math.Atan2(x, y);
-            return t < 0 ? Math.TWOPI - t : t;
+            return t < 0 ? Math.PI - t : t;
         }
 
         public static float MagnitudeSquared(float x, float y)
@@ -101,13 +93,20 @@ namespace Combloonation
             return Math.Min(Math.Abs(x), Math.Abs(y));
         }
 
+        public static float Modulo(float x, float y)
+        {
+            return x - y * Math.Floor(x / y);
+        }
+
         public static int SplitRange(int n, float lo, float hi, float x)
         {
-            if (hi == lo) return 0;
+            if (n <= 0) throw new ArgumentException("Number of parts must be positive.", nameof(n));
+            if (hi <= lo) throw new ArgumentException("High terminal must be greater than low terminal.");
             var d = x - lo;
             var m = hi - lo;
-            var mn = (int)m / n;
-            var i = (int)d / mn;
+            var mn = Math.FloorToInt(m / n);
+            if (mn == 0) return 0;
+            var i = Math.FloorToInt(d / mn);
             return Math.Min(Math.Max(0, i), n - 1);
         }
     }
