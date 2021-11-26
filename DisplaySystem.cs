@@ -163,7 +163,7 @@ namespace Combloonation
             if (proj is Rect rect) { w = (int)rect.width; h = (int)rect.height; }
             else { w = texture.width; h = texture.height; }
             var w2 = w / 2; var h2 = h / 2;
-            var map = RegionScalarMap.Regions.vertical(-w2, w - w2, -h2, h - h2);
+            var map = RegionScalarMap.Regions.annular(-w2, w - w2, -h2, h - h2);
             return texture.Duplicate((x, y, c) => TintMask(tints.SplitRange(map, x - w2, y - h2), c), proj);
         }
 
