@@ -84,7 +84,6 @@ namespace Combloonation
             {
                 var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
-                MelonLogger.Msg($"{id} : {(got ? col.ToString() : got.ToString())}");
             }
             return cols;
         }
@@ -163,7 +162,7 @@ namespace Combloonation
             if (proj is Rect rect) { w = (int)rect.width; h = (int)rect.height; }
             else { w = texture.width; h = texture.height; }
             var w2 = w / 2; var h2 = h / 2;
-            var map = RegionScalarMap.Regions.annular(-w2, w - w2, -h2, h - h2);
+            var map = RegionScalarMap.Regions.spiral(1.3f,0.6f)(-w2, w - w2, -h2, h - h2);
             return texture.Duplicate((x, y, c) => TintMask(tints.SplitRange(map, x - w2, y - h2), c), proj);
         }
 
@@ -178,6 +177,7 @@ namespace Combloonation
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var model = bloon.bloonModel;
             if (oldTexture.isReadable) return null;
+            MelonLogger.Msg("bloon: " + bloon.bloonModel.id + " " + bloon.Id);
             var exists = computedTextures.TryGetValue(model.id, out var texture);
             if (exists) return texture;
             var tints = model.GetBaseColors();
@@ -189,8 +189,6 @@ namespace Combloonation
 
         public static void SetBloonAppearance(Bloon bloon, UnityDisplayNode graphic)
         {
-            MelonLogger.Msg("bloon: " + bloon.bloonModel.id + " " + bloon.Id);
-
             var sprite = graphic.sprite;
             if (sprite != null)
             {
