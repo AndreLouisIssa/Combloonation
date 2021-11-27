@@ -177,9 +177,10 @@ namespace Combloonation
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var model = bloon.bloonModel;
             if (oldTexture.isReadable) return null;
-            MelonLogger.Msg("bloon: " + bloon.bloonModel.id + " " + bloon.Id);
+            MelonLogger.Msg("bloon: " + model.id + " " + bloon.Id);
             var exists = computedTextures.TryGetValue(model.id, out var texture);
             if (exists) return texture;
+            if (!model.id.Contains('_')) return computedTextures[model.id] = null;
             var tints = model.GetBaseColors();
             if (tints.Count == 0) return computedTextures[model.id] = null;
             computedTextures[model.id] = texture = oldTexture.TintMask(tints, proj);

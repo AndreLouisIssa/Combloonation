@@ -44,8 +44,7 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
-
-                fusands = bloons.Select(b => b.id).Distinct().Select(s => lookup[s]).OrderByDescending(f => f.danger);
+                fusands = bloons.GroupBy(b => b.id).Select(g => g.FirstOrDefault()).OrderByDescending(f => f.danger);
                 fusion = Clone(fusands.First());
                 // assume that the most 'danger' is the best pick for the display (and max danger can be left unset)
             }
@@ -53,7 +52,7 @@ namespace Combloonation
             public BloonsionReactor Merge()
             {
                 real = true;
-                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors();//.MergeChildren();
+                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
             }
 
             public BloonsionReactor MergeId()
@@ -83,10 +82,10 @@ namespace Combloonation
 
             public BloonsionReactor MergeHealth()
             {
-                fusion.maxHealth = fusands.Max(f => f.maxHealth);
+                fusion.maxHealth = fusands.Sum(f => f.maxHealth);
                 fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
-                fusion.leakDamage = fusands.Max(f => f.leakDamage);
-                fusion.totalLeakDamage = fusands.Max(f => f.totalLeakDamage);
+                fusion.leakDamage = fusands.Sum(f => f.leakDamage);
+                fusion.totalLeakDamage = fusands.Sum(f => f.totalLeakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
                 if (real) MelonLogger.Msg("     - " + fusion.maxHealth + " health");
                 return this;
@@ -106,8 +105,12 @@ namespace Combloonation
                 var bound = fusand_children.Max(c => c.Count());
                 var children = fusand_children.Select(c => new Combinomial(c)).Aggregate((a, b) => a.Product(b).Cull().Bound(bound));
                 if (real) MelonLogger.Msg("     - " + children);
-                fusion.GetBehavior<SpawnChildrenModel>().children = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value)).Select(c => c.id).ToArray();
+                var behavior = fusion.GetBehavior<SpawnChildrenModel>().Duplicate();
+                fusion.RemoveBehavior<SpawnChildrenModel>();
+                behavior.children = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value)).Select(c => c.id).ToArray();
+                fusion.AddBehavior(behavior);
                 return this;
+
             }
 
             public BloonsionReactor MergeDisplay()
@@ -125,6 +128,7 @@ namespace Combloonation
                 {
                     return model.GetIl2CppType() == Il2CppType.Of<DisplayModel>();
                 };
+                //TODO: go through SpawnBloonsAction behaviors and merge the bloons between them
                 fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList().Where(b => !IsDisplayModel(b))).Append(fusion.behaviors.First(b => IsDisplayModel(b))).ToIl2CppReferenceArray();
                 fusion.childDependants = fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
                 return this;
@@ -180,7 +184,7 @@ namespace Combloonation
             return Split(roundGroups, sizes, bloons => Fuse(bloons));
         }
 
-        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes, Func<BloonModel[], BloonModel> fuser)
+        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes, Func<List<BloonModel>, BloonModel> fuser)
         {
             var groups = new List<BloonGroupModel>();
             var subgroups = new List<BloonGroupModel>();
@@ -207,7 +211,7 @@ namespace Combloonation
                 
                 if (++i < sizes.Length) size = sizes[i];
 
-                var bloon = Fuse(bloons);
+                var bloon = fuser(bloons);
                 foreach (var subgroup in subgroups)
                 {
                     subgroup.bloon = bloon.id;
