@@ -141,7 +141,7 @@ namespace Combloonation
 
             public BloonsionReactor MergeProperties()
             {
-                fusion.danger = fusands.Sum(f => f.danger);
+                fusion.danger = fusands.Max(f => f.danger);
                 fusion.bloonProperties = fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
 
                 fusion.isBoss = fusands.Any(f => f.isBoss);
@@ -162,7 +162,6 @@ namespace Combloonation
                 fusion.maxHealth = fusands.Sum(f => f.maxHealth);
                 fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
                 fusion.leakDamage = fusands.Sum(f => f.leakDamage);
-                fusion.totalLeakDamage = fusands.Sum(f => f.totalLeakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
                 if (real) MelonLogger.Msg("     - " + fusion.maxHealth + " health");
                 return this;
@@ -186,10 +185,12 @@ namespace Combloonation
                 fusion.RemoveBehavior(behavior);
                 behavior = behavior.Duplicate();
                 var childModels = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value));
+                fusion.totalLeakDamage = fusion.leakDamage + childModels.Sum(c => c.totalLeakDamage);
                 behavior.children = childModels.Select(c => c.id).ToArray();
                 fusion.childBloonModels = childModels.ToIl2CppList();
                 fusion.UpdateChildBloonModels();
                 fusion.AddBehavior(behavior);
+
                 return this;
 
             }
