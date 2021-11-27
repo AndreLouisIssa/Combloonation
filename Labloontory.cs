@@ -73,6 +73,11 @@ namespace Combloonation
             return id.Split(delim).Select(s => GetGameModel().bloonsByName[s]);
         }
 
+        public static IEnumerable<BloonModel> BloonsFromBloon(BloonModel bloon)
+        {
+            return BloonsFromId(bloon.id);
+        }
+
         public static IEnumerable<string> BloonIdsFromId(string id)
         {
             return id.Split(delim).Distinct();

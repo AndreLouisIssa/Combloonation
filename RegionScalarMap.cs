@@ -1,6 +1,7 @@
 ﻿using MelonLoader;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Math = Assets.Scripts.Simulation.SMath.Math;
 
 namespace Combloonation
@@ -16,7 +17,7 @@ namespace Combloonation
             public static Func<float, Func<float, float, float>> linear = (a) => (x, y) => Math.Cos(a) * y - Math.Sin(a) * x;
             public static Func<float, float, Func<float, float, float>> spiral = (r, a) => (x, y) =>
             {
-                return Modulo(Math.Atan2(x, y) + a * (float)System.Math.Log(Magnitude(x, y), r), Math.TWOPI);
+                return Modulo(Math.Atan2(-x, y) + a * (float)System.Math.Log(Magnitude(x, y), r) + Math.PI, Math.TWOPI) - Math.PI;
             };
         }
 
@@ -49,12 +50,12 @@ namespace Combloonation
 
             public static Func<float, Func<float, float, float, float, RegionScalarMap>> linear = (a) => (xlo, xhi, ylo, yhi) =>
             {
-                return new RegionScalarMap(xlo, xhi, ylo, yhi, Math.Cos(a)*ylo - Math.Sin(a)*xlo, Math.Cos(a)*yhi - Math.Sin(a)*xhi, Maps.linear(a));
+                return new RegionScalarMap(xlo, xhi, ylo, yhi, Math.Cos(a) * ylo - Math.Sin(a) * xlo, Math.Cos(a) * yhi - Math.Sin(a) * xhi, Maps.linear(a));
             };
 
             public static Func<float, float, Func<float, float, float, float, RegionScalarMap>> spiral = (r, a) => (xlo, xhi, ylo, yhi) =>
             {
-                return new RegionScalarMap(xlo, xhi, ylo, yhi, 0, Math.TWOPI, Maps.spiral(r, a));
+                return new RegionScalarMap(xlo, xhi, ylo, yhi, -Math.PI, Math.PI, Maps.spiral(r, a));
             };
         }
 
@@ -115,6 +116,26 @@ namespace Combloonation
             var i = Math.FloorToInt(d / mn);
             return Math.Min(Math.Max(0, i), n - 1);
         }
+
+        public static float[] WeightsToPivots(float[] ws)
+        {
+            var s = ws.Sum();
+            var wsn = ws.Take(ws.Length - 1).Select(w => w / s);
+            var ps = new List<float>();
+            var c = 0f;
+            foreach (var w in wsn) ps.Add(c += w);
+            return ps.ToArray();
+        }
+
+        public static int SplitRange(float[] s, bool w, float lo, float hi, float x)
+        {
+            if (s.Length <= 0) throw new ArgumentException("Number of parts must be positive.", nameof(s));
+            if (hi <= lo) throw new ArgumentException("High terminal must be greater than low terminal.");
+            if (w) s = WeightsToPivots(s);
+            var t = (x - lo) / (hi - lo);
+            for (int i = 0; i < s.Length; i++) if (t < s[i]) return i;
+            return s.Length;
+        }
     }
 
     public static class ListExt
@@ -124,9 +145,19 @@ namespace Combloonation
             return list[RegionScalarMap.SplitRange(list.Count, lo, hi, x)];
         }
 
+        public static T SplitRange<T>(this List<T> list, float[] s, bool w, float lo, float hi, float x)
+        {
+            return list[RegionScalarMap.SplitRange(s, w, lo, hi, x)];
+        }
+
         public static T SplitRange<T>(this List<T> list, RegionScalarMap map, float x, float y)
         {
-            return SplitRange(list, map.zlo, map.zhi, map.f(x,y));
+            return SplitRange(list, map.zlo, map.zhi, map.f(x, y));
+        }
+
+        public static T SplitRange<T>(this List<T> list, float[] s, bool w, RegionScalarMap map, float x, float y)
+        {
+            return SplitRange(list, s, w, map.zlo, map.zhi, map.f(x, y));
         }
     }
 }
