@@ -8,6 +8,9 @@ using MelonLoader;
 using System;
 using Assets.Scripts.Unity;
 using Random = System.Random;
+using UnhollowerRuntimeLib;
+using Assets.Scripts.Models.GenericBehaviors;
+using Assets.Scripts.Models;
 
 namespace Combloonation
 {
@@ -50,7 +53,7 @@ namespace Combloonation
             public BloonsionReactor Merge()
             {
                 real = true;
-                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay();//.MergeBehaviors();//.MergeChildren();
+                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors();//.MergeChildren();
             }
 
             public BloonsionReactor MergeId()
@@ -118,7 +121,12 @@ namespace Combloonation
 
             public BloonsionReactor MergeBehaviors()
             {
-                fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).ToIl2CppReferenceArray();
+                bool IsDisplayModel(Model model)
+                {
+                    return model.GetIl2CppType() == Il2CppType.Of<DisplayModel>();
+                };
+                fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList().Where(b => !IsDisplayModel(b))).Append(fusion.behaviors.First(b => IsDisplayModel(b))).ToIl2CppReferenceArray();
+                fusion.childDependants = fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
                 return this;
             }
         }

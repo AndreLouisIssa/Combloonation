@@ -84,7 +84,7 @@ namespace Combloonation
                 var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
             }
-            return cols;
+            return cols.Reverse();
         }
 
         public static IEnumerable<Tuple<int, int>> GetEnumerator(this Texture2D texture)
