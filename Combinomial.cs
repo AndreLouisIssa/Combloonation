@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Combloonation.Labloontory;
 
 namespace Combloonation
 {
@@ -17,12 +18,12 @@ namespace Combloonation
 
         }
 
-        public Combinomial(IEnumerable<string> bloons)
+        public Combinomial(IEnumerable<string> forms)
         {
             terms[new HashSet<string> { }] = 1;
-            foreach (string bloon in bloons)
+            foreach (var form in forms)
             {
-                var k = new HashSet<string> { bloon };
+                var k = new HashSet<string>(form.Split('_'));
                 terms.TryGetValue(k, out int d);
                 terms[k] = 1 + d;
             }
