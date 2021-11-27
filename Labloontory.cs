@@ -20,10 +20,19 @@ namespace Combloonation
 
         public static readonly Random random = new Random();
         public static Il2CppSystem.Collections.Generic.Dictionary<string, BloonModel> lookup;
+        public static List<string> properties = new List<string>
+        {
+            "Regrow", "Fortified", "Camo"
+        };
 
         public static string BloonsToId(IEnumerable<BloonModel> bloons)
         {
             return string.Join("_", bloons.Select(f => f.id));
+        }
+
+        public static IEnumerable<string> BloonsToIds(IEnumerable<BloonModel> bloons)
+        {
+            return  bloons.Select(f => f.id);
         }
 
         public static IEnumerable<BloonModel> BloonsFromId(string id)
@@ -31,9 +40,42 @@ namespace Combloonation
             return id.Split('_').Select(s => lookup[s]);
         }
 
-        public static IEnumerable<string> MinimalBloonIdsFromId(string id)
+        public static IEnumerable<string> BloonIdsFromId(string id)
         {
-            return id.Replace("Fortified", "").Replace("Camo", "").Replace("Regrow", "").Split('_').Distinct();
+            return id.Split('_').Distinct();
+        }
+        public static IEnumerable<string> BaseBloonIdsFromId(string id)
+        {
+            foreach (var p in properties)
+            {
+                id = id.Replace(p, "");
+            }
+            return id.Split('_').Distinct();
+        }
+
+        public static IEnumerable<string> PropertiesFromId(string id)
+        {
+            var props = new List<string>();
+            foreach (var p in properties)
+            {
+                if (id.Contains(p)) props.Add(p);
+            }
+            return props;
+        }
+
+        public static string PropertyString(HashSet<string> props)
+        {
+            var s = "";
+            foreach (var p in properties)
+            {
+                if (props.Contains(p)) s += p;
+            }
+            return s;
+        }
+
+        public static string PropertyString(IEnumerable<string> props)
+        {
+            return PropertyString(new HashSet<string>(props));
         }
 
         public class BloonsionReactor
@@ -44,27 +86,24 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
-                fusands = bloons.GroupBy(b => b.id).Select(g => g.FirstOrDefault()).OrderByDescending(f => f.danger);
+                var noDuplicates = bloons.SelectMany(b => BloonIdsFromId(b.id)).Distinct().Select(s => lookup[s]);
+                var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.First().baseId +
+                    PropertyString(g.Select(b => PropertiesFromId(b.id)).Aggregate((a, b) => a.Union(b))));
+                fusands = consolidatedProperties.Select(s => lookup[s]).OrderByDescending(f => f.danger);
                 fusion = Clone(fusands.First());
-                // assume that the most 'danger' is the best pick for the display (and max danger can be left unset)
+                fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToId(fusands);
             }
 
             public BloonsionReactor Merge()
             {
                 real = true;
-                return MergeId().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
-            }
-
-            public BloonsionReactor MergeId()
-            {
-                fusion.id = BloonsToId(fusands);
-                fusion.baseId = fusion.id;
-                if (real) MelonLogger.Msg("Creating " + fusion.id + ":");
-                return this;
+                MelonLogger.Msg("Creating " + fusion.id + ":");
+                return MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeBehaviors().MergeChildren();
             }
 
             public BloonsionReactor MergeProperties()
             {
+                fusion.danger = fusands.Sum(f => f.danger);
                 fusion.bloonProperties = fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
 
                 fusion.isBoss = fusands.Any(f => f.isBoss);
@@ -73,8 +112,8 @@ namespace Combloonation
                 fusion.isGrow = fusands.Any(f => f.isGrow);
                 fusion.isMoab = fusands.Any(f => f.isMoab);
 
-                fusion.distributeDamageToChildren = fusands.Any(f => f.distributeDamageToChildren);
-                fusion.tags = fusands.SelectMany(f => f.tags).Distinct().ToArray();
+                fusion.distributeDamageToChildren = fusands.All(f => f.distributeDamageToChildren);
+                fusion.tags = fusands.SelectMany(f => f.tags).Append("Fusion").Distinct().ToArray();
                 if (real) MelonLogger.Msg("     - " + fusion.tags.Length + " tags");
 
                 return this;
@@ -105,9 +144,13 @@ namespace Combloonation
                 var bound = fusand_children.Max(c => c.Count());
                 var children = fusand_children.Select(c => new Combinomial(c)).Aggregate((a, b) => a.Product(b).Cull().Bound(bound));
                 if (real) MelonLogger.Msg("     - " + children);
-                var behavior = fusion.GetBehavior<SpawnChildrenModel>().Duplicate();
-                fusion.RemoveBehavior<SpawnChildrenModel>();
-                behavior.children = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value)).Select(c => c.id).ToArray();
+                var behavior = fusion.GetBehavior<SpawnChildrenModel>();
+                fusion.RemoveBehavior(behavior);
+                behavior = behavior.Duplicate();
+                var childModels = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value));
+                behavior.children = childModels.Select(c => c.id).ToArray();
+                fusion.childBloonModels = childModels.ToIl2CppList();
+                fusion.UpdateChildBloonModels();
                 fusion.AddBehavior(behavior);
                 return this;
 
@@ -119,6 +162,8 @@ namespace Combloonation
                 fusion.rotate = fusands.Any(f => f.rotate);
                 fusion.rotateToFollowPath = fusands.Any(f => f.rotateToFollowPath);
                 fusion.icon = fusands.First(f => f.icon != null).icon;
+                fusion.RemoveBehaviors<DamageStateModel>();
+                fusion.damageDisplayStates = new DamageStateModel[] { };
                 return this;
             }
 
@@ -141,7 +186,7 @@ namespace Combloonation
         public static BloonModel Fuse(IEnumerable<BloonModel> bloons)
         {
             if (bloons.Count() == 0) return null;
-            var reactor = new BloonsionReactor(bloons).MergeId();
+            var reactor = new BloonsionReactor(bloons);
             var bloon = reactor.fusion;
             if (lookup.ContainsKey(bloon.id))
             {
@@ -163,7 +208,7 @@ namespace Combloonation
         {
             var game = Game.instance.model;
             game.bloons = game.bloons.Prepend(bloon).ToArray();
-            game.bloonsByName[bloon.id] = bloon;
+            game.bloonsByName[bloon.name] = bloon;
             return bloon;
         }
 
