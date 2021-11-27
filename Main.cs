@@ -29,7 +29,6 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix()
             {
-                Labloontory.lookup = Game.instance.model.bloonsByName;
                 Labloontory.MutateRounds();
             }
         }
