@@ -20,7 +20,7 @@ namespace Combloonation
     {
 
         public static readonly Random random = new Random();
-        public static string delim = "|@CombloonationFusion|";
+        public static string delim = "(@CombloonationFusion)";
         public static string debuglim = "_";
         public static List<string> properties = new List<string>
         {

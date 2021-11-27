@@ -17,9 +17,6 @@ namespace Combloonation
 {
     public static class DisplaySystem
     {
-        public static bool enabled = false;
-        public static readonly Dictionary<int, Bloon> bloonCache = new Dictionary<int, Bloon>();
-        public static readonly HashSet<int> skipExtra = new HashSet<int>();
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
 
         public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
@@ -176,14 +173,14 @@ namespace Combloonation
             var model = bloon.bloonModel;
             if (oldTexture == null) return computedTextures[model.id] = null;
             if (oldTexture.isReadable) return null;
-            MelonLogger.Msg("bloon: " + model.id + " " + bloon.Id);
             var exists = computedTextures.TryGetValue(model.id, out var texture);
             if (exists) return texture;
             if (!model.id.Contains(delim)) return computedTextures[model.id] = null;
+            MelonLogger.Msg("bloon: " + DebugString(model.id) + " " + bloon.Id);
             var tints = model.GetBaseColors();
             if (tints.Count == 0) return computedTextures[model.id] = null;
             computedTextures[model.id] = texture = oldTexture.TintMask(tints, proj);
-            texture.SaveToPNG($"{Main.folderPath}/{model.id}.png");
+            texture.SaveToPNG($"{Main.folderPath}/{DebugString(model.id)}.png");
             return texture;
         }
 
@@ -210,74 +207,34 @@ namespace Combloonation
             }
         }
 
-        public static void SetBloonAppearanceA(Bloon bloon)
+        public static void SetBloonAppearance(Bloon bloon)
         {
-            var display = bloon.display;
-            if (display == null) return;
-            bloonCache[display.entity.Id] = bloon;
-            var node = display.node;
-            if (node == null) return;
-            var graphic = node.graphic;
-            if (graphic == null) return;
-            skipExtra.Add(bloon.Id);
-            SetBloonAppearance(bloon, graphic);
-        }
-        public static void SetBloonAppearanceB(Bloon bloon)
-        {
-            if (skipExtra.Contains(bloon.Id)) return;
             var display = bloon.display;
             if (display == null) return;
             var node = display.node;
             if (node == null) return;
             var graphic = node.graphic;
             if (graphic == null) return;
-            skipExtra.Add(bloon.Id);
             SetBloonAppearance(bloon, graphic);
         }
 
-        [HarmonyPatch(typeof(DisplayNode), nameof(DisplayNode.Graphic), MethodType.Setter)]
-        class Patch_DisplayNode_set_Graphic
+        public static void OnInGameUpdate(InGame inGame)
         {
-            [HarmonyPostfix]
-            public static void Postfix(DisplayNode __instance)
+            if (inGame.bridge == null) return;
+            Il2CppSystem.Collections.Generic.List<BloonToSimulation> bloonSims;
+            try
             {
-                bloonCache.TryGetValue(__instance.groupId, out var bloon);
-                if (bloon != null) SetBloonAppearanceA(bloon);
+                bloonSims = inGame.bridge.GetAllBloons();
+            }
+            catch
+            {
+                return;
+            }
+            foreach (var bloonSim in bloonSims)
+            {
+                SetBloonAppearance(bloonSim.GetBloon());
             }
         }
 
-        [HarmonyPatch(typeof(Bloon), nameof(Bloon.OnSpawn))]
-        class Patch_Bloon_OnSpawn
-        {
-            [HarmonyPostfix]
-            public static void Postfix(Bloon __instance)
-            {
-                SetBloonAppearanceA(__instance);
-            }
-        }
-
-        [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
-        class Patch_InGame_Update
-        {
-            [HarmonyPostfix]
-            public static void Postfix(InGame __instance)
-            {
-                if (!enabled) return;
-                if (__instance.bridge == null) return;
-                Il2CppSystem.Collections.Generic.List<BloonToSimulation> bloonSims;
-                try
-                {
-                    bloonSims = __instance.bridge.GetAllBloons();
-                }
-                catch
-                {
-                    return;
-                }
-                foreach (var bloonSim in bloonSims)
-                {
-                    SetBloonAppearanceB(bloonSim.GetBloon());
-                }
-            }
-        }
     }
 }
