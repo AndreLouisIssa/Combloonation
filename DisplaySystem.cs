@@ -18,35 +18,55 @@ namespace Combloonation
     public static class DisplaySystem
     {
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
-        public static Color boundaryColor = HexColor("000000");
-        public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
+        public static IOverlay boundaryColor = new ColorOverlay(HexColor("000000"));
+        public static Dictionary<string, IOverlay> baseColors = new Dictionary<string, IOverlay>()
         {
-            { "Red",     HexColor("fe2020") },
-            { "Blue",    HexColor("2f9ae0") },
-            { "Green",   HexColor("78a911") },
-            { "Yellow",  HexColor("ffd511") },
-            { "Pink",    HexColor("f05363") },
-            { "White",   HexColor("e7e7e7") },
-            { "Black",   HexColor("252525") },
-            { "Lead",    HexColor("7d85d7") },
-            { "Purple",  HexColor("9326e0") },
-            { "Zebra",   HexColor("bfbfbf") },
-            { "Rainbow", HexColor("ffac24") },
-            { "Ceramic", HexColor("bd6b1c") },
-            { "Moab",    HexColor("1d83d9") },
-            { "Bfb",     HexColor("ab0000") },
-            { "Zomg",    HexColor("cefc02") },
-            { "Ddt",     HexColor("454b41") },
-            { "Bad",     HexColor("bb00c6") },
+            { "Red",     new ColorOverlay(HexColor("fe2020")) },
+            { "Blue",    new ColorOverlay(HexColor("2f9ae0")) },
+            { "Green",   new ColorOverlay(HexColor("78a911")) },
+            { "Yellow",  new ColorOverlay(HexColor("ffd511")) },
+            { "Pink",    new ColorOverlay(HexColor("f05363")) },
+            { "White",   new ColorOverlay(HexColor("e7e7e7")) },
+            { "Black",   new ColorOverlay(HexColor("252525")) },
+            { "Lead",    new ColorOverlay(HexColor("7d85d7")) },
+            { "Purple",  new ColorOverlay(HexColor("9326e0")) },
+            { "Zebra",   new ColorOverlay(HexColor("bfbfbf")) },
+            { "Rainbow", new ColorOverlay(HexColor("ffac24")) },
+            { "Ceramic", new ColorOverlay(HexColor("bd6b1c")) },
+            { "Moab",    new ColorOverlay(HexColor("1d83d9")) },
+            { "Bfb",     new ColorOverlay(HexColor("ab0000")) },
+            { "Zomg",    new ColorOverlay(HexColor("cefc02")) },
+            { "Ddt",     new ColorOverlay(HexColor("454b41")) },
+            { "Bad",     new ColorOverlay(HexColor("bb00c6")) },
         };
 
-        public static Color TintMask(Color tint, Color mask)
+        public interface IOverlay
         {
+            Color Tint(Color c, int x, int y, Rect r);
+        }
+
+        public class ColorOverlay : IOverlay
+        {
+
+            public Color c;
+            public ColorOverlay(Color c)
+            {
+                this.c = c;
+            }
+            public Color Tint(Color c, int x, int y, Rect r)
+            {
+                return this.c;
+            }
+        }
+
+        public static Color TintMask(this IOverlay tint, int x, int y, Rect r, Color mask)
+        {
+            var t = tint.Tint(mask, x, y, r);
             Color.RGBToHSV(mask, out var mh, out var ms, out var mv);
-            Color.RGBToHSV(tint, out var th, out var ts, out var tv);
+            Color.RGBToHSV(t, out var th, out var ts, out var tv);
             var col = Color.HSVToRGB(th, ms, mv);
             col.a = mask.a;
-            return Color.Lerp(col,new Color(tint.r, tint.g, tint.b, mask.a),0.75f);
+            return Color.Lerp(col,new Color(t.r, t.g, t.b, mask.a),0.75f);
         }
         public static Color HexColor(string hex)
         {
@@ -71,9 +91,9 @@ namespace Combloonation
             return AverageColor((IEnumerable<Color>)c);
         }
 
-        public static List<Color> GetBaseColors(this BloonModel bloon)
+        public static List<IOverlay> GetBaseColors(this BloonModel bloon)
         {
-            var cols = new List<Color>();
+            var cols = new List<IOverlay>();
             foreach (var id in BaseBloonIdsFromId(bloon.id))
             {
                 var got = baseColors.TryGetValue(id, out var col);
@@ -138,9 +158,24 @@ namespace Combloonation
             return t;
         }
 
-        public static Texture2D TintMask(this Texture texture, Color tint, Rect? proj = null)
+        public static Rect RectOrTexture(Texture texture, Rect? proj = null)
         {
-            return texture.Duplicate((x, y, c) => TintMask(tint, c), proj);
+            float w; float h; float x; float y;
+            if (proj is Rect rect) {
+                w = rect.width; h = rect.height;
+                x = rect.x; y = rect.y;
+            }
+            else {
+                w = texture.width; h = texture.height;
+                x = 0f; y = 0f;
+            }
+            return new Rect(x, y, w, h);
+        }
+
+        public static Texture2D TintMask(this Texture texture, IOverlay tint, Rect? proj = null)
+        {
+            var rect = RectOrTexture(texture, proj);
+            return texture.Duplicate((x, y, c) => TintMask(tint, x, y, rect, c), proj);
         }
 
         public static Tuple<RegionScalarMap, float, float> GetRegionMap(Texture texture, Rect? proj = null)
@@ -153,21 +188,23 @@ namespace Combloonation
             return new Tuple<RegionScalarMap, float, float>(map, w2, h2);
         }
 
-        public static Texture2D TintMask(this Texture texture, List<Color> tints, Rect? proj = null)
+        public static Texture2D TintMask(this Texture texture, List<IOverlay> tints, Rect? proj = null)
         {
             if (tints == null) throw new ArgumentNullException(nameof(tints));
+            var rect = RectOrTexture(texture, proj);
             var map = GetRegionMap(texture, proj);
             return texture.Duplicate((x, y, c) => 
-                TintMask(tints.SplitRange(boundaryColor, map.Item1, x - map.Item2, y - map.Item3), c), proj);
+                TintMask(tints.SplitRange(null, map.Item1, x - map.Item2, y - map.Item3), x, y, rect, c), proj);
         }
 
         public static Texture2D TintMask(this Texture texture, BloonModel bloon, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
+            var rect = RectOrTexture(texture, proj);
             var map = GetRegionMap(texture, proj);
             var ws = BloonsFromBloon(bloon).Select(b => b.danger).ToArray();
             return texture.Duplicate((x, y, c) =>
-                TintMask(GetBaseColors(bloon).SplitRange(ws, true, boundaryColor, map.Item1, x - map.Item2, y - map.Item3), c), proj);
+                TintMask(GetBaseColors(bloon).SplitRange(ws, true, null, map.Item1, x - map.Item2, y - map.Item3), x, y, rect, c), proj);
         }
 
         public static IEnumerable<Color> GetColorEnumerator(this Texture texture)
