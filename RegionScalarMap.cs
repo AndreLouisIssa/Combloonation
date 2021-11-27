@@ -105,7 +105,17 @@ namespace Combloonation
             return x - y * Math.Floor(x / y);
         }
 
-        public static int SplitRange(int n, float lo, float hi, float x)
+        public static bool NearInt(float x, int n)
+        {
+            return Near(n*x, n*Math.Round(x));
+        }
+
+        public static bool Near(float x, float y)
+        {
+            return Math.Abs(x - y) < 0.005f;
+        }
+
+        public static int SplitRange(int n, bool b, float lo, float hi, float x)
         {
             if (n <= 0) throw new ArgumentException("Number of parts must be positive.", nameof(n));
             if (hi <= lo) throw new ArgumentException("High terminal must be greater than low terminal.");
@@ -113,8 +123,9 @@ namespace Combloonation
             var m = hi - lo;
             var mn = Math.FloorToInt(m / n);
             if (mn == 0) return 0;
-            var i = Math.FloorToInt(d / mn);
-            return Math.Min(Math.Max(0, i), n - 1);
+            var i = d / mn;
+            if (b && NearInt(i,n)) return -1;
+            return Math.Min(Math.Max(0, Math.FloorToInt(i)), n - 1);
         }
 
         public static float[] WeightsToPivots(float[] ws)
@@ -127,37 +138,44 @@ namespace Combloonation
             return ps.ToArray();
         }
 
-        public static int SplitRange(float[] s, bool w, float lo, float hi, float x)
+        public static int SplitRange(float[] s, bool w, bool b, float lo, float hi, float x)
         {
             if (s.Length <= 0) throw new ArgumentException("Number of parts must be positive.", nameof(s));
             if (hi <= lo) throw new ArgumentException("High terminal must be greater than low terminal.");
             if (w) s = WeightsToPivots(s);
             var t = (x - lo) / (hi - lo);
-            for (int i = 0; i < s.Length; i++) if (t < s[i]) return i;
+            if (b && (Near(t, 0) || Near(t,1))) return -1;
+            for (int i = 0; i < s.Length; i++)
+            {
+                if (b && Near(t,s[i])) return -1;
+                if (t < s[i]) return i;
+            }
             return s.Length;
         }
     }
 
     public static class ListExt
     {
-        public static T SplitRange<T>(this List<T> list, float lo, float hi, float x)
+        public static T SplitRange<T>(this List<T> list, T b, float lo, float hi, float x)
         {
-            return list[RegionScalarMap.SplitRange(list.Count, lo, hi, x)];
+            var i = RegionScalarMap.SplitRange(list.Count, b != null, lo, hi, x);
+            return i == -1 ? b : list[i];
         }
 
-        public static T SplitRange<T>(this List<T> list, float[] s, bool w, float lo, float hi, float x)
+        public static T SplitRange<T>(this List<T> list, float[] s, bool w, T b, float lo, float hi, float x)
         {
-            return list[RegionScalarMap.SplitRange(s, w, lo, hi, x)];
+            var i = RegionScalarMap.SplitRange(s, w, b != null, lo, hi, x);
+            return i == -1 ? b : list[i];
         }
 
-        public static T SplitRange<T>(this List<T> list, RegionScalarMap map, float x, float y)
+        public static T SplitRange<T>(this List<T> list, T b, RegionScalarMap map, float x, float y)
         {
-            return SplitRange(list, map.zlo, map.zhi, map.f(x, y));
+            return SplitRange(list, b, map.zlo, map.zhi, map.f(x, y));
         }
 
-        public static T SplitRange<T>(this List<T> list, float[] s, bool w, RegionScalarMap map, float x, float y)
+        public static T SplitRange<T>(this List<T> list, float[] s, bool w, T b, RegionScalarMap map, float x, float y)
         {
-            return SplitRange(list, s, w, map.zlo, map.zhi, map.f(x, y));
+            return SplitRange(list, s, w, b, map.zlo, map.zhi, map.f(x, y));
         }
     }
 }
