@@ -79,7 +79,7 @@ namespace Combloonation
         public static List<Color> GetBaseColors(this BloonModel bloon)
         {
             var cols = new List<Color>();
-            foreach (var id in MinimalBloonIdsFromId(bloon.id))
+            foreach (var id in BaseBloonIdsFromId(bloon.id))
             {
                 var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
@@ -175,7 +175,9 @@ namespace Combloonation
         public static Texture2D GenerateTexture(this Bloon bloon, Texture oldTexture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
+            //if (oldTexture == null) throw new ArgumentNullException(nameof(oldTexture));
             var model = bloon.bloonModel;
+            if (oldTexture == null) return computedTextures[model.id] = null;
             if (oldTexture.isReadable) return null;
             MelonLogger.Msg("bloon: " + model.id + " " + bloon.Id);
             var exists = computedTextures.TryGetValue(model.id, out var texture);
