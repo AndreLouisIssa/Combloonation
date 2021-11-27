@@ -79,27 +79,20 @@ namespace Combloonation
                 var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
             }
-            cols.Reverse();
             return cols;
         }
 
         public static IEnumerable<Tuple<int, int>> GetEnumerator(this Texture2D texture)
         {
-            for (int x = 0; x < texture.width; x++)
+            for (int x = 0; x < texture.width; x++) for (int y = 0; y < texture.height; y++)
             {
-                for (int y = 0; y < texture.height; y++)
-                {
-                    yield return new Tuple<int, int>(x, y);
-                }
+                yield return new Tuple<int, int>(x, y);
             }
         }
 
         public static Texture2D Duplicate(this Texture texture, Rect? proj = null)
         {
-            if (proj == null)
-            {
-                proj = new Rect(0, 0, texture.width, texture.height);
-            }
+            if (proj == null) proj = new Rect(0, 0, texture.width, texture.height);
             var rect = (Rect)proj;
             texture.filterMode = FilterMode.Point;
             RenderTexture rt = RenderTexture.GetTemporary(texture.width, texture.height);
@@ -150,15 +143,32 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => TintMask(tint, c), proj);
         }
 
-        public static Texture2D TintMask(this Texture texture, List<Color> tints, Rect? proj = null)
+        public static Tuple<RegionScalarMap, float, float> GetRegionMap(Texture texture, Rect? proj = null)
         {
-            if (tints == null) throw new ArgumentNullException(nameof(tints));
-            int w = 0; int h = 0;
+            int w; int h;
             if (proj is Rect rect) { w = (int)rect.width; h = (int)rect.height; }
             else { w = texture.width; h = texture.height; }
             var w2 = w / 2; var h2 = h / 2;
-            var map = RegionScalarMap.Regions.spiral(1.3f,0.6f)(-w2, w - w2, -h2, h - h2);
-            return texture.Duplicate((x, y, c) => TintMask(tints.SplitRange(map, x - w2, y - h2), c), proj);
+            var map = RegionScalarMap.Regions.spiral(1.3f, 0.6f)(-w2, w - w2, -h2, h - h2);
+            return new Tuple<RegionScalarMap, float, float>(map, w2, h2);
+        }
+
+        public static Texture2D TintMask(this Texture texture, List<Color> tints, Rect? proj = null)
+        {
+            if (tints == null) throw new ArgumentNullException(nameof(tints));
+            var map = GetRegionMap(texture, proj);
+            return texture.Duplicate((x, y, c) => 
+                TintMask(tints.SplitRange(map.Item1, x - map.Item2, y - map.Item3), c), proj);
+        }
+
+        public static Texture2D TintMask(this Texture texture, BloonModel bloon, Rect? proj = null)
+        {
+            if (bloon == null) throw new ArgumentNullException(nameof(bloon));
+            var map = GetRegionMap(texture, proj);
+            var ws = BloonsFromBloon(bloon).Select(b => b.danger).ToArray();
+            MelonLogger.Msg(string.Join(", ", ws));
+            return texture.Duplicate((x, y, c) =>
+                TintMask(GetBaseColors(bloon).SplitRange(ws, true, map.Item1, x - map.Item2, y - map.Item3), c), proj);
         }
 
         public static IEnumerable<Color> GetColorEnumerator(this Texture texture)
@@ -177,10 +187,8 @@ namespace Combloonation
             if (exists) return texture;
             if (!model.id.Contains(delim)) return computedTextures[model.id] = null;
             MelonLogger.Msg("bloon: " + DebugString(model.id) + " " + bloon.Id);
-            var tints = model.GetBaseColors();
-            if (tints.Count == 0) return computedTextures[model.id] = null;
-            computedTextures[model.id] = texture = oldTexture.TintMask(tints, proj);
-            texture.SaveToPNG($"{Main.folderPath}/{DebugString(model.id)}.png");
+            computedTextures[model.id] = texture = oldTexture.TintMask(model, proj);
+            if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(model.id)}.png");
             return texture;
         }
 
@@ -221,19 +229,9 @@ namespace Combloonation
         public static void OnInGameUpdate(InGame inGame)
         {
             if (inGame.bridge == null) return;
-            Il2CppSystem.Collections.Generic.List<BloonToSimulation> bloonSims;
-            try
-            {
-                bloonSims = inGame.bridge.GetAllBloons();
-            }
-            catch
-            {
-                return;
-            }
-            foreach (var bloonSim in bloonSims)
-            {
-                SetBloonAppearance(bloonSim.GetBloon());
-            }
+            List<BloonToSimulation> bloonSims;
+            try { bloonSims = inGame.bridge.GetAllBloons().ToList(); } catch { return; }
+            foreach (var bloonSim in bloonSims) { SetBloonAppearance(bloonSim.GetBloon()); }
         }
 
     }
