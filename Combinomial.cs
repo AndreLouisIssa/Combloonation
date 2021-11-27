@@ -10,8 +10,8 @@ namespace Combloonation
 
         public Dictionary<HashSet<string>, int> terms = new Dictionary<HashSet<string>, int>(HashSet<string>.CreateSetComparer());
         public string scalarOp = " ";
-        public string vectorOp = "_";
-        public string directOp = " + ";
+        public string vectorOp = debuglim;
+        public string directOp = ", ";
 
         public Combinomial()
         {
@@ -23,7 +23,7 @@ namespace Combloonation
             terms[new HashSet<string> { }] = 1;
             foreach (var form in forms)
             {
-                var k = new HashSet<string>(form.Split('_'));
+                var k = new HashSet<string>(form.Split(delim));
                 terms.TryGetValue(k, out int d);
                 terms[k] = 1 + d;
             }
