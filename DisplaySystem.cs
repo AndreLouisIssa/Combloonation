@@ -18,7 +18,7 @@ namespace Combloonation
     public static class DisplaySystem
     {
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
-
+        public static Color boundaryColor = HexColor("000000");
         public static Dictionary<string, Color> baseColors = new Dictionary<string, Color>()
         {
             { "Red",     HexColor("fe2020") },
@@ -158,7 +158,7 @@ namespace Combloonation
             if (tints == null) throw new ArgumentNullException(nameof(tints));
             var map = GetRegionMap(texture, proj);
             return texture.Duplicate((x, y, c) => 
-                TintMask(tints.SplitRange(map.Item1, x - map.Item2, y - map.Item3), c), proj);
+                TintMask(tints.SplitRange(boundaryColor, map.Item1, x - map.Item2, y - map.Item3), c), proj);
         }
 
         public static Texture2D TintMask(this Texture texture, BloonModel bloon, Rect? proj = null)
@@ -166,9 +166,8 @@ namespace Combloonation
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var map = GetRegionMap(texture, proj);
             var ws = BloonsFromBloon(bloon).Select(b => b.danger).ToArray();
-            MelonLogger.Msg(string.Join(", ", ws));
             return texture.Duplicate((x, y, c) =>
-                TintMask(GetBaseColors(bloon).SplitRange(ws, true, map.Item1, x - map.Item2, y - map.Item3), c), proj);
+                TintMask(GetBaseColors(bloon).SplitRange(ws, true, boundaryColor, map.Item1, x - map.Item2, y - map.Item3), c), proj);
         }
 
         public static IEnumerable<Color> GetColorEnumerator(this Texture texture)
