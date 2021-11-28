@@ -6,6 +6,10 @@ using Assets.Scripts.Utils;
 using System.IO;
 using Assets.Scripts.Unity.UI_New.InGame;
 using System.Linq;
+using Assets.Scripts.Unity;
+using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
+using System.Collections.Generic;
+using Assets.Scripts.Models.Bloons;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "0-beta-r0", "MagicGonads")]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -15,6 +19,8 @@ namespace Combloonation
     {
 
         public static string folderPath;
+        public static int inGameId = 0;
+        public static bool needToRegister = false;
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -40,7 +46,32 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(InGame __instance)
             {
-                DisplaySystem.OnInGameUpdate(__instance);
+                var id = __instance.GameId;
+                if (id == 0) return;
+
+                //Run once
+                if (id != inGameId)
+                {
+                    inGameId = id;
+                    MelonLogger.Msg("New game!");
+                    needToRegister = true;
+                    Labloontory.RefreshRegistered();
+                    MelonLogger.Msg("Begun registering");
+
+                }
+
+                //Always run
+                if (needToRegister)
+                {
+                    var bloon = Labloontory.Register();
+                    if (bloon == null)
+                    {
+                        needToRegister = false;
+                        MelonLogger.Msg("Stopped registering");
+                    }
+                }
+                
+                //DisplaySystem.OnInGameUpdate(__instance);
             }
         }
 
