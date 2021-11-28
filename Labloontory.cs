@@ -260,8 +260,8 @@ namespace Combloonation
         public static BloonModel Register(BloonModel bloon)
         {
             _bloonsByName[bloon.name] = bloon;
-            if (InGame.instance?.bridge == null) { toRegister.Enqueue(bloon); return null; }
-            var model = InGame.Bridge.Model;
+            //if (InGame.instance?.bridge == null) { toRegister.Enqueue(bloon); return null; }
+            var model = GetGameModel();
             model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
             MelonLogger.Msg("Registered " + DebugString(bloon.name));
