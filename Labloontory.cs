@@ -20,101 +20,15 @@ namespace Combloonation
     {
 
         public static readonly Random random = new Random();
+        public static readonly Queue<BloonModel> toRegister = new Queue<BloonModel>();
+        public static List<BloonModel> registered = new List<BloonModel>();
+        public static readonly Dictionary<string, BloonModel> _bloonsByName = new Dictionary<string, BloonModel>();
         public static string delim = "(@CombloonationFusion)";
         public static string debuglim = "_";
         public static List<string> properties = new List<string>
         {
             "Regrow", "Fortified", "Camo"
         };
-
-        public static string DebugString(string s)
-        {
-            return s.Replace(delim, debuglim);
-        }
-        public static Dictionary<int, string> Decompose(this string body, string[] parts)
-        {
-            var map = new Dictionary<int, string>();
-            foreach (var part in parts)
-            {
-                var pos = body.IndexOf(part);
-                if (pos < 0) continue;
-                map[pos] = part;
-                body = body.Remove(pos, part.Length);
-            }
-            return map;
-        }
-        public static string[] Split(this string s, string d)
-        {
-            if (s == "") return new string[]{};
-            if (d == "") return s.Select(c => c.ToString()).ToArray();
-            int i = s.IndexOf(d);
-            var b = new List<string>();
-            while (i >= 0)
-            {
-                b.Add(s.Substring(0,i));
-                s = s.Substring(i+d.Length);
-                i = s.IndexOf(d);
-            }
-            b.Add(s);
-            return b.ToArray();
-        }
-        public static string BloonsToId(IEnumerable<BloonModel> bloons)
-        {
-            return string.Join(delim, bloons.Select(f => f.id));
-        }
-
-        public static IEnumerable<string> BloonsToIds(IEnumerable<BloonModel> bloons)
-        {
-            return  bloons.Select(f => f.id);
-        }
-
-        public static IEnumerable<BloonModel> BloonsFromId(string id)
-        {
-            return id.Split(delim).Select(s => GetGameModel().bloonsByName[s]);
-        }
-
-        public static IEnumerable<BloonModel> BloonsFromBloon(BloonModel bloon)
-        {
-            return BloonsFromId(bloon.id);
-        }
-
-        public static IEnumerable<string> BloonIdsFromId(string id)
-        {
-            return id.Split(delim).Distinct();
-        }
-        public static IEnumerable<string> BaseBloonIdsFromId(string id)
-        {
-            foreach (var p in properties)
-            {
-                id = id.Replace(p, "");
-            }
-            return id.Split(delim).Distinct();
-        }
-
-        public static IEnumerable<string> PropertiesFromId(string id)
-        {
-            var props = new List<string>();
-            foreach (var p in properties)
-            {
-                if (id.Contains(p)) props.Add(p);
-            }
-            return props;
-        }
-
-        public static string PropertyString(HashSet<string> props)
-        {
-            var s = "";
-            foreach (var p in properties)
-            {
-                if (props.Contains(p)) s += p;
-            }
-            return s;
-        }
-
-        public static string PropertyString(IEnumerable<string> props)
-        {
-            return PropertyString(new HashSet<string>(props));
-        }
 
         public class BloonsionReactor
         {
@@ -124,10 +38,10 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
-                var noDuplicates = bloons.SelectMany(b => BloonIdsFromId(b.id)).Distinct().Select(s => GetGameModel().bloonsByName[s]);
+                var noDuplicates = bloons.SelectMany(b => BloonIdsFromId(b.id)).Distinct().Select(s => GetBloonByName(s));
                 var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.First().baseId +
                     PropertyString(g.Select(b => PropertiesFromId(b.id)).Aggregate((a, b) => a.Union(b))));
-                fusands = consolidatedProperties.Select(s => GetGameModel().bloonsByName[s]).OrderByDescending(f => f.danger);
+                fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger);
                 fusion = Clone(fusands.First());
                 fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToId(fusands);
             }
@@ -218,23 +132,107 @@ namespace Combloonation
                 return this;
             }
         }
+
+        public static string DebugString(string s)
+        {
+            return s.Replace(delim, debuglim);
+        }
+        public static Dictionary<int, string> Decompose(this string body, string[] parts)
+        {
+            var map = new Dictionary<int, string>();
+            foreach (var part in parts)
+            {
+                var pos = body.IndexOf(part);
+                if (pos < 0) continue;
+                map[pos] = part;
+                body = body.Remove(pos, part.Length);
+            }
+            return map;
+        }
+        public static string[] Split(this string s, string d)
+        {
+            if (s == "") return new string[] { };
+            if (d == "") return s.Select(c => c.ToString()).ToArray();
+            int i = s.IndexOf(d);
+            var b = new List<string>();
+            while (i >= 0)
+            {
+                b.Add(s.Substring(0, i));
+                s = s.Substring(i + d.Length);
+                i = s.IndexOf(d);
+            }
+            b.Add(s);
+            return b.ToArray();
+        }
+        public static string BloonsToId(IEnumerable<BloonModel> bloons)
+        {
+            return string.Join(delim, bloons.Select(f => f.id));
+        }
+
+        public static IEnumerable<string> BloonsToIds(IEnumerable<BloonModel> bloons)
+        {
+            return bloons.Select(f => f.id);
+        }
+
+        public static IEnumerable<BloonModel> BloonsFromId(string id)
+        {
+            return id.Split(delim).Select(s => GetBloonByName(s));
+        }
+
+        public static IEnumerable<BloonModel> BloonsFromBloon(BloonModel bloon)
+        {
+            return BloonsFromId(bloon.id);
+        }
+
+        public static IEnumerable<string> BloonIdsFromId(string id)
+        {
+            return id.Split(delim).Distinct();
+        }
+        public static IEnumerable<string> BaseBloonIdsFromId(string id)
+        {
+            foreach (var p in properties)
+            {
+                id = id.Replace(p, "");
+            }
+            return id.Split(delim).Distinct();
+        }
+
+        public static IEnumerable<string> PropertiesFromId(string id)
+        {
+            var props = new List<string>();
+            foreach (var p in properties)
+            {
+                if (id.Contains(p)) props.Add(p);
+            }
+            return props;
+        }
+
+        public static string PropertyString(HashSet<string> props)
+        {
+            var s = "";
+            foreach (var p in properties)
+            {
+                if (props.Contains(p)) s += p;
+            }
+            return s;
+        }
+
+        public static string PropertyString(IEnumerable<string> props)
+        {
+            return PropertyString(new HashSet<string>(props));
+        }
         public static BloonModel Fuse(IEnumerable<string> bloons)
         {
-            return Fuse(bloons.Select(b => GetGameModel().bloonsByName[b]));
+            return Fuse(bloons.Select(b => GetBloonByName(b)));
         }
         public static BloonModel Fuse(IEnumerable<BloonModel> bloons)
         {
             if (bloons.Count() == 0) return null;
             var reactor = new BloonsionReactor(bloons);
             var bloon = reactor.fusion;
-            if (GetGameModel().bloonsByName.ContainsKey(bloon.id))
-            {
-                bloon = GetGameModel().bloonsByName[bloon.id];
-            }
-            else
-            {
-                Register(reactor.Merge().fusion);
-            }
+            var oldBloon = GetBloonByName(bloon.id, false);
+            if (oldBloon != null) bloon = oldBloon;
+            else Register(reactor.Merge().fusion);
             return bloon;
         }
 
@@ -250,12 +248,40 @@ namespace Combloonation
             return model;
         }
 
+        public static BloonModel GetBloonByName(string name, bool direct = true)
+        {
+            var exists = _bloonsByName.TryGetValue(name, out var model);
+            if (exists) return model;
+            var lookup = GetGameModel().bloonsByName;
+            if (direct || lookup.ContainsKey(name)) return lookup[name];
+            return null;
+        }
+
         public static BloonModel Register(BloonModel bloon)
         {
-            var model = GetGameModel();
+            _bloonsByName[bloon.name] = bloon;
+            if (InGame.instance?.bridge == null) { toRegister.Enqueue(bloon); return null; }
+            var model = InGame.Bridge.Model;
             model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
+            MelonLogger.Msg("Registered " + DebugString(bloon.name));
+            registered.Add(bloon);
             return bloon;
+        }
+
+        public static BloonModel Register()
+        {
+            if (toRegister.Count == 0) return null;
+            return Register(toRegister.Dequeue());
+        }
+
+        public static void RefreshRegistered()
+        {
+            foreach (var bloon in registered)
+            {
+                toRegister.Enqueue(bloon);
+            }
+            registered.Clear();
         }
 
         public static BloonGroupModel[] Split(BloonGroupModel group, int size, out int excess)
@@ -284,7 +310,7 @@ namespace Combloonation
             var j = 0; var group = roundGroups[j];
             while (i < sizes.Length && j < roundGroups.Length)
             {
-                bloons.Add(GetGameModel().bloonsByName[group.bloon]);
+                bloons.Add(GetBloonByName(group.bloon));
                 var split = Split(group, size, out size);
                 subgroups.Add(split.First());
                 if (size > 0)
@@ -341,9 +367,9 @@ namespace Combloonation
         public static void MutateRounds()
         {
             MelonLogger.Msg("Mutating rounds...");
-            foreach (RoundSetModel round in Game.instance.model.roundSets)
+            foreach (RoundSetModel round in GetGameModel().roundSets)
             {
-                foreach (var rounds in round.rounds)
+                foreach (var rounds in round.rounds.Take(10))
                 {
                     var size = rounds.groups.Sum(g => g.count);
                     var parts = random.Next(1, size + 1);
