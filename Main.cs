@@ -46,7 +46,8 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(InGame __instance)
             {
-                var id = __instance.GameId;
+                if (__instance.bridge == null) return;
+                var id = __instance.GetInstanceID();
                 if (id == 0) return;
 
                 //Run once
@@ -71,7 +72,7 @@ namespace Combloonation
                     }
                 }
                 
-                //DisplaySystem.OnInGameUpdate(__instance);
+                DisplaySystem.OnInGameUpdate(__instance);
             }
         }
 
