@@ -29,10 +29,8 @@ namespace Combloonation
         };
         public static HashSet<string> stackableBehaviors = new HashSet<string>
         {
-            //Il2CppType.Of<DisplayModel>().FullName,
-            //Il2CppType.Of<PopEffectModel>().FullName,
-            //Il2CppType.Of<SpawnChildrenModel>().FullName,
-            //Il2CppType.Of<CreateSoundOnDamageBloonModel>().FullName,
+            Il2CppType.Of<PopEffectModel>().FullName,
+            Il2CppType.Of<CreateSoundOnDamageBloonModel>().FullName,
             Il2CppType.Of<DistributeCashModel>().FullName
         };
 
@@ -56,12 +54,11 @@ namespace Combloonation
             {
                 real = true;
                 MelonLogger.Msg("Creating " + DebugString(fusion.id) + ":");
-                return MergeBehaviors().MergeProperties().MergeHealth().MergeSpeed().MergeDisplay().MergeChildren();
+                return MergeBehaviors().MergeProperties().MergeStats().MergeChildren();
             }
 
             public BloonsionReactor MergeProperties()
             {
-                fusion.danger = fusands.Max(f => f.danger);
                 fusion.bloonProperties = fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
 
                 fusion.isBoss = fusands.Any(f => f.isBoss);
@@ -77,21 +74,17 @@ namespace Combloonation
                 return this;
             }
 
-            public BloonsionReactor MergeHealth()
+            public BloonsionReactor MergeStats()
             {
                 fusion.maxHealth = fusands.Sum(f => f.maxHealth);
                 fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
                 fusion.leakDamage = fusands.Sum(f => f.leakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
                 if (real) MelonLogger.Msg("     - " + fusion.maxHealth + " health");
-                return this;
-            }
-
-            public BloonsionReactor MergeSpeed()
-            {
                 fusion.speed = fusands.Max(f => f.speed);
                 fusion.speedFrames = fusands.Max(f => f.speed);
                 if (real) MelonLogger.Msg("     - " + fusion.speed + " speed");
+                fusion.radius = fusands.Min(f => f.radius);
                 return this;
             }
 
@@ -110,24 +103,13 @@ namespace Combloonation
                 fusion.childBloonModels = childModels.ToIl2CppList();
                 fusion.UpdateChildBloonModels();
                 fusion.AddBehavior(behavior);
-
-                return this;
-
-            }
-
-            public BloonsionReactor MergeDisplay()
-            {
-                //fusion.radius = fusands.Min(f => f.radius);
-                //fusion.rotate = fusands.Any(f => f.rotate);
-                //fusion.rotateToFollowPath = fusands.Any(f => f.rotateToFollowPath);
-                //fusion.icon = fusands.First(f => f.icon != null).icon;
-                fusion.RemoveBehaviors<DamageStateModel>();
-                fusion.damageDisplayStates = new DamageStateModel[] { };
                 return this;
             }
 
             public BloonsionReactor MergeBehaviors()
             {
+                fusion.RemoveBehaviors<DamageStateModel>();
+                fusion.damageDisplayStates = new DamageStateModel[] { };
                 fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
                     .SelectMany(g => stackableBehaviors.Contains(g.Key) ? MergeSameBehaviors(g.ToList()) : new List<Model> { g.First() }).ToIl2CppReferenceArray();
                 if (real) MelonLogger.Msg("     - " + fusion.behaviors.Length + " behaviors");
