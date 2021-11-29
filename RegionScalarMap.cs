@@ -158,12 +158,14 @@ namespace Combloonation
     {
         public static T SplitRange<T>(this List<T> list, T b, float lo, float hi, float x)
         {
+            if (list.Count == 0) throw new ArgumentException("List must not be empty.", nameof(list));
             var i = RegionScalarMap.SplitRange(list.Count, b != null, lo, hi, x);
             return i == -1 ? b : list[i];
         }
 
         public static T SplitRange<T>(this List<T> list, float[] s, bool w, T b, float lo, float hi, float x)
         {
+            if (list.Count == 0) throw new ArgumentException("List must not be empty.", nameof(list));
             var i = RegionScalarMap.SplitRange(s, w, b != null, lo, hi, x);
             return i == -1 ? b : list[i];
         }

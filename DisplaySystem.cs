@@ -256,10 +256,11 @@ namespace Combloonation
             var rect = RectOrTexture(texture, proj);
             var r = Math.Min(rect.width, rect.height) / 4;
             var map = GetRegionMap(texture, proj);
-            var ws = BloonsFromBloon(bloon).Skip(1).Select(b => b.danger).ToArray();
+            var ws = BloonsFromBloon(bloon).Skip(1).Where(b => baseColors.ContainsKey(b.id)).Select(b => b.danger).ToArray();
             var cols = GetColors(bloon);
+            if (cols.Item2.Count == 0) return texture.Duplicate(proj);
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
-                    cols.Item2.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
+                cols.Item2.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
             var bcol = new BoundOverlay(dcol, boundaryColor, r);
             var bbcol = new BoundOverlay(bcol, emptyColor, r * 1.05f);
             return texture.Duplicate((x, y, c) => bbcol.Pixel(c, x, y, map.Item4), proj);
