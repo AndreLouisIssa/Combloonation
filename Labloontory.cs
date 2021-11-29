@@ -257,10 +257,10 @@ namespace Combloonation
             return null;
         }
 
-        public static BloonModel Register(BloonModel bloon)
+        public static BloonModel Register(BloonModel bloon, bool inGame = false)
         {
             _bloonsByName[bloon.name] = bloon;
-            //if (InGame.instance?.bridge == null) { toRegister.Enqueue(bloon); return null; }
+            if (inGame && InGame.instance?.bridge == null) { toRegister.Enqueue(bloon); return null; }
             var model = GetGameModel();
             if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
@@ -369,7 +369,7 @@ namespace Combloonation
             MelonLogger.Msg("Mutating rounds...");
             foreach (RoundSetModel round in GetGameModel().roundSets)
             {
-                foreach (var rounds in round.rounds.Take(10))
+                foreach (var rounds in round.rounds)
                 {
                     var size = rounds.groups.Sum(g => g.count);
                     var parts = random.Next(1, size + 1);
