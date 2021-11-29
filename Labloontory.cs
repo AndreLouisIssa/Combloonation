@@ -262,7 +262,7 @@ namespace Combloonation
             _bloonsByName[bloon.name] = bloon;
             //if (InGame.instance?.bridge == null) { toRegister.Enqueue(bloon); return null; }
             var model = GetGameModel();
-            model.bloons = model.bloons.Prepend(bloon).ToArray();
+            if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
             MelonLogger.Msg("Registered " + DebugString(bloon.name));
             registered.Add(bloon);

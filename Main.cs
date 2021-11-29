@@ -47,7 +47,7 @@ namespace Combloonation
             public static void Postfix(InGame __instance)
             {
                 if (__instance.bridge == null) return;
-                var id = __instance.GetInstanceID();
+                var id = __instance.GameId;
                 if (id == 0) return;
 
                 //Run once
