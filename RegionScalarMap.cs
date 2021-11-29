@@ -112,7 +112,7 @@ namespace Combloonation
 
         public static bool Near(float x, float y)
         {
-            return Math.Abs(x - y) < 0.005f;
+            return Math.Abs(x - y) < 0.01f;
         }
 
         public static int SplitRange(int n, bool b, float lo, float hi, float x)

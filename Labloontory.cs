@@ -21,7 +21,8 @@ namespace Combloonation
 
         public static readonly Random random = new Random();
         public static readonly Dictionary<string, BloonModel> _bloonsByName = new Dictionary<string, BloonModel>();
-        public static string delim = "(@CombloonationFusion)";
+        public static string fusionTag = "CombloonationFusion";
+        public static string delim = $"({fusionTag})";
         public static string debuglim = "_";
         public static List<string> properties = new List<string>
         {
@@ -52,7 +53,6 @@ namespace Combloonation
 
             public BloonsionReactor Merge()
             {
-                real = true;
                 MelonLogger.Msg("Creating " + DebugString(fusion.id) + ":");
                 return MergeBehaviors().MergeProperties().MergeStats().MergeChildren();
             }
@@ -68,8 +68,7 @@ namespace Combloonation
                 fusion.isMoab = fusands.Any(f => f.isMoab);
 
                 fusion.distributeDamageToChildren = fusands.All(f => f.distributeDamageToChildren);
-                fusion.tags = fusands.SelectMany(f => f.tags).Append("Fusion").Distinct().ToArray();
-                if (real) MelonLogger.Msg("     - " + fusion.tags.Length + " tags");
+                fusion.tags = fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
 
                 return this;
             }
@@ -80,11 +79,8 @@ namespace Combloonation
                 fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
                 fusion.leakDamage = fusands.Sum(f => f.leakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
-                if (real) MelonLogger.Msg("     - " + fusion.maxHealth + " health");
                 fusion.speed = fusands.Max(f => f.speed);
                 fusion.speedFrames = fusands.Max(f => f.speed);
-                if (real) MelonLogger.Msg("     - " + fusion.speed + " speed");
-                fusion.radius = fusands.Min(f => f.radius);
                 return this;
             }
 
@@ -112,7 +108,6 @@ namespace Combloonation
                 fusion.damageDisplayStates = new DamageStateModel[] { };
                 fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
                     .SelectMany(g => stackableBehaviors.Contains(g.Key) ? MergeSameBehaviors(g.ToList()) : new List<Model> { g.First() }).ToIl2CppReferenceArray();
-                if (real) MelonLogger.Msg("     - " + fusion.behaviors.Length + " behaviors");
                 return this;
             }
 

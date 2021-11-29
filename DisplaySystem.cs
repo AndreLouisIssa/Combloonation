@@ -18,7 +18,8 @@ namespace Combloonation
     public static class DisplaySystem
     {
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
-        public static IOverlay boundaryColor = new TintColorOverlay(HexColor("000000"));
+        public static IOverlay boundaryColor = new ColorOverlay(HexColor("000000"));
+        public static IOverlay emptyColor = new DelegateOverlay((c,x,y,r) => c);
         public static Dictionary<string, IOverlay> baseColors = new Dictionary<string, IOverlay>()
         {
             { "Red",     new TintColorOverlay(HexColor("fe2020")) },
@@ -45,8 +46,23 @@ namespace Combloonation
             Color Pixel(Color c, int x, int y, Rect r);
         }
 
+        public class DelegateOverlay : IOverlay
+        {
+            public Func<Color, int, int, Rect, Color> func;
+
+            public DelegateOverlay(Func<Color, int, int, Rect, Color> func)
+            {
+                this.func = func;
+            }
+            public Color Pixel(Color c, int x, int y, Rect r)
+            {
+                return func(c, x, y, r);
+            }
+        }
+
         public abstract class TintOverlay : IOverlay
         {
+            public float interp = 0.8f;
             public abstract Color Tint(Color c, int x, int y, Rect r);
             public Color Pixel(Color c, int x, int y, Rect r)
             {
@@ -55,7 +71,7 @@ namespace Combloonation
                 Color.RGBToHSV(t, out var th, out var ts, out var tv);
                 var col = Color.HSVToRGB(th, ms, mv);
                 col.a = c.a;
-                return Color.Lerp(col, new Color(t.r, t.g, t.b, c.a), 0.75f);
+                return Color.Lerp(col, new Color(t.r, t.g, t.b, c.a), interp);
             }
         }
 
@@ -69,7 +85,7 @@ namespace Combloonation
             }
             public Color Pixel(Color c, int x, int y, Rect r)
             {
-                return this.c;
+                return new Color(this.c.r, this.c.g, this.c.b, c.a);
             }
         }
 
@@ -80,6 +96,11 @@ namespace Combloonation
             public TintColorOverlay(Color c)
             {
                 this.c = c;
+            }
+
+            public TintColorOverlay(Color c, float t)
+            {
+                this.c = c; interp = t;
             }
 
             public override Color Tint(Color c, int x, int y, Rect r)
@@ -113,13 +134,21 @@ namespace Combloonation
 
         public static List<IOverlay> GetBaseColors(this BloonModel bloon)
         {
-            var cols = new List<IOverlay>();
-            foreach (var id in BaseBloonIdsFromId(bloon.id))
+            var cols = new List<IOverlay> { emptyColor };
+            foreach (var id in BaseBloonIdsFromId(bloon.id).Skip(1))
             {
                 var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
             }
             return cols;
+        }
+        public static IOverlay GetPrimaryColor(this BloonModel bloon)
+        {
+            var primary = BaseBloonIdsFromId(bloon.id).First();
+            var got = baseColors.TryGetValue(primary, out var col);
+            if (got) return col;
+            return emptyColor;
+
         }
 
         public static IEnumerable<Tuple<int, int>> GetEnumerator(this Texture2D texture)
@@ -223,8 +252,9 @@ namespace Combloonation
             var rect = RectOrTexture(texture, proj);
             var map = GetRegionMap(texture, proj);
             var ws = BloonsFromBloon(bloon).Select(b => b.danger).ToArray();
+            ws[0] *= 1.5f;
             return texture.Duplicate((x, y, c) =>
-                GetBaseColors(bloon).SplitRange(ws, true, null, map.Item1, x - map.Item2, y - map.Item3).Pixel(c, x, y, rect), proj);
+                GetBaseColors(bloon).SplitRange(ws, true, GetPrimaryColor(bloon), map.Item1, x - map.Item2, y - map.Item3).Pixel(c, x, y, rect), proj);
         }
 
         public static IEnumerable<Color> GetColorEnumerator(this Texture texture)
@@ -262,7 +292,6 @@ namespace Combloonation
                     foreach (var m in sprite.materials.Concat(sprite.sharedMaterials)) m.mainTexture = texture;
                     foreach (var r in graphic.genericRenderers) r.SetMainTexture(texture);
                 }
-                if (!sprite.sprite.texture.isReadable && bloon.bloonModel.id.Contains(delim)) sprite.color = new Color(0.5f, 0.5f, 0.5f);
             }
             else
             {
