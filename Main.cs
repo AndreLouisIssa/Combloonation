@@ -10,6 +10,8 @@ using Assets.Scripts.Unity;
 using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
 using System.Collections.Generic;
 using Assets.Scripts.Models.Bloons;
+using Assets.Scripts.Simulation.Bloons;
+using Il2CppSystem;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "0-beta-r0", "MagicGonads")]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -30,7 +32,7 @@ namespace Combloonation
             Directory.CreateDirectory(folderPath);
         }
 
-        [HarmonyPatch(typeof(TitleScreen), "Start")]
+        [HarmonyPatch(typeof(TitleScreen), nameof(TitleScreen.Start))]
         public class Initiate
         {
             [HarmonyPostfix]
@@ -68,8 +70,58 @@ namespace Combloonation
                         needToRegister = false;
                     }
                 }
-                
+
                 DisplaySystem.OnInGameUpdate(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(UnityEngine.EventSystems.EventSystem), nameof(UnityEngine.EventSystems.EventSystem.Update))]
+        public class Patch_EventSystem_Update
+        {
+            [HarmonyFinalizer]
+            public static Exception Finalizer(Exception __exception)
+            {
+                if (__exception != null)
+                {
+
+                }
+
+                return null;
+            }
+        }
+
+        [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
+        public class Patch_BloonMenu_SortBloons
+        {
+            [HarmonyFinalizer]
+            public static Exception Finalizer(Exception __exception)
+            {
+                if (__exception != null)
+                {
+
+                }
+
+                return null;
+            }
+        }
+
+        [HarmonyPatch(typeof(Bloon), nameof(Bloon.Initialise))]
+        public class Patch_Bloon_Initialise
+        {
+            [HarmonyPostfix]
+            public static void Postfix(Bloon __instance)
+            {
+                //var bloonModel = __instance.bloonModel;
+                //var gameModel = Labloontory.GetGameModel();
+                //var l1 = gameModel.bloonsByName.ContainsKey(bloonModel.name);
+                //var l2 = gameModel.bloons.Contains(bloonModel);
+                //MelonLogger.Msg(l1);
+                //MelonLogger.Msg(l2);
+                //gameModel = Game.instance.model;
+                //l1 = gameModel.bloonsByName.ContainsKey(bloonModel.name);
+                //l2 = gameModel.bloons.Contains(bloonModel);
+                //MelonLogger.Msg(l1);
+                //MelonLogger.Msg(l2);
             }
         }
 
