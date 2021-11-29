@@ -60,18 +60,27 @@ namespace Combloonation
             }
         }
 
-        public abstract class TintOverlay : IOverlay
+        public class TintOverlay : IOverlay
         {
-            public float interp = 0.8f;
-            public abstract Color Tint(Color c, int x, int y, Rect r);
+            public float t = 0.8f;
+            public IOverlay c;
+
+            public TintOverlay(IOverlay c)
+            {
+                this.c = c;
+            }
+            public TintOverlay(IOverlay c, float t) : this(c)
+            {
+                this.t = t;
+            }
             public Color Pixel(Color c, int x, int y, Rect r)
             {
-                var t = Tint(c, x, y, r);
+                var t = this.c.Pixel(c, x, y, r);
                 Color.RGBToHSV(c, out var mh, out var ms, out var mv);
                 Color.RGBToHSV(t, out var th, out var ts, out var tv);
                 var col = Color.HSVToRGB(th, ms, mv);
                 col.a = c.a;
-                return Color.Lerp(col, new Color(t.r, t.g, t.b, c.a), interp);
+                return Color.Lerp(col, new Color(t.r, t.g, t.b, c.a), this.t);
             }
         }
 
@@ -114,25 +123,6 @@ namespace Combloonation
             }
         }
 
-        public class TintColorOverlay : TintOverlay
-        {
-            public IOverlay c;
-            public TintColorOverlay(IOverlay c)
-            {
-                this.c = c;
-            }
-            public TintColorOverlay(IOverlay c, float t)
-            {
-                this.c = c; interp = t;
-            }
-            public TintColorOverlay(Color c) : this(new ColorOverlay(c)) { }
-            public TintColorOverlay(Color c, float t) : this(new ColorOverlay(c), t) { }
-            public override Color Tint(Color c, int x, int y, Rect r)
-            {
-                return this.c.Pixel(c,x,y,r);
-            }
-        }
-
         public static Color HexColor(string hex)
         {
             byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
@@ -141,19 +131,9 @@ namespace Combloonation
             return new Color32(r, g, b, 255);
         }
 
-        public static Color AverageColor(Color a, Color b)
+        public static Color Average(this Color a, Color b)
         {
             return Color.Lerp(a, b, (1 + b.a - a.a) / 2);
-        }
-
-        public static Color AverageColor(IEnumerable<Color> c)
-        {
-            return c.Aggregate((a, b) => AverageColor(a, b));
-        }
-
-        public static Color AverageColor(params Color[] c)
-        {
-            return AverageColor((IEnumerable<Color>)c);
         }
 
         public static Tuple<IOverlay, List<IOverlay>> GetColors(this BloonModel bloon)
@@ -260,12 +240,6 @@ namespace Combloonation
             return new Rect(x, y, w, h);
         }
 
-        public static Texture2D TintMask(this Texture texture, IOverlay tint, Rect? proj = null)
-        {
-            var rect = RectOrTexture(texture, proj);
-            return texture.Duplicate((x, y, c) => tint.Pixel(c, x, y, rect), proj);
-        }
-
         public static Tuple<RegionScalarMap, float, float, Rect> GetRegionMap(Texture texture, Rect? proj = null)
         {
             int w; int h;
@@ -276,16 +250,7 @@ namespace Combloonation
             return new Tuple<RegionScalarMap, float, float, Rect>(map, w2, h2, new Rect(-w2, -h2, w, h));
         }
 
-        public static Texture2D TintMask(this Texture texture, List<IOverlay> tints, Rect? proj = null)
-        {
-            if (tints == null) throw new ArgumentNullException(nameof(tints));
-            var rect = RectOrTexture(texture, proj);
-            var map = GetRegionMap(texture, proj);
-            return texture.Duplicate((x, y, c) => 
-                tints.SplitRange(null, map.Item1, x - map.Item2, y - map.Item3).Pixel(c, x, y, map.Item4), proj);
-        }
-
-        public static Texture2D TintMask(this Texture texture, BloonModel bloon, Rect? proj = null)
+        public static Texture2D NewMergedTexture(this BloonModel bloon, Texture texture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var rect = RectOrTexture(texture, proj);
@@ -300,13 +265,7 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => bbcol.Pixel(c, x, y, map.Item4), proj);
         }
 
-        public static IEnumerable<Color> GetColorEnumerator(this Texture texture)
-        {
-            var t2D = texture.ToReadable();
-            return t2D.GetEnumerator().Select(t => t2D.GetPixel(t.Item1, t.Item2));
-        }
-
-        public static Texture2D GenerateTexture(this Bloon bloon, Texture oldTexture, Rect? proj = null)
+        public static Texture2D GetMergedTexture(this Bloon bloon, Texture oldTexture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var model = bloon.bloonModel;
@@ -315,8 +274,7 @@ namespace Combloonation
             var exists = computedTextures.TryGetValue(model.id, out var texture);
             if (exists) return texture;
             if (!model.id.Contains(delim)) return computedTextures[model.id] = null;
-            MelonLogger.Msg("bloon: " + DebugString(model.id) + " " + bloon.Id);
-            computedTextures[model.id] = texture = oldTexture.TintMask(model, proj);
+            computedTextures[model.id] = texture = model.NewMergedTexture(oldTexture, proj);
             if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(model.id)}.png");
             return texture;
         }
@@ -326,7 +284,7 @@ namespace Combloonation
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var texture = bloon.GenerateTexture(sprite.sprite.texture, sprite.sprite.textureRect);
+                var texture = bloon.GetMergedTexture(sprite.sprite.texture, sprite.sprite.textureRect);
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
@@ -339,7 +297,7 @@ namespace Combloonation
             else
             {
                 var renderer = graphic.genericRenderers.First(r => r.name == "Body");
-                var texture = bloon.GenerateTexture(renderer.material.mainTexture);
+                var texture = bloon.GetMergedTexture(renderer.material.mainTexture);
                 if (texture != null) foreach (var r in graphic.genericRenderers) r.SetMainTexture(texture);
             }
         }

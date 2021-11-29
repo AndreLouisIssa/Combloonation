@@ -9,7 +9,6 @@ using System;
 using Assets.Scripts.Unity;
 using Random = System.Random;
 using UnhollowerRuntimeLib;
-using Assets.Scripts.Models.GenericBehaviors;
 using Assets.Scripts.Models;
 using Assets.Scripts.Unity.UI_New.InGame;
 
@@ -32,7 +31,12 @@ namespace Combloonation
         {
             Il2CppType.Of<PopEffectModel>().FullName,
             Il2CppType.Of<CreateSoundOnDamageBloonModel>().FullName,
-            Il2CppType.Of<DistributeCashModel>().FullName
+            Il2CppType.Of<DistributeCashModel>().FullName,
+        };
+        public static HashSet<string> removeBehaviors = new HashSet<string>
+        {
+            Il2CppType.Of<SpawnBloonsActionModel>().FullName,
+            Il2CppType.Of<SpawnChildrenModel>().FullName,
         };
 
         public class BloonsionReactor
@@ -54,7 +58,7 @@ namespace Combloonation
             public BloonsionReactor Merge()
             {
                 MelonLogger.Msg("Creating " + DebugString(fusion.id) + ":");
-                return MergeBehaviors().MergeProperties().MergeStats().MergeChildren();
+                return MergeProperties().MergeStats().MergeBehaviors().MergeChildren().MergeSpawnBloonsActionModel();
             }
 
             public BloonsionReactor MergeProperties()
@@ -77,28 +81,9 @@ namespace Combloonation
             {
                 fusion.maxHealth = fusands.Sum(f => f.maxHealth);
                 fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
-                fusion.leakDamage = fusands.Sum(f => f.leakDamage);
+                fusion.totalLeakDamage = fusion.leakDamage = fusands.Sum(f => f.leakDamage);
                 fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
                 fusion.speed = fusands.Max(f => f.speed);
-                fusion.speedFrames = fusands.Max(f => f.speed);
-                return this;
-            }
-
-            public BloonsionReactor MergeChildren()
-            {
-                var fusand_children = fusands.Select(f => f.GetBehavior<SpawnChildrenModel>().children);
-                var bound = fusand_children.Max(c => c.Count());
-                var children = fusand_children.Select(c => new Combinomial(c)).Aggregate((a, b) => a.Product(b).Cull().Bound(bound));
-                if (real) MelonLogger.Msg("     - " + DebugString(children.ToString()));
-                var behavior = fusion.GetBehavior<SpawnChildrenModel>();
-                fusion.RemoveBehavior(behavior);
-                behavior = behavior.Duplicate();
-                var childModels = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value));
-                fusion.totalLeakDamage = fusion.leakDamage + childModels.Sum(c => c.totalLeakDamage);
-                behavior.children = childModels.Select(c => c.id).ToArray();
-                fusion.childBloonModels = childModels.ToIl2CppList();
-                fusion.UpdateChildBloonModels();
-                fusion.AddBehavior(behavior);
                 return this;
             }
 
@@ -107,14 +92,48 @@ namespace Combloonation
                 fusion.RemoveBehaviors<DamageStateModel>();
                 fusion.damageDisplayStates = new DamageStateModel[] { };
                 fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
-                    .SelectMany(g => stackableBehaviors.Contains(g.Key) ? MergeSameBehaviors(g.ToList()) : new List<Model> { g.First() }).ToIl2CppReferenceArray();
+                    .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : stackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
                 return this;
             }
 
-            public static List<Model> MergeSameBehaviors(List<Model> behaviors)
+            public BloonsionReactor MergeChildren()
             {
-                //TODO: go through SpawnBloonsAction behaviors and merge the bloons between them
-                return behaviors;
+                var _behaviors = fusands.Select(f => f.GetBehaviors<SpawnChildrenModel>());
+                var _children = _behaviors.Select(l => l.SelectMany(b => b.children));
+                var behavior = _behaviors.First(l => l.Count > 0).First().Duplicate();
+
+                var bound = _children.Max(c => c.Count());
+                var children = _children.Select(c => new Combinomial<string>(c)).Aggregate((a, b) => a.Product(b).Cull().BoundAbove(bound));
+                var models = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value));
+
+                fusion.childBloonModels = models.ToIl2CppList();
+                fusion.UpdateChildBloonModels();
+                fusion.totalLeakDamage = fusion.leakDamage + models.Sum(c => c.totalLeakDamage);
+
+                behavior.children = models.Select(c => c.id).ToArray();
+                fusion.AddBehavior(behavior);
+                return this;
+            }
+
+            public BloonsionReactor MergeSpawnBloonsActionModel()
+            {
+                var _behaviors = fusands.Select(f => f.GetBehaviors<SpawnBloonsActionModel>());
+                var _children = _behaviors.Select(l => l.Select(m => new Tuple<Tuple<SpawnBloonsActionModel, string>, int>(new Tuple<SpawnBloonsActionModel, string>(m, m.bloonType), m.spawnCount)));
+
+                var bound = _behaviors.Max(l => l.Count == 0 ? 0 : l.Max(m => m.spawnCount));
+                var children = _children.Select(c => new Ordinomial<Tuple<SpawnBloonsActionModel, string>>(c)).Aggregate((a, b) => a.Product(b).Cull().BoundAbove(bound));
+                var models = children.Terms().SelectMany(p =>
+                {
+                    if (p.Key.Count == 0) return new List<Model> { };
+                    var model = p.Key.First().Item1.Duplicate();
+                    model.spawnCount = p.Value;
+                    var bloon = Fuse(p.Key.Select(t => t.Item2));
+                    model.bloonType = bloon.id;
+                    return new List<Model> { model };
+                });
+
+                fusion.behaviors = fusion.behaviors.Concat(models).ToIl2CppReferenceArray();
+                return this;
             }
         }
 
@@ -337,7 +356,7 @@ namespace Combloonation
             MelonLogger.Msg("Mutating rounds...");
             foreach (RoundSetModel round in GetGameModel().roundSets)
             {
-                foreach (var rounds in round.rounds)
+                foreach (var rounds in round.rounds.Take(50))
                 {
                     var size = rounds.groups.Sum(g => g.count);
                     var parts = random.Next(1, size + 1);
