@@ -22,7 +22,6 @@ namespace Combloonation
 
         public static string folderPath;
         public static int inGameId = 0;
-        public static bool needToRegister = false;
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -57,36 +56,9 @@ namespace Combloonation
                 {
                     inGameId = id;
                     MelonLogger.Msg("New game!");
-                    needToRegister = true;
-                    //Labloontory.RefreshRegistered();
-                }
-
-                //Always run
-                if (needToRegister)
-                {
-                    var bloon = Labloontory.Register();
-                    if (bloon == null)
-                    {
-                        needToRegister = false;
-                    }
                 }
 
                 DisplaySystem.OnInGameUpdate(__instance);
-            }
-        }
-
-        [HarmonyPatch(typeof(UnityEngine.EventSystems.EventSystem), nameof(UnityEngine.EventSystems.EventSystem.Update))]
-        public class Patch_EventSystem_Update
-        {
-            [HarmonyFinalizer]
-            public static Exception Finalizer(Exception __exception)
-            {
-                if (__exception != null)
-                {
-
-                }
-
-                return null;
             }
         }
 
@@ -98,30 +70,10 @@ namespace Combloonation
             {
                 if (__exception != null)
                 {
-
+                    MelonLogger.Msg(__exception.Message);
                 }
 
                 return null;
-            }
-        }
-
-        [HarmonyPatch(typeof(Bloon), nameof(Bloon.Initialise))]
-        public class Patch_Bloon_Initialise
-        {
-            [HarmonyPostfix]
-            public static void Postfix(Bloon __instance)
-            {
-                //var bloonModel = __instance.bloonModel;
-                //var gameModel = Labloontory.GetGameModel();
-                //var l1 = gameModel.bloonsByName.ContainsKey(bloonModel.name);
-                //var l2 = gameModel.bloons.Contains(bloonModel);
-                //MelonLogger.Msg(l1);
-                //MelonLogger.Msg(l2);
-                //gameModel = Game.instance.model;
-                //l1 = gameModel.bloonsByName.ContainsKey(bloonModel.name);
-                //l2 = gameModel.bloons.Contains(bloonModel);
-                //MelonLogger.Msg(l1);
-                //MelonLogger.Msg(l2);
             }
         }
 

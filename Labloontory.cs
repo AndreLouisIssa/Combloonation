@@ -20,14 +20,20 @@ namespace Combloonation
     {
 
         public static readonly Random random = new Random();
-        public static readonly Queue<BloonModel> toRegister = new Queue<BloonModel>();
-        public static List<BloonModel> registered = new List<BloonModel>();
         public static readonly Dictionary<string, BloonModel> _bloonsByName = new Dictionary<string, BloonModel>();
         public static string delim = "(@CombloonationFusion)";
         public static string debuglim = "_";
         public static List<string> properties = new List<string>
         {
             "Regrow", "Fortified", "Camo"
+        };
+        public static HashSet<string> stackableBehaviors = new HashSet<string>
+        {
+            //Il2CppType.Of<DisplayModel>().FullName,
+            //Il2CppType.Of<PopEffectModel>().FullName,
+            //Il2CppType.Of<SpawnChildrenModel>().FullName,
+            //Il2CppType.Of<CreateSoundOnDamageBloonModel>().FullName,
+            Il2CppType.Of<DistributeCashModel>().FullName
         };
 
         public class BloonsionReactor
@@ -39,7 +45,7 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
                 var noDuplicates = bloons.SelectMany(b => BloonIdsFromId(b.id)).Distinct().Select(s => GetBloonByName(s));
-                var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.First().baseId +
+                var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.Key +
                     PropertyString(g.Select(b => PropertiesFromId(b.id)).Aggregate((a, b) => a.Union(b))));
                 fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger);
                 fusion = Clone(fusands.First());
@@ -111,10 +117,10 @@ namespace Combloonation
 
             public BloonsionReactor MergeDisplay()
             {
-                fusion.radius = fusands.Max(f => f.radius);
-                fusion.rotate = fusands.Any(f => f.rotate);
-                fusion.rotateToFollowPath = fusands.Any(f => f.rotateToFollowPath);
-                fusion.icon = fusands.First(f => f.icon != null).icon;
+                //fusion.radius = fusands.Min(f => f.radius);
+                //fusion.rotate = fusands.Any(f => f.rotate);
+                //fusion.rotateToFollowPath = fusands.Any(f => f.rotateToFollowPath);
+                //fusion.icon = fusands.First(f => f.icon != null).icon;
                 fusion.RemoveBehaviors<DamageStateModel>();
                 fusion.damageDisplayStates = new DamageStateModel[] { };
                 return this;
@@ -122,14 +128,16 @@ namespace Combloonation
 
             public BloonsionReactor MergeBehaviors()
             {
-                bool IsDisplayModel(Model model)
-                {
-                    return model.GetIl2CppType() == Il2CppType.Of<DisplayModel>();
-                };
-                //TODO: go through SpawnBloonsAction behaviors and merge the bloons between them
-                fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList().Where(b => !IsDisplayModel(b))).Append(fusion.behaviors.First(b => IsDisplayModel(b))).ToIl2CppReferenceArray();
-                fusion.childDependants = fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
+                fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
+                    .SelectMany(g => stackableBehaviors.Contains(g.Key) ? MergeSameBehaviors(g.ToList()) : new List<Model> { g.First() }).ToIl2CppReferenceArray();
+                if (real) MelonLogger.Msg("     - " + fusion.behaviors.Length + " behaviors");
                 return this;
+            }
+
+            public static List<Model> MergeSameBehaviors(List<Model> behaviors)
+            {
+                //TODO: go through SpawnBloonsAction behaviors and merge the bloons between them
+                return behaviors;
             }
         }
 
@@ -260,28 +268,11 @@ namespace Combloonation
         public static BloonModel Register(BloonModel bloon, bool inGame = false)
         {
             _bloonsByName[bloon.name] = bloon;
-            if (inGame && InGame.instance?.bridge == null) { toRegister.Enqueue(bloon); return null; }
             var model = GetGameModel();
             if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
             MelonLogger.Msg("Registered " + DebugString(bloon.name));
-            registered.Add(bloon);
             return bloon;
-        }
-
-        public static BloonModel Register()
-        {
-            if (toRegister.Count == 0) return null;
-            return Register(toRegister.Dequeue());
-        }
-
-        public static void RefreshRegistered()
-        {
-            foreach (var bloon in registered)
-            {
-                toRegister.Enqueue(bloon);
-            }
-            registered.Clear();
         }
 
         public static BloonGroupModel[] Split(BloonGroupModel group, int size, out int excess)

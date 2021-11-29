@@ -262,7 +262,7 @@ namespace Combloonation
                     foreach (var m in sprite.materials.Concat(sprite.sharedMaterials)) m.mainTexture = texture;
                     foreach (var r in graphic.genericRenderers) r.SetMainTexture(texture);
                 }
-                if (!bloon.bloonModel.id.Contains(delim)) sprite.color = new Color(0.5f, 0.5f, 0.5f);
+                if (!sprite.sprite.texture.isReadable && bloon.bloonModel.id.Contains(delim)) sprite.color = new Color(0.5f, 0.5f, 0.5f);
             }
             else
             {
