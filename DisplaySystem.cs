@@ -284,7 +284,6 @@ namespace Combloonation
 
         public static void OnInGameUpdate(InGame inGame)
         {
-            if (inGame.bridge == null) return;
             List<BloonToSimulation> bloonSims;
             try { bloonSims = inGame.bridge.GetAllBloons().ToList(); } catch { return; }
             foreach (var bloonSim in bloonSims) { SetBloonAppearance(bloonSim.GetBloon()); }
