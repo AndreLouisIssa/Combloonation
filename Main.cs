@@ -56,9 +56,7 @@ namespace Combloonation
                     inGameId = id;
                     MelonLogger.Msg("New game!");
                     needToRegister = true;
-                    Labloontory.RefreshRegistered();
-                    MelonLogger.Msg("Begun registering");
-
+                    //Labloontory.RefreshRegistered();
                 }
 
                 //Always run
@@ -68,7 +66,6 @@ namespace Combloonation
                     if (bloon == null)
                     {
                         needToRegister = false;
-                        MelonLogger.Msg("Stopped registering");
                     }
                 }
                 
