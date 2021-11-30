@@ -22,7 +22,7 @@ namespace Combloonation
 
         public static string folderPath;
         public static int inGameId = 0;
-        public static SeededDirector director = new RoundMutator(2000);
+        public static SeededDirector director = new TestDirector(2000);//new RoundMutator(2000);
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -38,7 +38,11 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix()
             {
-                director.Produce(Directable.GameModel, null);
+                var models = director.Produce(Directable.GameModel, null);
+                foreach (var pair in models)
+                {
+                    MelonLogger.Msg($"{pair.Value.name} : {pair.Key}");
+                }
             }
         }
 

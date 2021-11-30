@@ -23,7 +23,9 @@ namespace Combloonation
         [EnumMember(Value = "BloonGroupModel")]
         BloonGroupModel,
         [EnumMember(Value = "FreeplayBloonGroupModel")]
-        FreeplayBloonGroupModel
+        FreeplayBloonGroupModel,
+        [EnumMember(Value = "BloonModel")]
+        BloonModel
     }
 
     public interface IDirector
@@ -32,7 +34,9 @@ namespace Combloonation
         float Eval(RoundSetModel model);
         float Eval(BloonGroupModel model);
         float Eval(RoundModel model);
+        float Eval(BloonModel model);
         float Eval(FreeplayBloonGroupModel model);
+        float Eval(BloonEmissionModel model);
 
         SortedList<float, Model> Produce(Directable d, float? v, int n = 1);
     }
@@ -54,7 +58,10 @@ namespace Combloonation
         public abstract float Eval(RoundSetModel model);
         public abstract float Eval(BloonGroupModel model);
         public abstract float Eval(RoundModel model);
+        public abstract float Eval(BloonModel model);
         public abstract float Eval(FreeplayBloonGroupModel model);
+        public abstract float Eval(BloonEmissionModel model);
+
         public abstract SortedList<float, Model> Produce(Directable d, float? v, int n = 1);
     }
 
@@ -136,14 +143,13 @@ namespace Combloonation
         }
 
         public override float Eval(GameModel model) { return 0f; }
-
         public override float Eval(RoundSetModel model) { return 0f; }
-
         public override float Eval(BloonGroupModel model) { return 0f; }
-
         public override float Eval(RoundModel model) { return 0f; }
-
+        public override float Eval(BloonModel model) { return 0f; }
         public override float Eval(FreeplayBloonGroupModel model) { return 0f; }
+        public override float Eval(BloonEmissionModel model) { return 0f; }
+
 
         public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
         {
@@ -165,11 +171,62 @@ namespace Combloonation
                 }
                 produced = game;
             }
-            
+
             var list = new SortedList<float, Model>(1);
             list.Add(0f, game);
             return list;
         }
 
     }
+
+    public class TestDirector : SeededDirector
+    {
+        public TestDirector(int seed) : base(seed) { }
+
+        public override float Eval(GameModel model)
+        {
+            return model.roundSets.Sum(r => Eval(r)) + model.freeplayGroups.Sum(g => Eval(g));
+        }
+
+        public override float Eval(RoundSetModel model)
+        {
+            return model.rounds.Sum(r => Eval(r));
+        }
+
+        public override float Eval(RoundModel model)
+        {
+            return model.emissions.Sum(e => Eval(e)) + model.groups.Sum(g => Eval(g));
+        }
+
+        public override float Eval(BloonGroupModel model)
+        {
+            return Eval(GetBloonByName(model.bloon)) * model.count;// / (model.end - model.start);
+        }
+
+        public override float Eval(BloonModel model)
+        {
+            return model.tags.Count + model.behaviors.Count + model.speed + model.maxHealth + model.childBloonModels.ToList().Sum(b => Eval(b));
+        }
+
+        public override float Eval(FreeplayBloonGroupModel model)
+        {
+            return model.score + Eval(model.group) + model.bloonEmissions.Sum(e => Eval(e));
+        }
+
+        public override float Eval(BloonEmissionModel model)
+        {
+            return Eval(GetBloonByName(model.bloon));// / model.time;
+        }
+
+        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
+        {
+            if (d != Directable.GameModel) throw new NotImplementedException();
+
+            var model = GetGameModel();
+            var list = new SortedList<float, Model>(1);
+            list.Add(Eval(model), model);
+            return list;
+        }
+    }
+
 }
