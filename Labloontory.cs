@@ -65,7 +65,7 @@ namespace Combloonation
 
             public BloonsionReactor Merge()
             {
-                MelonLogger.Msg("Creating " + DebugString(fusion.id) + ":");
+                MelonLogger.Msg("Creating " + DebugString(fusion.id));
                 return MergeProperties().MergeStats().MergeBehaviors().MergeChildren().MergeSpawnBloonsActionModel();
             }
 

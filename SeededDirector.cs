@@ -6,10 +6,38 @@ using Assets.Scripts.Models.Rounds;
 using Assets.Scripts.Models.Bloons;
 using BTD_Mod_Helper.Extensions;
 using MelonLoader;
+using Assets.Scripts.Models;
+using System.Runtime.Serialization;
 
 namespace Combloonation
 {
-    public class SeededDirector
+
+    public enum Directable
+    {
+        [EnumMember(Value = "GameModel")]
+        GameModel,
+        [EnumMember(Value = "RoundSetModel")]
+        RoundSetModel,
+        [EnumMember(Value = "RoundModel")]
+        RoundModel,
+        [EnumMember(Value = "BloonGroupModel")]
+        BloonGroupModel,
+        [EnumMember(Value = "FreeplayBloonGroupModel")]
+        FreeplayBloonGroupModel
+    }
+
+    public interface IDirector
+    {
+        float Eval(GameModel model);
+        float Eval(RoundSetModel model);
+        float Eval(BloonGroupModel model);
+        float Eval(RoundModel model);
+        float Eval(FreeplayBloonGroupModel model);
+
+        SortedList<float, Model> Produce(Directable d, float? v, int n = 1);
+    }
+
+    public abstract class SeededDirector : IDirector
     {
         public readonly Random random;
         public readonly int seed;
@@ -20,12 +48,24 @@ namespace Combloonation
             this.seed = seed;
         }
 
-        public SeededDirector() : this(new Random().Next())
-        {
+        public SeededDirector() : this(new Random().Next()) { }
 
-        }
+        public abstract float Eval(GameModel model);
+        public abstract float Eval(RoundSetModel model);
+        public abstract float Eval(BloonGroupModel model);
+        public abstract float Eval(RoundModel model);
+        public abstract float Eval(FreeplayBloonGroupModel model);
+        public abstract SortedList<float, Model> Produce(Directable d, float? v, int n = 1);
+    }
 
-        public BloonGroupModel[] Split(BloonGroupModel group, int size, out int excess)
+    public class RoundMutator : SeededDirector
+    {
+        public static GameModel produced;
+
+        public RoundMutator(int seed) : base(seed) { }
+        public RoundMutator() : base() { }
+
+        public static BloonGroupModel[] Split(BloonGroupModel group, int size, out int excess)
         {
             var first = group.Duplicate();
             var span = group.count;
@@ -37,12 +77,12 @@ namespace Combloonation
             return new BloonGroupModel[] { first, last };
         }
 
-        public BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes)
+        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes)
         {
             return Split(roundGroups, sizes, bloons => Fuse(bloons));
         }
 
-        public BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes, Func<List<BloonModel>, BloonModel> fuser)
+        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes, Func<List<BloonModel>, BloonModel> fuser)
         {
             var groups = new List<BloonGroupModel>();
             var subgroups = new List<BloonGroupModel>();
@@ -95,18 +135,41 @@ namespace Combloonation
             return sizes.ToArray();
         }
 
-        public void MutateRounds()
+        public override float Eval(GameModel model) { return 0f; }
+
+        public override float Eval(RoundSetModel model) { return 0f; }
+
+        public override float Eval(BloonGroupModel model) { return 0f; }
+
+        public override float Eval(RoundModel model) { return 0f; }
+
+        public override float Eval(FreeplayBloonGroupModel model) { return 0f; }
+
+        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
         {
-            MelonLogger.Msg("Mutating rounds...");
-            foreach (RoundSetModel round in GetGameModel().roundSets)
+            if (d != Directable.GameModel) throw new NotImplementedException();
+
+            var game = produced ?? GetGameModel();
+            if (produced == null)
             {
-                foreach (var rounds in round.rounds.Take(50))
+                MelonLogger.Msg("Mutating rounds...");
+
+                foreach (RoundSetModel roundSet in game.roundSets)
                 {
-                    var size = rounds.groups.Sum(g => g.count);
-                    var parts = random.Next(1, size + 1);
-                    rounds.groups = Split(rounds.groups, Partition(size, parts));
+                    foreach (var round in roundSet.rounds)
+                    {
+                        var size = round.groups.Sum(g => g.count);
+                        var parts = random.Next(1, size + 1);
+                        round.groups = Split(round.groups, Partition(size, parts));
+                    }
                 }
+                produced = game;
             }
+            
+            var list = new SortedList<float, Model>(1);
+            list.Add(0f, game);
+            return list;
         }
+
     }
 }
