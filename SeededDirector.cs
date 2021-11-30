@@ -156,7 +156,7 @@ namespace Combloonation
                     {
                         var size = round.groups.Sum(g => g.count);
                         var parts = random.Next(1, size + 1);
-                        round.groups = Split(round.groups, Partition(size, parts));
+                        round.groups = Split(round.groups, Partition(size, parts, random));
                     }
                 }
                 produced = game;
@@ -188,34 +188,52 @@ namespace Combloonation
 
         public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
         {
-            SortedList<float, Model> list = new SortedList<float, Model> { };
+            var list = new SortedList<float, Model> { };
             var game = GetGameModel();
-            var bloons = game.bloons;
+            Action func = () => { };
             switch (d)
             {
-                case Directable.BloonModel:
+                case Directable.BloonModel: func = () => {
+                    var bloons = game.bloons;
                     var parts = random.Next(1, n);
                     var partition = Partition(n, parts, random);
                     var choice = bloons.Shuffle(random).Take(parts);
                     var i = 0;
-                    foreach (var bloon in choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])))
+                    list.AddValues(choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])), m => Eval((BloonModel)m));
+                    }; break;
+                case Directable.BloonGroupModel: func = () => {
+                    var bloons = Produce(Directable.BloonModel, v, n);
+                    var groups = bloons.GroupWhile((a, b) => a.Value == b.Value).Select(c =>
                     {
-                        list.Add(Eval(bloon), bloon);
-                    }
-                    break;
-                case Directable.BloonGroupModel:
-                    break;
-                case Directable.RoundModel:
-                    break;
-                case Directable.RoundSetModel:
-                    break;
-                case Directable.GameModel:
-                    break;
-                case Directable.BloonEmissionModel:
-                    break;
-                case Directable.FreeplayBloonGroupModel:
-                    break;
+                        var bloon = (BloonModel)c.First().Value;
+                        var start = (float)random.NextDouble() * random.Next(40);
+                        var end = start + (float)random.NextDouble() * random.Next(40);
+                        return new BloonGroupModel("RandomDirectorBloonGroupModel" + random.NextDouble().GetHashCode(), bloon.name, start, end, c.Count());
+                    });
+                    list.AddValues(groups, m => Eval((BloonGroupModel)m));
+                    }; break;
+                case Directable.RoundModel: func = () => {
+                    var parts = random.Next(1, n);
+                    var partition = Partition(n, parts, random);
+                    var groupss = partition.Select(m => Produce(Directable.BloonGroupModel, v, m));
+                    var rounds = groupss.Select(gs => new RoundModel("RandomDirectorRoundModel" + random.NextDouble().GetHashCode(), gs.Values.Cast<BloonGroupModel>().ToIl2CppReferenceArray()));
+                    list.AddValues(rounds, m => Eval((RoundModel)m));
+                    }; break;
+                case Directable.RoundSetModel: func = () => {
+                    var parts = random.Next(1, n);
+                    var partition = Partition(n, parts, random);
+                    var roundss = partition.Select(m => Produce(Directable.RoundModel, v, m));
+                    var roundsets = roundss.Select(rs => new RoundSetModel("RandomDirectorRoundSetModel" + random.NextDouble().GetHashCode(), rs.Values.Cast<RoundModel>().ToIl2CppReferenceArray()));
+                    list.AddValues(roundsets, m => Eval((RoundSetModel)m));
+                }; break;
+                case Directable.GameModel: func = () => {
+                    }; break;
+                case Directable.BloonEmissionModel: func = () => {
+                    }; break;
+                case Directable.FreeplayBloonGroupModel: func = () => {
+                    }; break;
             }
+            func();
             return list;
         }
     }

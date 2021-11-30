@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MelonLoader;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -17,18 +18,48 @@ namespace Combloonation
             return shuffledList;
         }
 
+        public static void AddValues<K, V>(this SortedList<K, V> list, IEnumerable<V> values, Func<V, K> selector)
+        {
+            foreach (var value in values) list.Add(selector(value), value);
+        }
+
+        public static void AddKeys<K, V>(this SortedList<K, V> list, IEnumerable<K> keys, Func<K, V> selector)
+        {
+            foreach (var key in keys) list.Add(key, selector(key));
+        }
+
         public static int[] Partition(int size, int parts, Random r = null)
         {
             r = r ?? new Random();
-            var pivots = new HashSet<int>(Enumerable.Repeat(0, parts - 1).Select(z => r.Next(1, size)).Append(0).Append(size));
+            var pivots = Enumerable.Repeat(0, parts - 1).Select(z => r.Next(1, size)).Append(0).Append(size).OrderBy(n => n);
             var sizes = new List<int> { };
-            size = pivots.First();
+            var s = pivots.First();
             foreach (var pivot in pivots.Skip(1))
             {
-                sizes.Add(pivot - size);
-                size = pivot;
+                sizes.Add(pivot - s);
+                s = pivot;
             }
             return sizes.ToArray();
+        }
+
+        //https://stackoverflow.com/questions/50300125/how-to-find-consecutive-same-values-items-as-a-linq-group
+        public static IEnumerable<IEnumerable<T>> GroupWhile<T>(this IEnumerable<T> seq, Func<T, T, bool> condition)
+        {
+            T prev = seq.First();
+            List<T> list = new List<T>() { prev };
+
+            foreach (T item in seq.Skip(1))
+            {
+                if (condition(prev, item) == false)
+                {
+                    yield return list;
+                    list = new List<T>();
+                }
+                list.Add(item);
+                prev = item;
+            }
+
+            yield return list;
         }
 
         public static int[] ArgUnbounded1DKnapsack(int total, int[] val)
