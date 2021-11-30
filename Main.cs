@@ -22,6 +22,7 @@ namespace Combloonation
 
         public static string folderPath;
         public static int inGameId = 0;
+        public static SeededDirector director = new SeededDirector(2000);
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -37,7 +38,7 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix()
             {
-                Labloontory.MutateRounds();
+                director.MutateRounds();
             }
         }
 
