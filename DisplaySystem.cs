@@ -1,12 +1,9 @@
 ﻿using BTD_Mod_Helper.Extensions;
 using System.Collections.Generic;
-using HarmonyLib;
 using Assets.Scripts.Unity.UI_New.InGame;
 using Assets.Scripts.Simulation.Bloons;
 using System.Linq;
 using Assets.Scripts.Unity.Bridge;
-using Assets.Scripts.Simulation.Display;
-using MelonLoader;
 using Assets.Scripts.Unity.Display;
 using Assets.Scripts.Models.Bloons;
 using System;
@@ -250,13 +247,13 @@ namespace Combloonation
             return new Tuple<RegionScalarMap, float, float, Rect>(map, w2, h2, new Rect(-w2, -h2, w, h));
         }
 
-        public static Texture2D NewMergedTexture(this BloonModel bloon, Texture texture, Rect? proj = null)
+        public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var rect = RectOrTexture(texture, proj);
             var r = Math.Min(rect.width, rect.height) / 4;
             var map = GetRegionMap(texture, proj);
-            var ws = BloonsFromBloon(bloon).Skip(1).Where(b => baseColors.ContainsKey(b.id)).Select(b => b.danger).ToArray();
+            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.id)).Select(b => b.danger).ToArray();
             var cols = GetColors(bloon);
             if (cols.Item2.Count == 0) return texture.Duplicate(proj);
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
@@ -266,21 +263,20 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => bbcol.Pixel(c, x, y, map.Item4), proj);
         }
 
-        public static Texture2D GetMergedTexture(this Bloon bloon, Texture oldTexture, Rect? proj = null)
+        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
-            var model = bloon.bloonModel;
-            if (oldTexture == null) return computedTextures[model.id] = null;
+            if (oldTexture == null) return computedTextures[bloon.id] = null;
             if (oldTexture.isReadable) return null;
-            var exists = computedTextures.TryGetValue(model.id, out var texture);
+            var exists = computedTextures.TryGetValue(bloon.id, out var texture);
             if (exists) return texture;
-            if (!model.id.Contains(delim)) return computedTextures[model.id] = null;
-            computedTextures[model.id] = texture = model.NewMergedTexture(oldTexture, proj);
-            if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(model.id)}.png");
+            if (!bloon.id.Contains(delim)) return computedTextures[bloon.id] = null;
+            computedTextures[bloon.id] = texture = bloon.NewMergedTexture(oldTexture, proj);
+            if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(bloon.id)}.png");
             return texture;
         }
 
-        public static void SetBloonAppearance(Bloon bloon, UnityDisplayNode graphic)
+        public static void SetBloonAppearance(this FusionBloonModel bloon, UnityDisplayNode graphic)
         {
             var sprite = graphic.sprite;
             if (sprite != null)
@@ -305,13 +301,9 @@ namespace Combloonation
 
         public static void SetBloonAppearance(Bloon bloon)
         {
-            var display = bloon.display;
-            if (display == null) return;
-            var node = display.node;
-            if (node == null) return;
-            var graphic = node.graphic;
+            var graphic = bloon?.display?.node?.graphic;
             if (graphic == null) return;
-            SetBloonAppearance(bloon, graphic);
+            if (GetBloonByName(bloon.bloonModel.id) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
         }
 
         public static void OnInGameUpdate(InGame inGame)

@@ -19,7 +19,7 @@ namespace Combloonation
     {
 
         public static readonly Random random = new Random();
-        public static readonly Dictionary<string, BloonModel> _bloonsByName = new Dictionary<string, BloonModel>();
+        public static readonly Dictionary<string, FusionBloonModel> _bloonsByName = new Dictionary<string, FusionBloonModel>();
         public static string fusionTag = "CombloonationFusion";
         public static string delim = $"({fusionTag})";
         public static string debuglim = "_";
@@ -39,10 +39,19 @@ namespace Combloonation
             Il2CppType.Of<SpawnChildrenModel>().FullName,
         };
 
+        public class FusionBloonModel : BloonModel
+        {
+            public readonly BloonModel[] fusands;
+
+            public FusionBloonModel(BloonModel fusion, BloonModel[] fusands) : base(fusion.id, fusion.baseId, fusion.speed, fusion.radius, fusion.display, fusion.damageDisplayStates, fusion.icon, fusion.rotate, fusion.behaviors, fusion.overlayClass, fusion.tags, fusion.mods, fusion.collisionGroup, fusion.danger, fusion.hasChildrenWithDifferentTotalHealths, fusion.layerNumber, fusion.isCamo, fusion.isGrow, fusion.isFortified, fusion.depletionEffects, fusion.rotateToFollowPath, fusion.isMoab, fusion.isBoss, fusion.bloonProperties, fusion.leakDamage, fusion.maxHealth, fusion.distributeDamageToChildren, fusion.isInvulnerable, fusion.propertyDisplays, fusion.bonusDamagePerHit, fusion.disallowCosmetics, fusion.isSaved, fusion.loseOnLeak)
+            {
+                this.fusands = fusands;
+            }
+        }
+
         public class BloonsionReactor
         {
-            public readonly IEnumerable<BloonModel> fusands;
-            public readonly BloonModel fusion;
+            public readonly FusionBloonModel fusion;
             public bool real = false;
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
@@ -50,9 +59,9 @@ namespace Combloonation
                 var noDuplicates = bloons.SelectMany(b => BloonIdsFromId(b.id)).Distinct().Select(s => GetBloonByName(s));
                 var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.Key +
                     PropertyString(g.Select(b => PropertiesFromId(b.id)).Aggregate((a, b) => a.Union(b))));
-                fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger);
-                fusion = Clone(fusands.First());
-                fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToId(fusands);
+                var fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger);
+                fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
+                fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToId(fusion.fusands);
             }
 
             public BloonsionReactor Merge()
@@ -63,27 +72,27 @@ namespace Combloonation
 
             public BloonsionReactor MergeProperties()
             {
-                fusion.bloonProperties = fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
+                fusion.bloonProperties = fusion.fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
 
-                fusion.isBoss = fusands.Any(f => f.isBoss);
-                fusion.isCamo = fusands.Any(f => f.isCamo);
-                fusion.isFortified = fusands.Any(f => f.isFortified);
-                fusion.isGrow = fusands.Any(f => f.isGrow);
-                fusion.isMoab = fusands.Any(f => f.isMoab);
+                fusion.isBoss = fusion.fusands.Any(f => f.isBoss);
+                fusion.isCamo = fusion.fusands.Any(f => f.isCamo);
+                fusion.isFortified = fusion.fusands.Any(f => f.isFortified);
+                fusion.isGrow = fusion.fusands.Any(f => f.isGrow);
+                fusion.isMoab = fusion.fusands.Any(f => f.isMoab);
 
-                fusion.distributeDamageToChildren = fusands.All(f => f.distributeDamageToChildren);
-                fusion.tags = fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
+                fusion.distributeDamageToChildren = fusion.fusands.All(f => f.distributeDamageToChildren);
+                fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
 
                 return this;
             }
 
             public BloonsionReactor MergeStats()
             {
-                fusion.maxHealth = fusands.Sum(f => f.maxHealth);
-                fusion.isInvulnerable = fusands.Any(f => f.isInvulnerable);
-                fusion.totalLeakDamage = fusion.leakDamage = fusands.Sum(f => f.leakDamage);
-                fusion.loseOnLeak = fusands.Any(f => f.loseOnLeak);
-                fusion.speed = fusands.Max(f => f.speed);
+                fusion.maxHealth = fusion.fusands.Sum(f => f.maxHealth);
+                fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
+                fusion.totalLeakDamage = fusion.leakDamage = fusion.fusands.Sum(f => f.leakDamage);
+                fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
+                fusion.speed = fusion.fusands.Max(f => f.speed);
                 return this;
             }
 
@@ -91,14 +100,14 @@ namespace Combloonation
             {
                 fusion.RemoveBehaviors<DamageStateModel>();
                 fusion.damageDisplayStates = new DamageStateModel[] { };
-                fusion.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
+                fusion.behaviors = fusion.fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
                     .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : stackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
                 return this;
             }
 
             public BloonsionReactor MergeChildren()
             {
-                var _behaviors = fusands.Select(f => f.GetBehaviors<SpawnChildrenModel>());
+                var _behaviors = fusion.fusands.Select(f => f.GetBehaviors<SpawnChildrenModel>());
                 var _children = _behaviors.Select(l => l.SelectMany(b => b.children));
                 var behavior = _behaviors.First(l => l.Count > 0).First().Duplicate();
 
@@ -117,7 +126,7 @@ namespace Combloonation
 
             public BloonsionReactor MergeSpawnBloonsActionModel()
             {
-                var _behaviors = fusands.Select(f => f.GetBehaviors<SpawnBloonsActionModel>());
+                var _behaviors = fusion.fusands.Select(f => f.GetBehaviors<SpawnBloonsActionModel>());
                 var _children = _behaviors.Select(l => l.Select(m => new Tuple<Tuple<SpawnBloonsActionModel, string>, int>(new Tuple<SpawnBloonsActionModel, string>(m, m.bloonType), m.spawnCount)));
 
                 var bound = _behaviors.Max(l => l.Count == 0 ? 0 : l.Max(m => m.spawnCount));
@@ -180,12 +189,7 @@ namespace Combloonation
 
         public static IEnumerable<BloonModel> BloonsFromId(string id)
         {
-            return id.Split(delim).Select(s => GetBloonByName(s));
-        }
-
-        public static IEnumerable<BloonModel> BloonsFromBloon(BloonModel bloon)
-        {
-            return BloonsFromId(bloon.id);
+            return BloonIdsFromId(id).Select(s => GetBloonByName(s));
         }
 
         public static IEnumerable<string> BloonIdsFromId(string id)
@@ -233,7 +237,7 @@ namespace Combloonation
         {
             if (bloons.Count() == 0) return null;
             var reactor = new BloonsionReactor(bloons);
-            var bloon = reactor.fusion;
+            var bloon = (BloonModel)reactor.fusion;
             var oldBloon = GetBloonByName(bloon.id, false);
             if (oldBloon != null) bloon = oldBloon;
             else Register(reactor.Merge().fusion);
@@ -261,7 +265,7 @@ namespace Combloonation
             return null;
         }
 
-        public static BloonModel Register(BloonModel bloon, bool inGame = false)
+        public static BloonModel Register(FusionBloonModel bloon, bool inGame = false)
         {
             _bloonsByName[bloon.name] = bloon;
             var model = GetGameModel();
