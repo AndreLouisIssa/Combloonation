@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using static Combloonation.Labloontory;
+using static Combloonation.Helpers;
 using Assets.Scripts.Models.Rounds;
 using Assets.Scripts.Models.Bloons;
 using BTD_Mod_Helper.Extensions;
@@ -22,10 +23,12 @@ namespace Combloonation
         RoundModel,
         [EnumMember(Value = "BloonGroupModel")]
         BloonGroupModel,
+        [EnumMember(Value = "BloonModel")]
+        BloonModel,
         [EnumMember(Value = "FreeplayBloonGroupModel")]
         FreeplayBloonGroupModel,
-        [EnumMember(Value = "BloonModel")]
-        BloonModel
+        [EnumMember(Value = "BloonEmissionModel")]
+        BloonEmissionModel,
     }
 
     public interface IDirector
@@ -65,12 +68,12 @@ namespace Combloonation
         public abstract SortedList<float, Model> Produce(Directable d, float? v, int n = 1);
     }
 
-    public class RoundMutator : SeededDirector
+    public class RoundMutatorDirector : SeededDirector
     {
         public static GameModel produced;
 
-        public RoundMutator(int seed) : base(seed) { }
-        public RoundMutator() : base() { }
+        public RoundMutatorDirector(int seed) : base(seed) { }
+        public RoundMutatorDirector() : base() { }
 
         public static BloonGroupModel[] Split(BloonGroupModel group, int size, out int excess)
         {
@@ -129,19 +132,6 @@ namespace Combloonation
             return groups.ToArray();
         }
 
-        public int[] Partition(int size, int parts)
-        {
-            var pivots = new HashSet<int>(Enumerable.Repeat(0, parts - 1).Select(z => random.Next(1, size)).Append(0).Append(size));
-            var sizes = new List<int> { };
-            size = pivots.First();
-            foreach (var pivot in pivots.Skip(1))
-            {
-                sizes.Add(pivot - size);
-                size = pivot;
-            }
-            return sizes.ToArray();
-        }
-
         public override float Eval(GameModel model) { return 0f; }
         public override float Eval(RoundSetModel model) { return 0f; }
         public override float Eval(BloonGroupModel model) { return 0f; }
@@ -177,6 +167,57 @@ namespace Combloonation
             return list;
         }
 
+    }
+
+    public class RandomDirector : SeededDirector
+    {
+        public RandomDirector(int seed) : base(seed) { }
+
+        public override float Eval(GameModel model) { return (float)random.NextDouble(); }
+
+        public override float Eval(RoundSetModel model) { return (float)random.NextDouble(); }
+
+        public override float Eval(RoundModel model) { return (float)random.NextDouble(); }
+        public override float Eval(BloonGroupModel model) { return (float)random.NextDouble(); }
+
+        public override float Eval(BloonModel model) { return (float)random.NextDouble(); }
+
+        public override float Eval(FreeplayBloonGroupModel model) { return (float)random.NextDouble(); }
+
+        public override float Eval(BloonEmissionModel model) { return (float)random.NextDouble(); }
+
+        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
+        {
+            SortedList<float, Model> list = new SortedList<float, Model> { };
+            var game = GetGameModel();
+            var bloons = game.bloons;
+            switch (d)
+            {
+                case Directable.BloonModel:
+                    var parts = random.Next(1, n);
+                    var partition = Partition(n, parts, random);
+                    var choice = bloons.Shuffle(random).Take(parts);
+                    var i = 0;
+                    foreach (var bloon in choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])))
+                    {
+                        list.Add(Eval(bloon), bloon);
+                    }
+                    break;
+                case Directable.BloonGroupModel:
+                    break;
+                case Directable.RoundModel:
+                    break;
+                case Directable.RoundSetModel:
+                    break;
+                case Directable.GameModel:
+                    break;
+                case Directable.BloonEmissionModel:
+                    break;
+                case Directable.FreeplayBloonGroupModel:
+                    break;
+            }
+            return list;
+        }
     }
 
     public class TestDirector : SeededDirector
@@ -225,6 +266,76 @@ namespace Combloonation
             var model = GetGameModel();
             var list = new SortedList<float, Model>(1);
             list.Add(Eval(model), model);
+            return list;
+        }
+    }
+
+    public class DangerDirector : SeededDirector
+    {
+        public DangerDirector(int seed) : base(seed) { }
+
+        public override float Eval(GameModel model)
+        {
+            return model.roundSets.Sum(r => Eval(r)) + model.freeplayGroups.Sum(g => Eval(g));
+        }
+
+        public override float Eval(RoundSetModel model)
+        {
+            return model.rounds.Sum(r => Eval(r));
+        }
+
+        public override float Eval(RoundModel model)
+        {
+            return model.emissions.Sum(e => Eval(e)) + model.groups.Sum(g => Eval(g));
+        }
+
+        public override float Eval(BloonGroupModel model)
+        {
+            return Eval(GetBloonByName(model.bloon)) * model.count;
+        }
+
+        public override float Eval(BloonModel model)
+        {
+            return model.danger;
+        }
+
+        public override float Eval(FreeplayBloonGroupModel model)
+        {
+            return Eval(model.group) + model.bloonEmissions.Sum(e => Eval(e));
+        }
+
+        public override float Eval(BloonEmissionModel model)
+        {
+            return Eval(GetBloonByName(model.bloon));
+        }
+
+        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
+        {
+            SortedList<float, Model> list = new SortedList<float, Model> { };
+            var game = GetGameModel();
+            var bloons = game.bloons.Select(b => (int)Eval(b)).ToArray();
+            switch (d)
+            {
+                case Directable.BloonModel:
+                    var choice = ArgUnbounded1DKnapsack((int)v, bloons).GroupBy(i => i);
+                    var fusion = Fuse(choice.Select(g => game.bloons[g.Key]));
+                    var value = Eval(fusion);
+                    var count = choice.Sum(g => g.Count());
+                    for (int i = 0; i < count; i++) list.Add(value, fusion);
+                    break;
+                case Directable.BloonGroupModel:
+                    break;
+                case Directable.RoundModel:
+                    break;
+                case Directable.RoundSetModel:
+                    break;
+                case Directable.GameModel:
+                    break;
+                case Directable.BloonEmissionModel:
+                    break;
+                case Directable.FreeplayBloonGroupModel:
+                    break;
+            }
             return list;
         }
     }
