@@ -195,7 +195,7 @@ namespace Combloonation
 
         public override float Eval(RoundModel model)
         {
-            return model.emissions.Sum(e => Eval(e)) + model.groups.Sum(g => Eval(g));
+            return model.emissions.GroupBy(e => e.bloon).Count() + model.emissions.Sum(e => Eval(e)) + model.groups.GroupBy(g => g.bloon).Count() + model.groups.Sum(g => Eval(g));
         }
 
         public override float Eval(BloonGroupModel model)
@@ -205,12 +205,12 @@ namespace Combloonation
 
         public override float Eval(BloonModel model)
         {
-            return model.tags.Count + model.behaviors.Count + model.speed + model.maxHealth + model.childBloonModels.ToList().Sum(b => Eval(b));
+            return /*model.tags.Count + model.behaviors.Count + model.speed + model.maxHealth +*/ model.childBloonModels.ToList().GroupBy(b => b).Count() + model.childBloonModels.ToList().Sum(b => Eval(b));
         }
 
         public override float Eval(FreeplayBloonGroupModel model)
         {
-            return model.score + Eval(model.group) + model.bloonEmissions.Sum(e => Eval(e));
+            return /*model.score + */ Eval(model.group) + model.bloonEmissions.GroupBy(e => e.bloon).Count() + model.bloonEmissions.Sum(e => Eval(e));
         }
 
         public override float Eval(BloonEmissionModel model)
