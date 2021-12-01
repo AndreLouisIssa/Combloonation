@@ -107,5 +107,25 @@ namespace Combloonation
             list.AddValues<float, Model>(ms, m => director.Eval((dynamic)m));
             return list;
         }
+
+        public static DirectableModel ToDirectable<M>(this M m) where M : Model
+        {
+            return new DirectableModel((dynamic)m);
+        }
+
+        public static IEnumerable<DirectableModel> ToDirectable<M>(this IEnumerable<M> ms) where M : Model
+        {
+            return ms.Select(m => m.ToDirectable());
+        }
+
+        public static M ToModel<M>(this DirectableModel m) where M : Model
+        {
+            return m.Cast<M>();
+        }
+
+        public static IEnumerable<M> ToModel<M>(this IEnumerable<DirectableModel> ms) where M : Model
+        {
+            return ms.Select(m => m.Cast<M>());
+        }
     }
 }

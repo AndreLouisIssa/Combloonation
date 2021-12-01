@@ -34,33 +34,16 @@ namespace Combloonation
             BloonEmissionModel,
         }
 
-        public static Dictionary<Il2CppSystem.Type, Directable> directableType = new Dictionary<Il2CppSystem.Type, Directable>
+        public static Dictionary<string, Directable> directableType = new Dictionary<string, Directable>
         {
-            { Il2CppType.Of<GameModel>(), Directable.GameModel },
-            { Il2CppType.Of<RoundSetModel>(), Directable.RoundSetModel },
-            { Il2CppType.Of<RoundModel>(), Directable.RoundModel },
-            { Il2CppType.Of<BloonGroupModel>(), Directable.BloonGroupModel },
-            { Il2CppType.Of<BloonModel>(), Directable.BloonModel },
-            { Il2CppType.Of<FreeplayBloonGroupModel>(), Directable.FreeplayBloonGroupModel },
-            { Il2CppType.Of<BloonEmissionModel>(), Directable.BloonEmissionModel }
+            { Il2CppType.Of<GameModel>().FullName, Directable.GameModel },
+            { Il2CppType.Of<RoundSetModel>().FullName, Directable.RoundSetModel },
+            { Il2CppType.Of<RoundModel>().FullName, Directable.RoundModel },
+            { Il2CppType.Of<BloonGroupModel>().FullName, Directable.BloonGroupModel },
+            { Il2CppType.Of<BloonModel>().FullName, Directable.BloonModel },
+            { Il2CppType.Of<FreeplayBloonGroupModel>().FullName, Directable.FreeplayBloonGroupModel },
+            { Il2CppType.Of<BloonEmissionModel>().FullName, Directable.BloonEmissionModel }
         };
-
-        private readonly Model model;
-
-        public static Directable GetDirectable<T>()
-        {
-            return directableType[Il2CppType.Of<T>()];
-        }
-
-        public Directable GetDirectable()
-        {
-            return directableType[model.GetIl2CppType()];
-        }
-
-        public bool Is<T>(out T outModel) where T : Model
-        {
-            return model.IsType(out outModel);
-        }
 
         public DirectableModel(GameModel model) { this.model = model; }
         public DirectableModel(RoundSetModel model) { this.model = model; }
@@ -113,6 +96,32 @@ namespace Combloonation
             if (directable.model is BloonEmissionModel model) return model;
             else throw new InvalidCastException($"The instance of {nameof(DirectableModel)} is not an instance of {nameof(BloonEmissionModel)}");
         }
+
+        private readonly Model model;
+
+        public static Directable GetDirectable<T>()
+        {
+            return directableType[Il2CppType.Of<T>().FullName];
+        }
+
+        public Directable GetDirectable()
+        {
+            return directableType[model.GetIl2CppType().FullName];
+        }
+
+        public bool Is<T>(out T outModel) where T : Model
+        {
+            return model.IsType(out outModel);
+        }
+
+        public T Cast<T>() where T : Model
+        {
+            model.IsType(out T outModel);
+            return outModel;
+        }
+
+        public static implicit operator DirectableModel(Model model) { return new DirectableModel((dynamic)model); }
+        public static implicit operator Model(DirectableModel directable) { return directable.model; }
     }
 
     public interface IDirector
@@ -261,7 +270,7 @@ namespace Combloonation
                         var partition = Partition(n, parts, random);
                         var choice = bloons.Shuffle(random).Take(parts);
                         var i = 0;
-                        list.AddItems(choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])).Cast<DirectableModel>());
+                        list.AddItems(choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])).ToDirectable());
                     }; break;
                 case Directable.BloonGroupModel:
                     func = () => {
@@ -273,23 +282,23 @@ namespace Combloonation
                             var end = start + (float)random.NextDouble() * random.Next(40);
                             return new BloonGroupModel("RandomDirectorBloonGroupModel" + random.NextDouble().GetHashCode(), bloon.name, start, end, c.Count());
                         });
-                        list.AddItems(groups.Cast<DirectableModel>());
+                        list.AddItems(groups.ToDirectable());
                     }; break;
                 case Directable.RoundModel:
                     func = () => {
                         var parts = random.Next(1, n);
                         var partition = Partition(n, parts, random);
                         var groupss = partition.Select(m => Produce<BloonGroupModel>(v, m));
-                        var rounds = groupss.Select(gs => new RoundModel("RandomDirectorRoundModel" + random.NextDouble().GetHashCode(), gs.Cast<BloonGroupModel>().ToIl2CppReferenceArray()));
-                        list.AddItems(rounds.Cast<DirectableModel>());
+                        var rounds = groupss.Select(gs => new RoundModel("RandomDirectorRoundModel" + random.NextDouble().GetHashCode(), gs.ToModel<BloonGroupModel>().ToIl2CppReferenceArray()));
+                        list.AddItems(rounds.ToDirectable());
                     }; break;
                 case Directable.RoundSetModel:
                     func = () => {
                         var parts = random.Next(1, n);
                         var partition = Partition(n, parts, random);
                         var roundss = partition.Select(m => Produce<RoundModel>(v, m));
-                        var roundsets = roundss.Select(rs => new RoundSetModel("RandomDirectorRoundSetModel" + random.NextDouble().GetHashCode(), rs.Cast<RoundModel>().ToIl2CppReferenceArray()));
-                        list.AddItems(roundsets.Cast<DirectableModel>());
+                        var roundsets = roundss.Select(rs => new RoundSetModel("RandomDirectorRoundSetModel" + random.NextDouble().GetHashCode(), rs.ToModel<RoundModel>().ToIl2CppReferenceArray()));
+                        list.AddItems(roundsets.ToDirectable());
                     }; break;
                 case Directable.GameModel:
                     throw new NotImplementedException();
