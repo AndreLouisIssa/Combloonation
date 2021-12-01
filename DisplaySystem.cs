@@ -250,6 +250,8 @@ namespace Combloonation
         public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
+
+            var fbase = bloon.fusands.First();
             var rect = RectOrTexture(texture, proj);
             var r = Math.Min(rect.width, rect.height) / 4;
             var map = GetRegionMap(texture, proj);

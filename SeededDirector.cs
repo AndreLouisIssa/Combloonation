@@ -231,8 +231,9 @@ namespace Combloonation
                 {
                     foreach (var round in roundSet.rounds)
                     {
+                        if (round.groups.Count <= 1) continue; 
                         var size = round.groups.Sum(g => g.count);
-                        var parts = random.Next(1, round.groups.Count);
+                        var parts = random.Next(1, round.groups.Count/2);
                         round.groups = Split(round.groups, Partition(size, parts, random));
                     }
                 }
