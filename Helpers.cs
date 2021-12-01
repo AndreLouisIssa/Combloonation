@@ -1,4 +1,5 @@
-﻿using MelonLoader;
+﻿using Assets.Scripts.Models;
+using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +27,11 @@ namespace Combloonation
         public static void AddKeys<K, V>(this SortedList<K, V> list, IEnumerable<K> keys, Func<K, V> selector)
         {
             foreach (var key in keys) list.Add(key, selector(key));
+        }
+
+        public static void AddItems<T>(this List<T> list, IEnumerable<T> items)
+        {
+            foreach (var item in items) list.Add(item);
         }
 
         public static int[] Partition(int size, int parts, Random r = null)
@@ -86,6 +92,13 @@ namespace Combloonation
                 w = w - vals[k].Item1;
             }
             return list.ToArray();
+        }
+
+        public static SortedList<float,Model> Sort(this IDirector director, IEnumerable<Model> ms)
+        {
+            var list = new SortedList<float, Model>(ms.Count());
+            list.AddValues<float, Model>(ms, m => director.Eval((dynamic)m));
+            return list;
         }
     }
 }

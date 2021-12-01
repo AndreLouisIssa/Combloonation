@@ -41,7 +41,9 @@ namespace Combloonation
         float Eval(FreeplayBloonGroupModel model);
         float Eval(BloonEmissionModel model);
 
-        SortedList<float, Model> Produce(Directable d, float? v, int n = 1);
+        List<Model> Produce(Directable d, float? v, int n = 1);
+
+        List<Model> Produce(Model m, float? v, int n = 1);
     }
 
     public abstract class SeededDirector : IDirector
@@ -65,7 +67,8 @@ namespace Combloonation
         public abstract float Eval(FreeplayBloonGroupModel model);
         public abstract float Eval(BloonEmissionModel model);
 
-        public abstract SortedList<float, Model> Produce(Directable d, float? v, int n = 1);
+        public abstract List<Model> Produce(Directable d, float? v, int n = 1);
+        public abstract List<Model> Produce(Model m, float? v, int n = 1);
     }
 
     public class RoundMutatorDirector : SeededDirector
@@ -141,12 +144,14 @@ namespace Combloonation
         public override float Eval(BloonEmissionModel model) { return 0f; }
 
 
-        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
+        public override List<Model> Produce(Directable d, float? v, int n = 1)
         {
-            if (d != Directable.GameModel) throw new NotImplementedException();
+            throw new NotImplementedException();
+        }
 
-            var game = produced ?? GetGameModel();
-            if (produced == null)
+        public override List<Model> Produce(Model m, float? v, int n = 1)
+        {
+            if (m is GameModel game)
             {
                 MelonLogger.Msg("Mutating rounds...");
 
@@ -159,14 +164,12 @@ namespace Combloonation
                         round.groups = Split(round.groups, Partition(size, parts, random));
                     }
                 }
-                produced = game;
+                var list = new List<Model>(1);
+                list.Add(game);
+                return list;
             }
-
-            var list = new SortedList<float, Model>(1);
-            list.Add(0f, game);
-            return list;
+            throw new NotImplementedException();
         }
-
     }
 
     public class RandomDirector : SeededDirector
@@ -186,9 +189,9 @@ namespace Combloonation
 
         public override float Eval(BloonEmissionModel model) { return (float)random.NextDouble(); }
 
-        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
+        public override List<Model> Produce(Directable d, float? v, int n = 1)
         {
-            var list = new SortedList<float, Model> { };
+            var list = new List<Model> { };
             var game = GetGameModel();
             Action func = () => { };
             switch (d)
@@ -199,42 +202,47 @@ namespace Combloonation
                     var partition = Partition(n, parts, random);
                     var choice = bloons.Shuffle(random).Take(parts);
                     var i = 0;
-                    list.AddValues(choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])), m => Eval((BloonModel)m));
+                    list.AddItems(choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])));
                     }; break;
                 case Directable.BloonGroupModel: func = () => {
                     var bloons = Produce(Directable.BloonModel, v, n);
-                    var groups = bloons.GroupWhile((a, b) => a.Value == b.Value).Select(c =>
+                    var groups = bloons.GroupWhile((a, b) => a == b).Select(c =>
                     {
-                        var bloon = (BloonModel)c.First().Value;
+                        var bloon = (BloonModel)c.First();
                         var start = (float)random.NextDouble() * random.Next(40);
                         var end = start + (float)random.NextDouble() * random.Next(40);
                         return new BloonGroupModel("RandomDirectorBloonGroupModel" + random.NextDouble().GetHashCode(), bloon.name, start, end, c.Count());
                     });
-                    list.AddValues(groups, m => Eval((BloonGroupModel)m));
+                    list.AddItems(groups);
                     }; break;
                 case Directable.RoundModel: func = () => {
                     var parts = random.Next(1, n);
                     var partition = Partition(n, parts, random);
                     var groupss = partition.Select(m => Produce(Directable.BloonGroupModel, v, m));
-                    var rounds = groupss.Select(gs => new RoundModel("RandomDirectorRoundModel" + random.NextDouble().GetHashCode(), gs.Values.Cast<BloonGroupModel>().ToIl2CppReferenceArray()));
-                    list.AddValues(rounds, m => Eval((RoundModel)m));
+                    var rounds = groupss.Select(gs => new RoundModel("RandomDirectorRoundModel" + random.NextDouble().GetHashCode(), gs.Cast<BloonGroupModel>().ToIl2CppReferenceArray()));
+                    list.AddItems(rounds);
                     }; break;
                 case Directable.RoundSetModel: func = () => {
                     var parts = random.Next(1, n);
                     var partition = Partition(n, parts, random);
                     var roundss = partition.Select(m => Produce(Directable.RoundModel, v, m));
-                    var roundsets = roundss.Select(rs => new RoundSetModel("RandomDirectorRoundSetModel" + random.NextDouble().GetHashCode(), rs.Values.Cast<RoundModel>().ToIl2CppReferenceArray()));
-                    list.AddValues(roundsets, m => Eval((RoundSetModel)m));
+                    var roundsets = roundss.Select(rs => new RoundSetModel("RandomDirectorRoundSetModel" + random.NextDouble().GetHashCode(), rs.Cast<RoundModel>().ToIl2CppReferenceArray()));
+                    list.AddItems(roundsets);
                 }; break;
-                case Directable.GameModel: func = () => {
-                    }; break;
-                case Directable.BloonEmissionModel: func = () => {
-                    }; break;
-                case Directable.FreeplayBloonGroupModel: func = () => {
-                    }; break;
-            }
+                case Directable.GameModel:
+                    throw new NotImplementedException();
+                case Directable.BloonEmissionModel:
+                    throw new NotImplementedException();
+                case Directable.FreeplayBloonGroupModel:
+                    throw new NotImplementedException();
+                }
             func();
             return list;
+        }
+
+        public override List<Model> Produce(Model m, float? v, int n = 1)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -277,14 +285,14 @@ namespace Combloonation
             return Eval(GetBloonByName(model.bloon));// / model.time;
         }
 
-        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
+        public override List<Model> Produce(Directable d, float? v, int n = 1)
         {
-            if (d != Directable.GameModel) throw new NotImplementedException();
+            throw new NotImplementedException();
+        }
 
-            var model = GetGameModel();
-            var list = new SortedList<float, Model>(1);
-            list.Add(Eval(model), model);
-            return list;
+        public override List<Model> Produce(Model m, float? v, int n = 1)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -327,9 +335,9 @@ namespace Combloonation
             return Eval(GetBloonByName(model.bloon));
         }
 
-        public override SortedList<float, Model> Produce(Directable d, float? v, int n = 1)
+        public override List<Model> Produce(Directable d, float? v, int n = 1)
         {
-            SortedList<float, Model> list = new SortedList<float, Model> { };
+            var list = new List<Model> { };
             var game = GetGameModel();
             var bloons = game.bloons.Select(b => (int)Eval(b)).ToArray();
             switch (d)
@@ -337,9 +345,8 @@ namespace Combloonation
                 case Directable.BloonModel:
                     var choice = ArgUnbounded1DKnapsack((int)v, bloons).GroupBy(i => i);
                     var fusion = Fuse(choice.Select(g => game.bloons[g.Key]));
-                    var value = Eval(fusion);
                     var count = choice.Sum(g => g.Count());
-                    for (int i = 0; i < count; i++) list.Add(value, fusion);
+                    for (int i = 0; i < count; i++) list.Add(fusion);
                     break;
                 case Directable.BloonGroupModel:
                     break;
@@ -355,6 +362,11 @@ namespace Combloonation
                     break;
             }
             return list;
+        }
+
+        public override List<Model> Produce(Model m, float? v, int n = 1)
+        {
+            throw new NotImplementedException();
         }
     }
 
