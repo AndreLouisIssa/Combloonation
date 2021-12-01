@@ -268,7 +268,7 @@ namespace Combloonation
             var model = GetGameModel();
             if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
-            MelonLogger.Msg("Registered " + DebugString(bloon.name));
+            //MelonLogger.Msg("Registered " + DebugString(bloon.name));
             return bloon;
         }
     }

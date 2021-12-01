@@ -9,6 +9,7 @@ using Assets.Scripts.Models.Bloons;
 using System;
 using UnityEngine;
 using static Combloonation.Labloontory;
+using static Combloonation.Helpers;
 
 namespace Combloonation
 {
@@ -60,6 +61,7 @@ namespace Combloonation
         public class TintOverlay : IOverlay
         {
             public float t = 0.8f;
+            public Func<float, float, Rect, float> tf;
             public IOverlay c;
 
             public TintOverlay(IOverlay c)
@@ -70,14 +72,26 @@ namespace Combloonation
             {
                 this.t = t;
             }
-            public Color Pixel(Color c, int x, int y, Rect r)
+            public TintOverlay(IOverlay c, Func<float, float, Rect, float> tf) : this(c)
             {
-                var t = this.c.Pixel(c, x, y, r);
-                Color.RGBToHSV(c, out var mh, out var ms, out var mv);
-                Color.RGBToHSV(t, out var th, out var ts, out var tv);
-                var col = Color.HSVToRGB(th, ms, mv);
-                col.a = c.a;
-                return Color.Lerp(col, new Color(t.r, t.g, t.b, c.a), this.t);
+                this.tf = tf;
+            }
+
+            public Color Pixel(Color mc, int x, int y, Rect r)
+            {
+                var tp = t;
+                if (tf != null)
+                {
+                    var _x = x + r.x; var _y = y + r.y;
+                    tp = tf(_x, _y, r);
+                }
+                var tc = c.Pixel(mc, x, y, r);
+                //Color.RGBToHSV(mc, out var mh, out var ms, out var mv);
+                //Color.RGBToHSV(tc, out var th, out var ts, out var tv);
+                //var col = Color.HSVToRGB(th, ms, mv);
+                //col.a = mc.a;
+                //return Color.Lerp(col, new Color(tc.r, tc.g, tc.b, mc.a), tp
+                return Color.Lerp(mc, new Color(tc.r, tc.g, tc.b, mc.a), tp);
             }
         }
 
@@ -100,19 +114,36 @@ namespace Combloonation
 
             public IOverlay ci;
             public IOverlay co;
-            public float r;
+            public float b = 1f;
+            public Func<float,float,Rect,bool> bf;
 
-            public BoundOverlay(IOverlay ci, IOverlay co, float r)
+            public BoundOverlay(IOverlay ci, IOverlay co)
             {
-                this.r = r;
                 this.ci = ci;
                 this.co = co;
             }
 
+            public BoundOverlay(IOverlay ci, IOverlay co, float b) : this(ci, co)
+            {
+                this.b = b;
+            }
+
+            public BoundOverlay(IOverlay ci, IOverlay co, Func<float,float,Rect,bool> bf) : this(ci, co)
+            {
+                this.bf = bf;
+            }
+                            
+
             public Color Pixel(Color c, int x, int y, Rect r)
             {
+                bool ins;
                 var _x = x + r.x; var _y = y + r.y;
-                if (_x * _x + _y * _y > this.r * this.r)
+                if (bf == null)
+                {
+                    ins = _x * _x + _y * _y > b * b;
+                }
+                else ins = bf(_x, _y, r);
+                if (ins)
                 {
                     return co.Pixel(c, x, y, r);
                 }
@@ -250,19 +281,35 @@ namespace Combloonation
         public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
-
-            var fbase = bloon.fusands.First();
-            var rect = RectOrTexture(texture, proj);
-            var r = Math.Min(rect.width, rect.height) / 4;
-            var map = GetRegionMap(texture, proj);
-            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.name)).Select(b => b.danger).ToArray();
             var cols = GetColors(bloon);
             if (cols.Item2.Count == 0) return texture.Duplicate(proj);
+
+            var map = GetRegionMap(texture, proj);
+            var mrect = map.Item4;
+            var r = Math.Min(mrect.width, mrect.height) / 3;
+            var fbase = bloon.fusands.First();
+            var dx = 0f; var dy = 0f;
+            if (fbase.isMoab)
+            {
+                dx = mrect.width * (1f / 6f);
+                dy = mrect.height * 0.1f;
+                r *= 2f / 3f;
+            }
+            else if (!fbase.isGrow)
+            {
+                dy = -mrect.height * 0.05f;
+            }
+            //mrect.x += dx; mrect.y += dy;
+            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.name)).Select(b => b.danger).ToArray();
+            r *= ws[0]/fbase.danger;
+            Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(Math.Sqrt(x*x+y*y),1.4f*r,0.4f*r);
+            var tcols = cols.Item2.Select(c => new TintOverlay(c,tf)).ToList();
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
-                cols.Item2.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
-            var bcol = new BoundOverlay(dcol, boundaryColor, r);
-            var bbcol = new BoundOverlay(bcol, emptyColor, r * 1.05f);
-            return texture.Duplicate((x, y, c) => bbcol.Pixel(c, x, y, map.Item4), proj);
+                tcols.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
+            //var bcol = new BoundOverlay(dcol, boundaryColor, r);
+            //var bbcol = new BoundOverlay(bcol, emptyColor, r * 1.05f);
+            var bbcol = new BoundOverlay(dcol, emptyColor, r * 1.5f);
+            return texture.Duplicate((x, y, c) => bbcol.Pixel(c, x + (int)dx, y + (int)dy, mrect), proj);
         }
 
         public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Rect? proj = null)

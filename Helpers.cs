@@ -19,6 +19,36 @@ namespace Combloonation
             return shuffledList;
         }
 
+        //https://www.johndcook.com/blog/csharp_erf/
+        public static double ERF(double x)
+        {
+            // constants
+            double a1 = 0.254829592;
+            double a2 = -0.284496736;
+            double a3 = 1.421413741;
+            double a4 = -1.453152027;
+            double a5 = 1.061405429;
+            double p = 0.3275911;
+
+            // Save the sign of x
+            int sign = 1;
+            if (x < 0)
+                sign = -1;
+            x = Math.Abs(x);
+
+            // A&S formula 7.1.26
+            double t = 1.0 / (1.0 + p * x);
+            double y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.Exp(-x * x);
+
+            return sign * y;
+        }
+    
+        public static double TERF(double x, double s, double r)
+        {
+            // transformed error function to interpolate from near 0 to near 1 from s to r
+            return (ERF(((x-s)/(r-s)*4d)-2d)+1d)/2d;
+        }
+
         public static void AddValues<K, V>(this SortedList<K, V> list, IEnumerable<V> values, Func<V, K> selector)
         {
             foreach (var value in values) list.Add(selector(value), value);
@@ -36,7 +66,7 @@ namespace Combloonation
 
         public static int[] Partition(int size, int parts, Random r = null)
         {
-            MelonLogger.Msg(size + "/" + parts);
+            //MelonLogger.Msg(size + "/" + parts);
             r = r ?? new Random();
             var _pivots = new HashSet<int>(parts - 1) { 0, size };
             for (int i = 1; i < parts; i++)
@@ -48,14 +78,14 @@ namespace Combloonation
             }
             var pivots = _pivots.OrderBy(n => n);
             var sizes = new List<int> { };
-            MelonLogger.Msg(string.Join("->",pivots));
+            //MelonLogger.Msg(string.Join("->",pivots));
             var s = pivots.First();
             foreach (var pivot in pivots.Skip(1))
             {
                 sizes.Add(pivot - s);
                 s = pivot;
             }
-            MelonLogger.Msg(string.Join("|",sizes));
+            //MelonLogger.Msg(string.Join("|",sizes));
             return sizes.ToArray();
         }
 
