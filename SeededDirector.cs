@@ -261,7 +261,7 @@ namespace Combloonation
         {
             var list = new List<DirectableModel> { };
             var game = GetGameModel();
-            Action func = () => { };
+            Action func = default;
             switch (GetDirectable<M>()) {
                 case Directable.BloonModel:
                     func = () => {
@@ -306,164 +306,144 @@ namespace Combloonation
                     throw new NotImplementedException();
                 case Directable.FreeplayBloonGroupModel:
                     throw new NotImplementedException();
+                default:
+                    throw new NotImplementedException();
             }
             func();
             return list;
         }
     }
 
-    //public class TestDirector : SeededDirector
-    //{
-    //    public TestDirector(int seed) : base(seed) { }
+    public class TestDirector : SeededDirector
+    {
+        public TestDirector(int seed) : base(seed) { }
 
-    //    public override float Eval(GameModel model)
-    //    {
-    //        return model.roundSets.Sum(r => Eval(r)) + model.freeplayGroups.Sum(g => Eval(g));
-    //    }
+        public override float Eval(DirectableModel directable)
+        {
+            Func<float> func = default;
+            switch (directable.GetDirectable())
+            {
+                case Directable.BloonModel:
+                    func = () => { directable.Is(out BloonModel model);
+                        return /*model.tags.Count + model.behaviors.Count + model.speed + model.maxHealth +*/ model.childBloonModels.ToList().GroupBy(b => b).Count() + model.childBloonModels.ToList().Sum(b => Eval(b));
+                    }; break;
+                case Directable.BloonGroupModel:
+                    func = () => { directable.Is(out BloonGroupModel model);
+                        return Eval(GetBloonByName(model.bloon)) * model.count;// / (model.end - model.start);
+                    }; break;
+                case Directable.RoundModel:
+                    func = () => { directable.Is(out RoundModel model);
+                        return model.emissions.GroupBy(e => e.bloon).Count() + model.emissions.Sum(e => Eval(e)) + model.groups.GroupBy(g => g.bloon).Count() + model.groups.Sum(g => Eval(g));
+                    }; break;
+                case Directable.RoundSetModel:
+                    func = () => { directable.Is(out RoundSetModel model);
+                        return model.rounds.Sum(r => Eval(r));
+                    }; break;
+                case Directable.GameModel:
+                    func = () => { directable.Is(out GameModel model);
+                        return model.roundSets.Sum(r => Eval(r)) + model.freeplayGroups.Sum(g => Eval(g));
+                    }; break;
+                case Directable.BloonEmissionModel:
+                    func = () => { directable.Is(out BloonEmissionModel model);
+                        return Eval(GetBloonByName(model.bloon));// / model.time;
+                    }; break;
+                case Directable.FreeplayBloonGroupModel:
+                    func = () => { directable.Is(out FreeplayBloonGroupModel model);
+                        return /*model.score + */ Eval(model.group) + model.bloonEmissions.GroupBy(e => e.bloon).Count() + model.bloonEmissions.Sum(e => Eval(e));
+                    }; break;
+                default:
+                    throw new NotImplementedException();
+            }
+            return func();
+        }
 
-    //    public override float Eval(RoundSetModel model)
-    //    {
-    //        return model.rounds.Sum(r => Eval(r));
-    //    }
+        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
+        {
+            throw new NotImplementedException();
+        }
 
-    //    public override float Eval(RoundModel model)
-    //    {
-    //        return model.emissions.GroupBy(e => e.bloon).Count() + model.emissions.Sum(e => Eval(e)) + model.groups.GroupBy(g => g.bloon).Count() + model.groups.Sum(g => Eval(g));
-    //    }
+        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
+        {
+            throw new NotImplementedException();
+        }
+    }
 
-    //    public override float Eval(BloonGroupModel model)
-    //    {
-    //        return Eval(GetBloonByName(model.bloon)) * model.count;// / (model.end - model.start);
-    //    }
+    public class DangerDirector : SeededDirector
+    {
+        public DangerDirector(int seed) : base(seed) { }
 
-    //    public override float Eval(BloonModel model)
-    //    {
-    //        return /*model.tags.Count + model.behaviors.Count + model.speed + model.maxHealth +*/ model.childBloonModels.ToList().GroupBy(b => b).Count() + model.childBloonModels.ToList().Sum(b => Eval(b));
-    //    }
+        public override float Eval(DirectableModel directable)
+        {
+            Func<float> func = default;
+            switch (directable.GetDirectable())
+            {
+                case Directable.BloonModel:
+                    func = () => { directable.Is(out BloonModel model);
+                        return model.danger;
+                    }; break;
+                case Directable.BloonGroupModel:
+                    func = () => { directable.Is(out BloonGroupModel model);
+                        return Eval(GetBloonByName(model.bloon)) * model.count;
+                    }; break;
+                case Directable.RoundModel:
+                    func = () => { directable.Is(out RoundModel model);
+                        return model.emissions.Sum(e => Eval(e)) + model.groups.Sum(g => Eval(g));
+                    }; break;
+                case Directable.RoundSetModel:
+                    func = () => { directable.Is(out RoundSetModel model);
+                        return model.rounds.Sum(r => Eval(r));
+                    }; break;
+                case Directable.GameModel:
+                    func = () => { directable.Is(out GameModel model);
+                        return model.roundSets.Sum(r => Eval(r)) + model.freeplayGroups.Sum(g => Eval(g));
+                    }; break;
+                case Directable.BloonEmissionModel:
+                    func = () => { directable.Is(out BloonEmissionModel model);
+                        return Eval(GetBloonByName(model.bloon));
+                    }; break;
+                case Directable.FreeplayBloonGroupModel:
+                    func = () => { directable.Is(out FreeplayBloonGroupModel model);
+                        return Eval(model.group) + model.bloonEmissions.Sum(e => Eval(e));
+                    }; break;
+                default:
+                    throw new NotImplementedException();
+            }
+            return func();
+        }
 
-    //    public override float Eval(FreeplayBloonGroupModel model)
-    //    {
-    //        return /*model.score + */ Eval(model.group) + model.bloonEmissions.GroupBy(e => e.bloon).Count() + model.bloonEmissions.Sum(e => Eval(e));
-    //    }
+        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
+        {
+            throw new NotImplementedException();
+        }
 
-    //    public override float Eval(BloonEmissionModel model)
-    //    {
-    //        return Eval(GetBloonByName(model.bloon));// / model.time;
-    //    }
-
-    //        public override float Eval(DirectableModel model)
-    //        {
-    //            throw new NotImplementedException();
-    //        }
-
-    //        public override List<Model> Produce(Directable d, float? v, int n = 1)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-
-    //    public override List<Model> Produce(Model m, float? v, int n = 1)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-
-    //        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
-    //        {
-    //            throw new NotImplementedException();
-    //        }
-
-    //        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
-    //        {
-    //            throw new NotImplementedException();
-    //        }
-    //    }
-
-    //public class DangerDirector : SeededDirector
-    //{
-    //    public DangerDirector(int seed) : base(seed) { }
-
-    //    public override float Eval(GameModel model)
-    //    {
-    //        return model.roundSets.Sum(r => Eval(r)) + model.freeplayGroups.Sum(g => Eval(g));
-    //    }
-
-    //    public override float Eval(RoundSetModel model)
-    //    {
-    //        return model.rounds.Sum(r => Eval(r));
-    //    }
-
-    //    public override float Eval(RoundModel model)
-    //    {
-    //        return model.emissions.Sum(e => Eval(e)) + model.groups.Sum(g => Eval(g));
-    //    }
-
-    //    public override float Eval(BloonGroupModel model)
-    //    {
-    //        return Eval(GetBloonByName(model.bloon)) * model.count;
-    //    }
-
-    //    public override float Eval(BloonModel model)
-    //    {
-    //        return model.danger;
-    //    }
-
-    //    public override float Eval(FreeplayBloonGroupModel model)
-    //    {
-    //        return Eval(model.group) + model.bloonEmissions.Sum(e => Eval(e));
-    //    }
-
-    //    public override float Eval(BloonEmissionModel model)
-    //    {
-    //        return Eval(GetBloonByName(model.bloon));
-    //    }
-
-    //        public override float Eval(DirectableModel model)
-    //        {
-    //            throw new NotImplementedException();
-    //        }
-
-    //        public override List<Model> Produce(Directable d, float? v, int n = 1)
-    //    {
-    //        var list = new List<Model> { };
-    //        var game = GetGameModel();
-    //        var bloons = game.bloons.Select(b => (int)Eval(b)).ToArray();
-    //        switch (d)
-    //        {
-    //            case Directable.BloonModel:
-    //                var choice = ArgUnbounded1DKnapsack((int)v, bloons).GroupBy(i => i);
-    //                var fusion = Fuse(choice.Select(g => game.bloons[g.Key]));
-    //                var count = choice.Sum(g => g.Count());
-    //                for (int i = 0; i < count; i++) list.Add(fusion);
-    //                break;
-    //            case Directable.BloonGroupModel:
-    //                break;
-    //            case Directable.RoundModel:
-    //                break;
-    //            case Directable.RoundSetModel:
-    //                break;
-    //            case Directable.GameModel:
-    //                break;
-    //            case Directable.BloonEmissionModel:
-    //                break;
-    //            case Directable.FreeplayBloonGroupModel:
-    //                break;
-    //        }
-    //        return list;
-    //    }
-
-    //    public override List<Model> Produce(Model m, float? v, int n = 1)
-    //    {
-    //        throw new NotImplementedException();
-    //    }
-
-    //        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
-    //        {
-    //            throw new NotImplementedException();
-    //        }
-
-    //        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
-    //        {
-    //            throw new NotImplementedException();
-    //        }
-    //}
+        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
+        {
+            var list = new List<DirectableModel> { };
+            var game = GetGameModel();
+            var bloons = game.bloons.Select(b => (int)Eval(b)).ToArray();
+            switch (GetDirectable<M>())
+            {
+                case Directable.BloonModel:
+                    var choice = ArgUnbounded1DKnapsack((int)v, bloons).GroupBy(i => i);
+                    var fusion = Fuse(choice.Select(g => game.bloons[g.Key]));
+                    var count = choice.Sum(g => g.Count());
+                    for (int i = 0; i < count; i++) list.Add(fusion);
+                    break;
+                case Directable.BloonGroupModel:
+                    break;
+                case Directable.RoundModel:
+                    break;
+                case Directable.RoundSetModel:
+                    break;
+                case Directable.GameModel:
+                    break;
+                case Directable.BloonEmissionModel:
+                    break;
+                case Directable.FreeplayBloonGroupModel:
+                    break;
+            }
+            return list;
+        }
+    }
 
 }
