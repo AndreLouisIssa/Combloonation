@@ -108,22 +108,17 @@ namespace Combloonation
             return list;
         }
 
-        public static DirectableModel ToDirectable<M>(this M m) where M : Model
+        public static DirectableModel Cast<M>(this M m) where M : Model
         {
             return new DirectableModel((dynamic)m);
         }
 
-        public static IEnumerable<DirectableModel> ToDirectable<M>(this IEnumerable<M> ms) where M : Model
+        public static IEnumerable<DirectableModel> Cast<M>(this IEnumerable<M> ms) where M : Model
         {
-            return ms.Select(m => m.ToDirectable());
+            return ms.Select(m => m.Cast());
         }
 
-        public static M ToModel<M>(this DirectableModel m) where M : Model
-        {
-            return m.Cast<M>();
-        }
-
-        public static IEnumerable<M> ToModel<M>(this IEnumerable<DirectableModel> ms) where M : Model
+        public static IEnumerable<M> Cast<M>(this IEnumerable<DirectableModel> ms) where M : Model
         {
             return ms.Select(m => m.Cast<M>());
         }
