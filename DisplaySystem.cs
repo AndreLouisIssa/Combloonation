@@ -135,7 +135,7 @@ namespace Combloonation
 
         public static Tuple<IOverlay, List<IOverlay>> GetColors(this BloonModel bloon)
         {
-            var ids = BaseBloonIdsFromId(bloon.id);
+            var ids = BaseBloonNamesFromName(bloon.name);
             var primary = ids.First();
             var got = baseColors.TryGetValue(primary, out var pcol);
             if (!got) pcol = emptyColor;
@@ -151,7 +151,7 @@ namespace Combloonation
         public static List<IOverlay> GetSecondaryColors(this BloonModel bloon)
         {
             var cols = new List<IOverlay> { };
-            foreach (var id in BaseBloonIdsFromId(bloon.id).Skip(1))
+            foreach (var id in BaseBloonNamesFromName(bloon.name).Skip(1))
             {
                 var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
@@ -160,7 +160,7 @@ namespace Combloonation
         }
         public static IOverlay GetPrimaryColor(this BloonModel bloon)
         {
-            var primary = BaseBloonIdsFromId(bloon.id).First();
+            var primary = BaseBloonNamesFromName(bloon.name).First();
             var got = baseColors.TryGetValue(primary, out var col);
             if (got) return col;
             return emptyColor;
@@ -253,7 +253,7 @@ namespace Combloonation
             var rect = RectOrTexture(texture, proj);
             var r = Math.Min(rect.width, rect.height) / 4;
             var map = GetRegionMap(texture, proj);
-            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.id)).Select(b => b.danger).ToArray();
+            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.name)).Select(b => b.danger).ToArray();
             var cols = GetColors(bloon);
             if (cols.Item2.Count == 0) return texture.Duplicate(proj);
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
@@ -266,13 +266,12 @@ namespace Combloonation
         public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
-            if (oldTexture == null) return computedTextures[bloon.id] = null;
+            if (oldTexture == null) return computedTextures[bloon.name] = null;
             if (oldTexture.isReadable) return null;
-            var exists = computedTextures.TryGetValue(bloon.id, out var texture);
+            var exists = computedTextures.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
-            if (!bloon.id.Contains(delim)) return computedTextures[bloon.id] = null;
-            computedTextures[bloon.id] = texture = bloon.NewMergedTexture(oldTexture, proj);
-            if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(bloon.id)}.png");
+            computedTextures[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, proj);
+            if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(bloon.name)}.png");
             return texture;
         }
 
@@ -303,7 +302,7 @@ namespace Combloonation
         {
             var graphic = bloon?.display?.node?.graphic;
             if (graphic == null) return;
-            if (GetBloonByName(bloon.bloonModel.id) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
+            if (GetBloonByName(bloon.bloonModel.name) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
         }
 
         public static void OnInGameUpdate(InGame inGame)

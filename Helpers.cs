@@ -36,15 +36,26 @@ namespace Combloonation
 
         public static int[] Partition(int size, int parts, Random r = null)
         {
+            MelonLogger.Msg(size + "/" + parts);
             r = r ?? new Random();
-            var pivots = Enumerable.Repeat(0, parts - 1).Select(z => r.Next(1, size)).Append(0).Append(size).OrderBy(n => n);
+            var _pivots = new HashSet<int>(parts - 1) { 0, size };
+            for (int i = 1; i < parts; i++)
+            {
+                int _r;
+                do _r = r.Next(1, size);
+                while (_pivots.Contains(_r));
+                _pivots.Add(_r);
+            }
+            var pivots = _pivots.OrderBy(n => n);
             var sizes = new List<int> { };
+            MelonLogger.Msg(string.Join("->",pivots));
             var s = pivots.First();
             foreach (var pivot in pivots.Skip(1))
             {
                 sizes.Add(pivot - s);
                 s = pivot;
             }
+            MelonLogger.Msg(string.Join("|",sizes));
             return sizes.ToArray();
         }
 

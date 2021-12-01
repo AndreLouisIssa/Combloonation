@@ -128,15 +128,20 @@ namespace Combloonation
     {
         float Eval(DirectableModel model);
 
-        List<DirectableModel> Produce<M>(float? v, int n = 1) where M : Model;
+        List<DirectableModel> Produce<M>(float? v = null, int? n = 1) where M : Model;
 
-        List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1);
+        List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1);
     }
 
     public abstract class SeededDirector : IDirector
     {
         public readonly Random random;
         public readonly int seed;
+
+        public string GenName<T>()
+        {
+            return $"{typeof(T).Name}(@{GetType().Name})(#{(uint)random.NextDouble().GetHashCode()})";
+        }
 
         public SeededDirector(int seed)
         {
@@ -148,14 +153,12 @@ namespace Combloonation
 
         public abstract float Eval(DirectableModel model);
 
-        public abstract List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1);
-        public abstract List<DirectableModel> Produce<M>(float? v, int n = 1) where M : Model;
+        public abstract List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1);
+        public abstract List<DirectableModel> Produce<M>(float? v = null, int? n = 1) where M : Model;
     }
 
     public class RoundMutatorDirector : SeededDirector
     {
-        public static GameModel produced;
-
         public RoundMutatorDirector(int seed) : base(seed) { }
         public RoundMutatorDirector() : base() { }
 
@@ -218,7 +221,7 @@ namespace Combloonation
 
         public override float Eval(DirectableModel model) { return 0f; }
 
-        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
+        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1)
         {
             if (m.Is(out GameModel game))
             {
@@ -229,7 +232,7 @@ namespace Combloonation
                     foreach (var round in roundSet.rounds)
                     {
                         var size = round.groups.Sum(g => g.count);
-                        var parts = random.Next(1, size + 1);
+                        var parts = random.Next(1, round.groups.Count);
                         round.groups = Split(round.groups, Partition(size, parts, random));
                     }
                 }
@@ -240,7 +243,7 @@ namespace Combloonation
             throw new NotImplementedException();
         }
 
-        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
+        public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1)
         {
             throw new NotImplementedException();
         }
@@ -252,13 +255,14 @@ namespace Combloonation
 
         public override float Eval(DirectableModel model) { return (float)random.NextDouble(); }
 
-        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
+        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1)
         {
             throw new NotImplementedException();
         }
 
-        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
+        public override List<DirectableModel> Produce<M>(float? v = null, int? _n = 1)
         {
+            int n = _n ?? random.Next(1,20);
             var list = new List<DirectableModel> { };
             var game = GetGameModel();
             Action func = default;
@@ -278,9 +282,9 @@ namespace Combloonation
                         var groups = bloons.GroupWhile((a, b) => a == b).Select(c =>
                         {
                             var bloon = (BloonModel)c.First();
-                            var start = (float)random.NextDouble() * random.Next(40);
-                            var end = start + (float)random.NextDouble() * random.Next(40);
-                            return new BloonGroupModel("RandomDirectorBloonGroupModel" + random.NextDouble().GetHashCode(), bloon.name, start, end, c.Count());
+                            var start = (float)random.NextDouble() * random.Next(1,40);
+                            var end = start + (float)random.NextDouble() * random.Next(1,40);
+                            return new BloonGroupModel(GenName<BloonGroupModel>(), bloon.name, start, end, c.Count());
                         });
                         list.AddItems(groups.Directable());
                     }; break;
@@ -289,7 +293,7 @@ namespace Combloonation
                         var parts = random.Next(1, n);
                         var partition = Partition(n, parts, random);
                         var groupss = partition.Select(m => Produce<BloonGroupModel>(v, m));
-                        var rounds = groupss.Select(gs => new RoundModel("RandomDirectorRoundModel" + random.NextDouble().GetHashCode(), gs.Cast<BloonGroupModel>().ToIl2CppReferenceArray()));
+                        var rounds = groupss.Select(gs => new RoundModel(GenName<RoundModel>(), gs.Cast<BloonGroupModel>().ToIl2CppReferenceArray()));
                         list.AddItems(rounds.Directable());
                     }; break;
                 case Directable.RoundSetModel:
@@ -297,7 +301,7 @@ namespace Combloonation
                         var parts = random.Next(1, n);
                         var partition = Partition(n, parts, random);
                         var roundss = partition.Select(m => Produce<RoundModel>(v, m));
-                        var roundsets = roundss.Select(rs => new RoundSetModel("RandomDirectorRoundSetModel" + random.NextDouble().GetHashCode(), rs.Cast<RoundModel>().ToIl2CppReferenceArray()));
+                        var roundsets = roundss.Select(rs => new RoundSetModel(GenName<RoundSetModel>(), rs.Cast<RoundModel>().ToIl2CppReferenceArray()));
                         list.AddItems(roundsets.Directable());
                     }; break;
                 case Directable.GameModel:
@@ -357,12 +361,12 @@ namespace Combloonation
             return func();
         }
 
-        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
+        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1)
         {
             throw new NotImplementedException();
         }
 
-        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
+        public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1)
         {
             throw new NotImplementedException();
         }
@@ -411,12 +415,12 @@ namespace Combloonation
             return func();
         }
 
-        public override List<DirectableModel> Produce(DirectableModel m, float? v, int n = 1)
+        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1)
         {
             throw new NotImplementedException();
         }
 
-        public override List<DirectableModel> Produce<M>(float? v, int n = 1)
+        public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1)
         {
             var list = new List<DirectableModel> { };
             var game = GetGameModel();

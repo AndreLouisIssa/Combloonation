@@ -53,17 +53,17 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
-                var noDuplicates = bloons.SelectMany(b => BloonIdsFromId(b.id)).Distinct().Select(s => GetBloonByName(s));
+                var noDuplicates = bloons.SelectMany(b => GetBloonNamesFromName(b.name)).Distinct().Select(s => GetBloonByName(s));
                 var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.Key +
-                    PropertyString(g.Select(b => PropertiesFromId(b.id)).Aggregate((a, b) => a.Union(b))));
+                    GetPropertyString(g.Select(b => GetPropertiesFromName(b.name)).Aggregate((a, b) => a.Union(b))));
                 var fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger);
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
-                fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToId(fusion.fusands);
+                fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
             }
 
             public BloonsionReactor Merge()
             {
-                MelonLogger.Msg("Creating " + DebugString(fusion.id));
+                MelonLogger.Msg("Creating " + DebugString(fusion.name));
                 return MergeProperties().MergeStats().MergeBehaviors().MergeChildren().MergeSpawnBloonsActionModel();
             }
 
@@ -116,7 +116,7 @@ namespace Combloonation
                 fusion.UpdateChildBloonModels();
                 fusion.totalLeakDamage = fusion.leakDamage + models.Sum(c => c.totalLeakDamage);
 
-                behavior.children = models.Select(c => c.id).ToArray();
+                behavior.children = models.Select(c => c.name).ToArray();
                 fusion.AddBehavior(behavior);
                 return this;
             }
@@ -134,7 +134,7 @@ namespace Combloonation
                     var model = p.Key.First().Item1.Duplicate();
                     model.spawnCount = p.Value;
                     var bloon = Fuse(p.Key.Select(t => t.Item2));
-                    model.bloonType = bloon.id;
+                    model.bloonType = bloon.name;
                     return new List<Model> { model };
                 });
 
@@ -174,45 +174,45 @@ namespace Combloonation
             b.Add(s);
             return b.ToArray();
         }
-        public static string BloonsToId(IEnumerable<BloonModel> bloons)
+        public static string BloonsToName(IEnumerable<BloonModel> bloons)
         {
-            return string.Join(delim, bloons.Select(f => f.id));
+            return string.Join(delim, bloons.Select(f => f.name));
         }
 
-        public static IEnumerable<string> BloonsToIds(IEnumerable<BloonModel> bloons)
+        public static IEnumerable<string> BloonsToNames(IEnumerable<BloonModel> bloons)
         {
-            return bloons.Select(f => f.id);
+            return bloons.Select(f => f.name);
         }
 
-        public static IEnumerable<BloonModel> BloonsFromId(string id)
+        public static IEnumerable<BloonModel> BloonsFromName(string name)
         {
-            return BloonIdsFromId(id).Select(s => GetBloonByName(s));
+            return GetBloonNamesFromName(name).Select(s => GetBloonByName(s));
         }
 
-        public static IEnumerable<string> BloonIdsFromId(string id)
+        public static IEnumerable<string> GetBloonNamesFromName(string name)
         {
-            return id.Split(delim).Distinct();
+            return name.Split(delim).Distinct();
         }
-        public static IEnumerable<string> BaseBloonIdsFromId(string id)
+        public static IEnumerable<string> BaseBloonNamesFromName(string name)
         {
             foreach (var p in properties)
             {
-                id = id.Replace(p, "");
+                name = name.Replace(p, "");
             }
-            return id.Split(delim).Distinct();
+            return name.Split(delim).Distinct();
         }
 
-        public static IEnumerable<string> PropertiesFromId(string id)
+        public static IEnumerable<string> GetPropertiesFromName(string name)
         {
             var props = new List<string>();
             foreach (var p in properties)
             {
-                if (id.Contains(p)) props.Add(p);
+                if (name.Contains(p)) props.Add(p);
             }
             return props;
         }
 
-        public static string PropertyString(HashSet<string> props)
+        public static string GetPropertyString(HashSet<string> props)
         {
             var s = "";
             foreach (var p in properties)
@@ -222,9 +222,9 @@ namespace Combloonation
             return s;
         }
 
-        public static string PropertyString(IEnumerable<string> props)
+        public static string GetPropertyString(IEnumerable<string> props)
         {
-            return PropertyString(new HashSet<string>(props));
+            return GetPropertyString(new HashSet<string>(props));
         }
         public static BloonModel Fuse(IEnumerable<string> bloons)
         {
@@ -235,7 +235,7 @@ namespace Combloonation
             if (bloons.Count() == 0) return null;
             var reactor = new BloonsionReactor(bloons);
             var bloon = (BloonModel)reactor.fusion;
-            var oldBloon = GetBloonByName(bloon.id, false);
+            var oldBloon = GetBloonByName(bloon.name, false);
             if (oldBloon != null) bloon = oldBloon;
             else Register(reactor.Merge().fusion);
             return bloon;

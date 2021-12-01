@@ -16,6 +16,7 @@ using BTD_Mod_Helper.Extensions;
 using Assets.Scripts.Models.Rounds;
 using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
+using Assets.Scripts.Models;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "0-beta-r0", "MagicGonads")]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -26,7 +27,7 @@ namespace Combloonation
 
         public static string folderPath;
         public static int inGameId = 0;
-        public static SeededDirector director = new RoundMutatorDirector(2000);
+        public static int seed = 2000;
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -43,14 +44,14 @@ namespace Combloonation
             public static void Postfix()
             {
                 var game = GetGameModel();
-                director.Produce(game, null);
-                var _director = new RandomDirector(2000);
-                var models = _director.Sort(_director.Produce<RoundSetModel>(null, 25));
-                game.roundSets = models.Values.Cast<RoundSetModel>().ToIl2CppReferenceArray();
+                new RoundMutatorDirector(seed).Produce(game, null);
+                //var _director = new RandomDirector(seed);
+                //var models = _director.Sort(_director.Produce<BloonModel>(null, 25));
                 //foreach (var pair in models)
                 //{
-                //    MelonLogger.Msg($"{pair.Value.name} : {pair.Key}");
+                //    MelonLogger.Msg($"{((Model)pair.Value).name} : {pair.Key}");
                 //}
+                //Fuse(models.Values.Cast<BloonModel>());
             }
         }
 
