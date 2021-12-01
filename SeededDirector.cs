@@ -270,7 +270,7 @@ namespace Combloonation
                         var partition = Partition(n, parts, random);
                         var choice = bloons.Shuffle(random).Take(parts);
                         var i = 0;
-                        list.AddItems(choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])).Cast());
+                        list.AddItems(choice.SelectMany(b => Enumerable.Repeat(b, partition[i++])).Directable());
                     }; break;
                 case Directable.BloonGroupModel:
                     func = () => {
@@ -282,7 +282,7 @@ namespace Combloonation
                             var end = start + (float)random.NextDouble() * random.Next(40);
                             return new BloonGroupModel("RandomDirectorBloonGroupModel" + random.NextDouble().GetHashCode(), bloon.name, start, end, c.Count());
                         });
-                        list.AddItems(groups.Cast());
+                        list.AddItems(groups.Directable());
                     }; break;
                 case Directable.RoundModel:
                     func = () => {
@@ -290,7 +290,7 @@ namespace Combloonation
                         var partition = Partition(n, parts, random);
                         var groupss = partition.Select(m => Produce<BloonGroupModel>(v, m));
                         var rounds = groupss.Select(gs => new RoundModel("RandomDirectorRoundModel" + random.NextDouble().GetHashCode(), gs.Cast<BloonGroupModel>().ToIl2CppReferenceArray()));
-                        list.AddItems(rounds.Cast());
+                        list.AddItems(rounds.Directable());
                     }; break;
                 case Directable.RoundSetModel:
                     func = () => {
@@ -298,7 +298,7 @@ namespace Combloonation
                         var partition = Partition(n, parts, random);
                         var roundss = partition.Select(m => Produce<RoundModel>(v, m));
                         var roundsets = roundss.Select(rs => new RoundSetModel("RandomDirectorRoundSetModel" + random.NextDouble().GetHashCode(), rs.Cast<RoundModel>().ToIl2CppReferenceArray()));
-                        list.AddItems(roundsets.Cast());
+                        list.AddItems(roundsets.Directable());
                     }; break;
                 case Directable.GameModel:
                     throw new NotImplementedException();
