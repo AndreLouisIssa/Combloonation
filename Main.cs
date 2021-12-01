@@ -44,9 +44,9 @@ namespace Combloonation
             {
                 var game = GetGameModel();
                 director.Produce(game, null);
-                //var _director = new RandomDirector(2000);
-                //var models = _director.Sort(_director.Produce(Directable.RoundSetModel, null, 25));
-                //game.roundSets = models.Values.Cast<RoundSetModel>().ToIl2CppReferenceArray();
+                var _director = new RandomDirector(2000);
+                var models = _director.Sort(_director.Produce<RoundSetModel>(null, 25));
+                game.roundSets = models.Values.Cast<RoundSetModel>().ToIl2CppReferenceArray();
                 //foreach (var pair in models)
                 //{
                 //    MelonLogger.Msg($"{pair.Value.name} : {pair.Key}");

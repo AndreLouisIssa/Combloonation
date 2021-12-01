@@ -94,7 +94,14 @@ namespace Combloonation
             return list.ToArray();
         }
 
-        public static SortedList<float,Model> Sort(this IDirector director, IEnumerable<Model> ms)
+        public static SortedList<float, DirectableModel> Sort(this IDirector director, IEnumerable<DirectableModel> ms)
+        {
+            var list = new SortedList<float, DirectableModel>(ms.Count());
+            list.AddValues(ms, m => director.Eval(m));
+            return list;
+        }
+
+        public static SortedList<float, Model> Sort(this IDirector director, IEnumerable<Model> ms)
         {
             var list = new SortedList<float, Model>(ms.Count());
             list.AddValues<float, Model>(ms, m => director.Eval((dynamic)m));
