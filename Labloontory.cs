@@ -54,10 +54,11 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
                 var noDuplicates = bloons.SelectMany(b => GetBloonNamesFromName(b.name)).Distinct().Select(s => GetBloonByName(s));
-                var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.Key +
-                    GetPropertyString(g.Select(b => GetPropertiesFromName(b.name)).Aggregate((a, b) => a.Union(b))));
-                var i = 0;
-                var fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger).TakeWhile(f => i++<5);
+                var sepProps = noDuplicates.GroupBy(b => b.baseId).Select(g => new Tuple<string,IEnumerable<string>>(g.Key,
+                    g.Select(b => GetPropertiesFromName(b.name)).Aggregate((a, b) => a.Union(b))));
+                var baseFusands = sepProps.Select(s => GetBloonByName(s.Item1)).OrderByDescending(f => f.danger).Take(Math.Max(5,sepProps.Count()));
+                var allProps = GetPropertiesFromName(string.Join("", sepProps.SelectMany(s => s.Item2).Distinct())).ToList();
+                var fusands = baseFusands.Select(b => GetBloonByName(b.name + string.Join("", ProbeAllowedProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
                 fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
             }
@@ -87,9 +88,9 @@ namespace Combloonation
             public BloonsionReactor MergeStats()
             {
              
-                fusion.maxHealth = fusion.fusands.Max(f => f.maxHealth);
+                fusion.maxHealth = fusion.fusands.Sum(f => f.maxHealth);
                 fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
-                fusion.totalLeakDamage = fusion.leakDamage = fusion.fusands.Max(f => f.leakDamage);
+                fusion.totalLeakDamage = fusion.leakDamage = fusion.fusands.Sum(f => f.leakDamage);
                 fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
                 fusion.speed = fusion.fusands.Max(f => f.speed);
                 return this;
@@ -202,6 +203,22 @@ namespace Combloonation
                 name = name.Replace(p, "");
             }
             return name.Split(delim).Distinct();
+        }
+
+        public static IEnumerable<string> ProbeAllowedProperties(BloonModel bloon, List<string> allProps = null)
+        {
+            var props = new List<string>();
+            var id = bloon.baseId;
+            var reduce = allProps != null;
+            allProps = allProps ?? properties;
+            foreach (var p in allProps.ToArray())
+            {
+                if (GetBloonByName(id + p, false) != null) {
+                    props.Add(p);
+                    if (reduce) allProps.Remove(p);
+                }
+            }
+            return props;
         }
 
         public static IEnumerable<string> GetPropertiesFromName(string name)

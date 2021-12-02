@@ -22,11 +22,10 @@ using Assets.Scripts.Models;
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
 namespace Combloonation
 {
-    public class Main : BloonsMod
+    public class Main : BloonsTD6Mod
     {
 
         public static string folderPath;
-        public static int inGameId = 0;
         public static int seed = 2000;
         public override void OnApplicationStart()
         {
@@ -37,23 +36,19 @@ namespace Combloonation
             Directory.CreateDirectory(folderPath);
         }
 
-        [HarmonyPatch(typeof(TitleScreen), nameof(TitleScreen.Start))]
-        public class Initiate
+        public override void OnTitleScreen()
         {
-            [HarmonyPostfix]
-            public static void Postfix()
-            {
-                var game = GetGameModel();
-                new RoundMutatorDirector(seed).Produce(game, null);
-                //var _director = new RandomDirector(seed);
-                //var models = _director.Sort(_director.Produce<BloonModel>(null, 25));
-                //foreach (var pair in models)
-                //{
-                //    MelonLogger.Msg($"{((Model)pair.Value).name} : {pair.Key}");
-                //}
-                //Fuse(models.Values.Cast<BloonModel>());
-            }
+            var game = GetGameModel();
+            new RoundMutatorDirector(seed).Produce(game, null);
+            //var _director = new RandomDirector(seed);
+            //var models = _director.Sort(_director.Produce<BloonModel>(null, 25));
+            //foreach (var pair in models)
+            //{
+            //    MelonLogger.Msg($"{((Model)pair.Value).name} : {pair.Key}");
+            //}
+            //Fuse(models.Values.Cast<BloonModel>());
         }
+        
 
         [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
         class Patch_InGame_Update
@@ -62,16 +57,6 @@ namespace Combloonation
             public static void Postfix(InGame __instance)
             {
                 if (__instance.bridge == null) return;
-                var id = __instance.GameId;
-                if (id == 0) return;
-
-                //Run once
-                if (id != inGameId)
-                {
-                    inGameId = id;
-                    MelonLogger.Msg("New game!");
-                }
-
                 DisplaySystem.OnInGameUpdate(__instance);
             }
         }

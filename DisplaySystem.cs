@@ -283,7 +283,7 @@ namespace Combloonation
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var cols = GetColors(bloon);
             if (cols.Item2.Count == 0) return texture.Duplicate(proj);
-
+            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.baseId)).Select(b => b.danger).ToArray();
             var map = GetRegionMap(texture, proj);
             var mrect = map.Item4;
             var r = Math.Min(mrect.width, mrect.height) / 3;
@@ -300,7 +300,6 @@ namespace Combloonation
                 dy = -mrect.height * 0.05f;
             }
             //mrect.x += dx; mrect.y += dy;
-            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.name)).Select(b => b.danger).ToArray();
             r *= ws[0]/fbase.danger;
             Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(Math.Sqrt(x*x+y*y),1.4f*r,0.4f*r);
             var tcols = cols.Item2.Select(c => new TintOverlay(c,tf)).ToList();
