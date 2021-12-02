@@ -21,7 +21,7 @@ namespace Combloonation
 
         public static double HeartCurve(double x, double y)
         {
-            x = 1.25d*Math.Abs(x);
+            x = 1.3d*Math.Abs(x);
             y = (y + 0.25d) * 1.25d;
             return Math.Sqrt((x * x + y * y - x * (y + 0.75d))/2) - 1;
         }
