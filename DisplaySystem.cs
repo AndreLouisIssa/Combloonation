@@ -19,6 +19,22 @@ namespace Combloonation
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y, r) => c);
         public static IOverlay boundaryColor = emptyColor;
+        public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("cc4c10"));
+        public static IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
+        public static List<Tuple<IOverlay, float>> fortifiedColors = new List<Tuple<IOverlay, float>>
+        {
+            new Tuple<IOverlay,float>(emptyColor,30f),
+            new Tuple<IOverlay,float>(fortifiedColorB,2f),
+            new Tuple<IOverlay,float>(fortifiedColorA,8f),
+            new Tuple<IOverlay,float>(fortifiedColorB,2f),
+            new Tuple<IOverlay,float>(emptyColor,30f),
+            new Tuple<IOverlay,float>(fortifiedColorB,2f),
+            new Tuple<IOverlay,float>(fortifiedColorA,8f),
+            new Tuple<IOverlay,float>(fortifiedColorB,2f),
+            new Tuple<IOverlay,float>(emptyColor,30f)
+        };
+        public static IOverlay fortifiedColor = new DelegateOverlay((_c, _x, _y, _r) =>
+                fortifiedColors.Select(c=>c.Item1).ToList().SplitRange(fortifiedColors.Select(c=>c.Item2).ToArray(), true, null, RegionScalarMap.Regions.vertical(_r.x,_r.x + _r.width, _r.y, _r.y + _r.height), _x + _r.x, _y + _r.y).Pixel(_c, _x, _y, _r));
         public static Dictionary<string, IOverlay> baseColors = new Dictionary<string, IOverlay>()
         {
             { "Red",     new ColorOverlay(HexColor("fe2020")) },
@@ -39,6 +55,11 @@ namespace Combloonation
             { "Ddt",     new ColorOverlay(HexColor("454b41")) },
             { "Bad",     new ColorOverlay(HexColor("bb00c6")) },
         };
+        public static Dictionary<string, IOverlay> propColors = new Dictionary<string, IOverlay>()
+        {
+            { "Camo",       new ColorOverlay(HexColor("000000")) },
+            { "Fortified",  new ColorOverlay(HexColor("ff8f20")) },
+        };
 
         public interface IOverlay
         {
@@ -56,6 +77,22 @@ namespace Combloonation
             public Color Pixel(Color c, int x, int y, Rect r)
             {
                 return func(c, x, y, r);
+            }
+        }
+
+        public class PipeOverlay : IOverlay
+        {
+            public IOverlay a;
+            public IOverlay b;
+
+            public PipeOverlay(IOverlay a, IOverlay b)
+            {
+                this.a = a; this.b = b;
+            }
+            public Color Pixel(Color c, int x, int y, Rect r)
+            {
+                var _c = a.Pixel(c, x, y, r);
+                return b.Pixel(_c, x, y, r);
             }
         }
 
@@ -300,14 +337,14 @@ namespace Combloonation
             return new Rect(x, y, w, h);
         }
 
-        public static Tuple<RegionScalarMap, float, float, Rect> GetRegionMap(Texture texture, Rect? proj = null)
+        public static Tuple<RegionScalarMap, Rect> GetRegionMap(Texture texture, Rect? proj = null)
         {
             int w; int h;
             if (proj is Rect rect) { w = (int)rect.width; h = (int)rect.height; }
             else { w = texture.width; h = texture.height; }
             var w2 = w / 2; var h2 = h / 2;
             var map = RegionScalarMap.Regions.spiral(1.3f, 0.6f)(-w2, w - w2, -h2, h - h2);
-            return new Tuple<RegionScalarMap, float, float, Rect>(map, w2, h2, new Rect(-w2, -h2, w, h));
+            return new Tuple<RegionScalarMap, Rect>(map, new Rect(-w2, -h2, w, h));
         }
 
         public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Rect? proj = null)
@@ -317,7 +354,7 @@ namespace Combloonation
             if (cols.Item2.Count == 0) return texture.Duplicate(proj);
             var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.baseId)).Select(b => b.danger).ToArray();
             var map = GetRegionMap(texture, proj);
-            var mrect = map.Item4;
+            var mrect = map.Item2;
             var r = Math.Min(mrect.width, mrect.height)/2;
             var fbase = bloon.fusands.First();
             r *= ws[0] / fbase.danger;
@@ -343,17 +380,22 @@ namespace Combloonation
             {
                 curve = (x, y) => (float)CircleCurve(x, y);
                 r *= 1.25f;
-
+            }
+            IOverlay fcol = emptyColor;
+            if (!fbase.isFortified && bloon.isFortified)
+            {
+                fcol = fortifiedColor;
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
             Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(curve(x/r_oob,y/r_oob),1f,-1f);
             var tcols = cols.Item2;
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
-                tcols.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
+                tcols.SplitRange(ws, true, null, map.Item1, _x + _r.x, _y + _r.y).Pixel(_c, _x, _y, _r));
             var bcol = new BoundOverlay(dcol, boundaryColor, (x, y, _r) => curve(x / r_iib, y / r_iib) >= 0);
             var bbcol = new BoundOverlay(bcol, dcol, (x,y,_r) => curve(x/r_iob,y/r_iob) >= 0);
-            var bbbcol = new BoundOverlay(new TintOverlay(bbcol,tf), emptyColor, (x,y,_r) => curve(x/r_oob,y/r_oob) >= 0);
-            return texture.Duplicate((x, y, c) => bbbcol.Pixel(c, x + (int)dx, y + (int)dy, mrect), proj);
+            var bbbcol = new BoundOverlay(new TintOverlay(bbcol, tf), emptyColor, (x, y, _r) => curve(x / r_oob, y / r_oob) >= 0);
+            var col = new PipeOverlay(fcol, bbbcol);
+            return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)dx, y + (int)dy, mrect), proj);
         }
 
         public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Rect? proj = null)
