@@ -86,9 +86,10 @@ namespace Combloonation
 
             public BloonsionReactor MergeStats()
             {
-                fusion.maxHealth = fusion.fusands.Sum(f => f.maxHealth);
+             
+                fusion.maxHealth = fusion.fusands.Max(f => f.maxHealth);
                 fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
-                fusion.totalLeakDamage = fusion.leakDamage = fusion.fusands.Sum(f => f.leakDamage);
+                fusion.totalLeakDamage = fusion.leakDamage = fusion.fusands.Max(f => f.leakDamage);
                 fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
                 fusion.speed = fusion.fusands.Max(f => f.speed);
                 return this;
