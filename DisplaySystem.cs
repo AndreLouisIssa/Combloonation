@@ -337,7 +337,7 @@ namespace Combloonation
             if (new System.Random().NextDouble()>0.5 || !fbase.isGrow && bloon.isGrow)
             {
                 curve = (x, y) => (float)HeartCurve(x, y);
-                r *= 0.95f;
+                r *= 0.90f;
             }
             else
             {
@@ -346,7 +346,7 @@ namespace Combloonation
 
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
-            Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(curve(x/r_oob,y/r_oob),2f,-2f);
+            Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(curve(x/r_oob,y/r_oob),1f,-1f);
             var tcols = cols.Item2;
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
                 tcols.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
