@@ -1,14 +1,13 @@
-﻿using System.Linq;
+﻿using Assets.Scripts.Models;
 using Assets.Scripts.Models.Bloons;
-using BTD_Mod_Helper.Extensions;
-using System.Collections.Generic;
 using Assets.Scripts.Models.Bloons.Behaviors;
-using MelonLoader;
-using System;
 using Assets.Scripts.Unity;
-using UnhollowerRuntimeLib;
-using Assets.Scripts.Models;
 using Assets.Scripts.Unity.UI_New.InGame;
+using BTD_Mod_Helper.Extensions;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnhollowerRuntimeLib;
 
 namespace Combloonation
 {
@@ -52,12 +51,12 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
-                var noDuplicates = bloons.SelectMany(b => GetBloonNamesFromName(b.name)).Distinct().Select(s => GetBloonByName(s));
+                var noDuplicates = bloons.SelectMany(b => BloonNamesFromName(b.name)).Distinct().Select(s => GetBloonByName(s));
                 var sepProps = noDuplicates.GroupBy(b => b.baseId).Select(g => new Tuple<string,IEnumerable<string>>(g.Key,
-                    g.Select(b => GetPropertiesFromName(b.name)).Aggregate((a, b) => a.Union(b))));
+                    g.Select(b => GetProperties(b)).Aggregate((a, b) => a.Union(b))));
                 var baseFusands = sepProps.Select(s => GetBloonByName(s.Item1)).OrderByDescending(f => f.danger).Take(Math.Max(5,sepProps.Count()));
-                var allProps = GetPropertiesFromName(string.Join("", sepProps.SelectMany(s => s.Item2).Distinct())).ToList();
-                var fusands = BloonsFromName(BloonsToName(baseFusands.Select(b => GetBloonByName(b.name + string.Join("", ProbeAllowedProperties(b, allProps))))));
+                var allProps = GetProperties(string.Join("", sepProps.SelectMany(s => s.Item2).Distinct())).ToList();
+                var fusands = BloonsFromName(BloonsToName(baseFusands.Select(b => GetBloonByName(b.name + string.Join("", ProbeProperties(b, allProps))))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
                 fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
             }
@@ -188,10 +187,10 @@ namespace Combloonation
 
         public static IEnumerable<BloonModel> BloonsFromName(string name)
         {
-            return GetBloonNamesFromName(name).Select(s => GetBloonByName(s));
+            return BloonNamesFromName(name).Select(s => GetBloonByName(s));
         }
 
-        public static IEnumerable<string> GetBloonNamesFromName(string name)
+        public static IEnumerable<string> BloonNamesFromName(string name)
         {
             return name.Split(delim).Distinct();
         }
@@ -204,7 +203,7 @@ namespace Combloonation
             return name.Split(delim).Distinct();
         }
 
-        public static IEnumerable<string> ProbeAllowedProperties(BloonModel bloon, List<string> allProps = null)
+        public static IEnumerable<string> ProbeProperties(BloonModel bloon, List<string> allProps = null)
         {
             var props = new List<string>();
             var id = bloon.baseId;
@@ -220,13 +219,22 @@ namespace Combloonation
             return props;
         }
 
-        public static IEnumerable<string> GetPropertiesFromName(string name)
+        public static IEnumerable<string> GetProperties(string name)
         {
             var props = new List<string>();
             foreach (var p in properties)
             {
                 if (name.Contains(p)) props.Add(p);
             }
+            return props;
+        }
+
+        public static IEnumerable<string> GetProperties(BloonModel bloon)
+        {
+            var props = new List<string>();
+            if (bloon.isGrow) props.Add("Regrow");
+            if (bloon.isFortified) props.Add("Fortified");
+            if (bloon.isCamo) props.Add("Camo");
             return props;
         }
 

@@ -10,6 +10,7 @@ using System;
 using UnityEngine;
 using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
+using MelonLoader;
 
 namespace Combloonation
 {
@@ -332,17 +333,13 @@ namespace Combloonation
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
-                    sprite.material.mainTexture = texture;
-                    sprite.sharedMaterial.mainTexture = texture;
-                    foreach (var m in sprite.materials.Concat(sprite.sharedMaterials)) m.mainTexture = texture;
-                    foreach (var r in graphic.genericRenderers) r.SetMainTexture(texture);
                 }
             }
             else
             {
                 var renderer = graphic.genericRenderers.First(r => r.name == "Body");
                 var texture = bloon.GetMergedTexture(renderer.material.mainTexture);
-                if (texture != null) foreach (var r in graphic.genericRenderers) r.SetMainTexture(texture);
+                if (texture != null) foreach (var r in graphic.genericRenderers.Where(r => r.name == "Body")) r.SetMainTexture(texture);
             }
         }
 
