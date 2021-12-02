@@ -334,7 +334,7 @@ namespace Combloonation
             }
             float r_iob, r_iib, r_oob;
             Func<float, float, float> curve;
-            if (new System.Random().NextDouble()>0.5 || !fbase.isGrow && bloon.isGrow)
+            if (!fbase.isGrow && bloon.isGrow)
             {
                 curve = (x, y) => (float)HeartCurve(x, y);
                 r *= 0.90f;
