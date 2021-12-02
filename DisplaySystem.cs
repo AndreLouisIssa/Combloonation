@@ -287,29 +287,33 @@ namespace Combloonation
             var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.baseId)).Select(b => b.danger).ToArray();
             var map = GetRegionMap(texture, proj);
             var mrect = map.Item4;
-            var r = Math.Min(mrect.width, mrect.height) / 3;
+            var r = Math.Min(mrect.width, mrect.height) / 2;
             var fbase = bloon.fusands.First();
             var dx = 0f; var dy = 0f;
             if (fbase.isMoab)
             {
-                dx = mrect.width * (1f / 6f);
+                dx = mrect.width * 0.15f;
                 dy = mrect.height * 0.1f;
-                r *= 2f / 3f;
+                r *= 0.5f;
             }
             else if (!fbase.isGrow)
             {
                 dy = -mrect.height * 0.05f;
             }
             //mrect.x += dx; mrect.y += dy;
-            r *= ws[0]/fbase.danger;
-            Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(Math.Sqrt(x*x+y*y),1.4f*r,0.4f*r);
+            r *= ws[0] / fbase.danger;
+            var r_top = 1.4f * r; var r_bot = 0.4f * r; var r_ob = 1.5f*r; var r_iob = r_ob*0.4f; var r_iib = 0.8f*r_iob;
+            
+            Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(HeartCurve(x,y),r_top,r_bot);
             var tcols = cols.Item2.Select(c => new TintOverlay(c,tf)).ToList();
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
                 tcols.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
             //var bcol = new BoundOverlay(dcol, boundaryColor, r);
             //var bbcol = new BoundOverlay(bcol, emptyColor, r * 1.05f);
-            var bbcol = new BoundOverlay(dcol, emptyColor, r * 1.5f);
-            return texture.Duplicate((x, y, c) => bbcol.Pixel(c, x + (int)dx, y + (int)dy, mrect), proj);
+            var bbcol = new BoundOverlay(boundaryColor, emptyColor, (x,y,_r) => HeartCurve(x/r_iob,y/r_iob) >= 0);
+            var bcol = new BoundOverlay(dcol, bbcol, (x,y,_r) => HeartCurve(x/r_iib,y/r_iib) >= 0);
+            //var bbcol = new BoundOverlay(bcol, emptyColor, (x,y,_r) => HeartCurve(x/r_ob,y/r_ob) >= 0);
+            return texture.Duplicate((x, y, c) => bcol.Pixel(c, x + (int)dx, y + (int)dy, mrect), proj);
         }
 
         public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Rect? proj = null)

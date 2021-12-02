@@ -19,6 +19,18 @@ namespace Combloonation
             return shuffledList;
         }
 
+        public static double HeartCurve(double x, double y)
+        {
+            x = 1.25d*Math.Abs(x);
+            y = (y + 0.25d) * 1.25d;
+            return Math.Sqrt((x * x + y * y - x * (y + 0.75d))/2) - 1;
+        }
+
+        public static double CircleCurve(double x, double y)
+        {
+            return Math.Sqrt(x*x+y*y) - 1;
+        }
+
         //https://www.johndcook.com/blog/csharp_erf/
         public static double ERF(double x)
         {
