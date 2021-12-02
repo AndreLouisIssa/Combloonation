@@ -56,7 +56,8 @@ namespace Combloonation
                 var noDuplicates = bloons.SelectMany(b => GetBloonNamesFromName(b.name)).Distinct().Select(s => GetBloonByName(s));
                 var consolidatedProperties = noDuplicates.GroupBy(b => b.baseId).Select(g => g.Key +
                     GetPropertyString(g.Select(b => GetPropertiesFromName(b.name)).Aggregate((a, b) => a.Union(b))));
-                var fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger);
+                var i = 0;
+                var fusands = consolidatedProperties.Select(s => GetBloonByName(s)).OrderByDescending(f => f.danger).TakeWhile(f => i++<5);
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
                 fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
             }

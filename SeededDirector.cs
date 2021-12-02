@@ -210,7 +210,8 @@ namespace Combloonation
                 var bloon = fuser(bloons);
                 foreach (var subgroup in subgroups)
                 {
-                    subgroup.bloon = bloon.id;
+                    subgroup.bloon = bloon.name;
+                    if (bloon is FusionBloonModel fusion) subgroup.count /= fusion.fusands.Count();
                     groups.Add(subgroup);
                 }
                 bloons.Clear();
