@@ -17,8 +17,8 @@ namespace Combloonation
     public static class DisplaySystem
     {
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
-        public static IOverlay boundaryColor = new ColorOverlay(HexColor("000000"));
-        public static IOverlay emptyColor = new DelegateOverlay((c,x,y,r) => c);
+        public static IOverlay emptyColor = new DelegateOverlay((c, x, y, r) => c);
+        public static IOverlay boundaryColor = emptyColor;
         public static Dictionary<string, IOverlay> baseColors = new Dictionary<string, IOverlay>()
         {
             { "Red",     new ColorOverlay(HexColor("fe2020")) },
@@ -56,6 +56,37 @@ namespace Combloonation
             public Color Pixel(Color c, int x, int y, Rect r)
             {
                 return func(c, x, y, r);
+            }
+        }
+
+        public class GrayscaleOverlay : IOverlay
+        {
+            public IOverlay c;
+            public GrayscaleOverlay(IOverlay c)
+            {
+                this.c = c;
+            }
+
+            public Color Pixel(Color c, int x, int y, Rect r)
+            {
+                var _c = this.c.Pixel(c,x,y,r);
+                var t = _c.grayscale;
+                return new Color(t, t, t, _c.a);
+            }
+        }
+
+        public class ValueInvertOverlay : IOverlay
+        {
+            public IOverlay c;
+            public ValueInvertOverlay(IOverlay c)
+            {
+                this.c = c;
+            }
+
+            public Color Pixel(Color c, int x, int y, Rect r)
+            {
+                var _c = this.c.Pixel(c,x,y,r);
+                return new Color(1-_c.r,1-_c.g,1-_c.b,_c.a);
             }
         }
 
@@ -287,45 +318,42 @@ namespace Combloonation
             var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.baseId)).Select(b => b.danger).ToArray();
             var map = GetRegionMap(texture, proj);
             var mrect = map.Item4;
-            var r = Math.Min(mrect.width, mrect.height) / 2;
+            var r = Math.Min(mrect.width, mrect.height)/2;
             var fbase = bloon.fusands.First();
             r *= ws[0] / fbase.danger;
             var dx = 0f; var dy = 0f;
             if (fbase.isMoab)
             {
                 dx = mrect.width * 0.165f;
-                dy = mrect.height * 0.11f;
+                dy = mrect.height * 0.1f;
                 r *= 0.5f;
             }
             else if (!fbase.isGrow)
             {
                 dy = -mrect.height * 0.05f;
             }
-            float r_iob, r_iib;
+            float r_iob, r_iib, r_oob;
             Func<float, float, float> curve;
-            if (!fbase.isGrow && bloon.isGrow)
+            if (new System.Random().NextDouble()>0.5 || !fbase.isGrow && bloon.isGrow)
             {
                 curve = (x, y) => (float)HeartCurve(x, y);
+                r *= 0.95f;
             }
             else
             {
                 curve = (x, y) => (float)CircleCurve(x, y);
-                r *= 1.15f;
+                r *= 1.25f;
 
             }
-            r_iob = r*0.6f; r_iib = 0.85f*r_iob;
-            //mrect.x += dx; mrect.y += dy;
-            //var r_top = 1.4f * r; var r_bot = 0.4f * r;
-            //Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(HeartCurve(x,y),r_top,r_bot);
-            //var tcols = cols.Item2.Select(c => new TintOverlay(c,tf)).ToList();
+            r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
+            Func<float,float,Rect,float> tf = (x,y,_r) => (float)TERF(curve(x/r_oob,y/r_oob),2f,-2f);
             var tcols = cols.Item2;
             var dcol = new DelegateOverlay((_c, _x, _y, _r) =>
                 tcols.SplitRange(ws, true, null, map.Item1, _x - map.Item2, _y - map.Item3).Pixel(_c, _x, _y, _r));
-            //var bcol = new BoundOverlay(dcol, boundaryColor, r);
-            //var bbcol = new BoundOverlay(bcol, emptyColor, r * 1.05f);
-            var bbcol = new BoundOverlay(boundaryColor, emptyColor, (x,y,_r) => curve(x/r_iob,y/r_iob) >= 0);
-            var bcol = new BoundOverlay(dcol, bbcol, (x,y,_r) => curve(x/r_iib,y/r_iib) >= 0);
-            return texture.Duplicate((x, y, c) => bcol.Pixel(c, x + (int)dx, y + (int)dy, mrect), proj);
+            var bcol = new BoundOverlay(dcol, boundaryColor, (x, y, _r) => curve(x / r_iib, y / r_iib) >= 0);
+            var bbcol = new BoundOverlay(bcol, dcol, (x,y,_r) => curve(x/r_iob,y/r_iob) >= 0);
+            var bbbcol = new BoundOverlay(new TintOverlay(bbcol,tf), emptyColor, (x,y,_r) => curve(x/r_oob,y/r_oob) >= 0);
+            return texture.Duplicate((x, y, c) => bbbcol.Pixel(c, x + (int)dx, y + (int)dy, mrect), proj);
         }
 
         public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Rect? proj = null)

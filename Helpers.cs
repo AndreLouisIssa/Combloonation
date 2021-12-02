@@ -23,7 +23,8 @@ namespace Combloonation
         {
             x = 1.3d*Math.Abs(x);
             y = (y + 0.25d) * 1.25d;
-            return Math.Sqrt((x * x + y * y - x * (y + 0.75d))/2) - 1;
+            var z = x * x + y * y - x * (y + 0.75d);
+            return Math.Sign(z)*Math.Sqrt(Math.Abs(z)/2) - 1;
         }
 
         public static double CircleCurve(double x, double y)
