@@ -227,17 +227,18 @@ namespace Combloonation
             if (m.Is(out GameModel game))
             {
                 MelonLogger.Msg("Mutating rounds...");
-
                 foreach (RoundSetModel roundSet in game.roundSets)
                 {
                     foreach (var round in roundSet.rounds)
                     {
-                        if (round.groups.Count <= 1) continue; 
+                        if (round.groups.Count <= 1) continue;
                         var size = round.groups.Sum(g => g.count);
-                        var parts = random.Next(1, round.groups.Count/2);
+                        var parts = random.Next(1, round.groups.Count / 2);
                         round.groups = Split(round.groups, Partition(size, parts, random));
                     }
                 }
+                MelonLogger.Msg("Finished mutating rounds!");
+
                 var list = new List<DirectableModel>(1);
                 list.Add(game);
                 return list;

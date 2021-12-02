@@ -49,7 +49,6 @@ namespace Combloonation
         public class BloonsionReactor
         {
             public readonly FusionBloonModel fusion;
-            public bool real = false;
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
@@ -58,14 +57,14 @@ namespace Combloonation
                     g.Select(b => GetPropertiesFromName(b.name)).Aggregate((a, b) => a.Union(b))));
                 var baseFusands = sepProps.Select(s => GetBloonByName(s.Item1)).OrderByDescending(f => f.danger).Take(Math.Max(5,sepProps.Count()));
                 var allProps = GetPropertiesFromName(string.Join("", sepProps.SelectMany(s => s.Item2).Distinct())).ToList();
-                var fusands = baseFusands.Select(b => GetBloonByName(b.name + string.Join("", ProbeAllowedProperties(b, allProps))));
+                var fusands = BloonsFromName(BloonsToName(baseFusands.Select(b => GetBloonByName(b.name + string.Join("", ProbeAllowedProperties(b, allProps))))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
                 fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
             }
 
             public BloonsionReactor Merge()
             {
-                MelonLogger.Msg("Creating " + DebugString(fusion.name));
+                //MelonLogger.Msg("Creating " + DebugString(fusion.name));
                 return MergeProperties().MergeStats().MergeBehaviors().MergeChildren().MergeSpawnBloonsActionModel();
             }
 
