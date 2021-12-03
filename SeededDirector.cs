@@ -18,20 +18,13 @@ namespace Combloonation
     {
         public enum Directable
         {
-            [EnumMember(Value = "GameModel")]
-            GameModel,
-            [EnumMember(Value = "RoundSetModel")]
-            RoundSetModel,
-            [EnumMember(Value = "RoundModel")]
-            RoundModel,
-            [EnumMember(Value = "BloonGroupModel")]
-            BloonGroupModel,
-            [EnumMember(Value = "BloonModel")]
-            BloonModel,
-            [EnumMember(Value = "FreeplayBloonGroupModel")]
-            FreeplayBloonGroupModel,
-            [EnumMember(Value = "BloonEmissionModel")]
-            BloonEmissionModel,
+            [EnumMember(Value = "GameModel")] GameModel,
+            [EnumMember(Value = "RoundSetModel")] RoundSetModel,
+            [EnumMember(Value = "RoundModel")] RoundModel,
+            [EnumMember(Value = "BloonGroupModel")] BloonGroupModel,
+            [EnumMember(Value = "BloonModel")] BloonModel,
+            [EnumMember(Value = "FreeplayBloonGroupModel")] FreeplayBloonGroupModel,
+            [EnumMember(Value = "BloonEmissionModel")] BloonEmissionModel
         }
 
         public static Dictionary<string, Directable> directableType = new Dictionary<string, Directable>
@@ -196,15 +189,8 @@ namespace Combloonation
                     if (++j < roundGroups.Length) group = roundGroups[j];
                     continue;
                 }
-                if (size == 0)
-                {
-                    group = split.Last();
-                }
-                else
-                {
-                    if (++j < roundGroups.Length) group = roundGroups[j];
-                }
-
+                if (size == 0) group = split.Last();
+                else if (++j < roundGroups.Length) group = roundGroups[j];
                 if (++i < sizes.Length) size = sizes[i];
 
                 var bloon = fuser(bloons);
@@ -246,10 +232,7 @@ namespace Combloonation
             throw new NotImplementedException();
         }
 
-        public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1)
-        {
-            throw new NotImplementedException();
-        }
+        public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1) { throw new NotImplementedException(); }
     }
 
     public class RandomDirector : SeededDirector
@@ -258,11 +241,7 @@ namespace Combloonation
 
         public override float Eval(DirectableModel model) { return (float)random.NextDouble(); }
 
-        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1)
-        {
-            throw new NotImplementedException();
-        }
-
+        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1) { throw new NotImplementedException(); }
         public override List<DirectableModel> Produce<M>(float? v = null, int? _n = 1)
         {
             int n = _n ?? random.Next(1,20);
@@ -364,15 +343,8 @@ namespace Combloonation
             return func();
         }
 
-        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1)
-        {
-            throw new NotImplementedException();
-        }
+        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1) { throw new NotImplementedException(); }
+        public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1) { throw new NotImplementedException(); }
     }
 
     public class DangerDirector : SeededDirector
@@ -418,10 +390,7 @@ namespace Combloonation
             return func();
         }
 
-        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1)
-        {
-            throw new NotImplementedException();
-        }
+        public override List<DirectableModel> Produce(DirectableModel m, float? v = null, int? n = 1) { throw new NotImplementedException(); }
 
         public override List<DirectableModel> Produce<M>(float? v = null, int? n = 1)
         {

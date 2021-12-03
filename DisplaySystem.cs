@@ -60,10 +60,8 @@ namespace Combloonation
         {
             public Func<Color, int, int, Color> func;
 
-            public DelegateOverlay(Func<Color, int, int, Color> func)
-            {
-                this.func = func;
-            }
+            public DelegateOverlay(Func<Color, int, int, Color> func) { this.func = func; }
+
             public Color Pixel(Color c, int x, int y)
             {
                 return func(c, x, y);
