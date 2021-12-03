@@ -20,7 +20,7 @@ namespace Combloonation
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
         public static IOverlay boundaryColor = emptyColor;
-        public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("dd4d10"));
+        public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("cd5d10"));
         public static IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
         public static Tuple<List<IOverlay>, List<float>> fortifiedColors = new Tuple<List<IOverlay>, List<float>>(
             new List<IOverlay>{emptyColor,fortifiedColorB,fortifiedColorA,fortifiedColorB,emptyColor,fortifiedColorB,fortifiedColorA,fortifiedColorB,emptyColor},
@@ -92,12 +92,12 @@ namespace Combloonation
 
             public RegionOverlay(List<IOverlay> cs, List<float> ws, RegionScalarMap map)
             {
-                this.cs = cs; this.ps = WeightsToPivots(ws); this.map = map;
+                this.cs = cs; ps = WeightsToPivots(ws); this.map = map;
             }
 
             public Color Pixel(Color c, int x, int y)
             {
-                return cs.SplitRange(null, map, x, y).Pixel(c, x, y);
+                return cs.SplitRange(ps, null, map, x, y).Pixel(c, x, y);
             }
         }
 
