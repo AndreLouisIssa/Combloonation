@@ -129,12 +129,12 @@ namespace Combloonation
             var vals = val.Select(i => new Tuple<int, int>(i, _i++)).OrderByDescending(i => i.Item1).ToArray();
             Tuple<int, int>[] best = Enumerable.Repeat(new Tuple<int, int>(0, 0), total + 1).ToArray();
             for (int i = 0; i <= total; i++) for (int j = 0; j < n; j++)
-                {
-                    if (vals[j].Item1 > i) continue;
-                    var v = best[i - vals[j].Item1].Item1 + vals[j].Item1;
-                    if (v > best[i].Item1) best[i] = new Tuple<int, int>(v, j + 1);
-                    if (v > w) w = v;
-                }
+            {
+                if (vals[j].Item1 > i) continue;
+                var v = best[i - vals[j].Item1].Item1 + vals[j].Item1;
+                if (v > best[i].Item1) best[i] = new Tuple<int, int>(v, j + 1);
+                if (v > w) w = v;
+            }
             var list = new List<int>();
             int k;
             while (true)

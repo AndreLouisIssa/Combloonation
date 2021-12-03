@@ -104,15 +104,8 @@ namespace Combloonation
 
     public class Combinomial<V> : Polynomial<HashSet<V>, V, int>
     {
-        public Combinomial() : base((a, b) => a + b, (a, b) => a * b, HashSet<V>.CreateSetComparer())
-        {
-
-        }
-
-        public Combinomial(Polynomial<HashSet<V>,V,int> p) : base(p)
-        {
-
-        }
+        public Combinomial() : base((a, b) => a + b, (a, b) => a * b, HashSet<V>.CreateSetComparer())  { }
+        public Combinomial(Polynomial<HashSet<V>,V,int> p) : base(p) { }
 
         public Combinomial(IEnumerable<V> forms) : this()
         {
@@ -159,15 +152,8 @@ namespace Combloonation
 
     public class Ordinomial<V> : Polynomial<List<V>, V, int>
     {
-        public Ordinomial() : base((a, b) => a + b, (a, b) => a* b)
-        {
-
-        }
-
-        public Ordinomial(Polynomial<List<V>, V, int> p) : base(p)
-        {
-
-        }
+        public Ordinomial() : base((a, b) => a + b, (a, b) => a* b) { }
+        public Ordinomial(Polynomial<List<V>, V, int> p) : base(p) { }
 
         public Ordinomial(IEnumerable<V> forms) : this()
         {

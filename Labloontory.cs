@@ -39,10 +39,13 @@ namespace Combloonation
         {
             public readonly BloonModel[] fusands;
 
-            public FusionBloonModel(BloonModel fusion, BloonModel[] fusands) : base(fusion.id, fusion.baseId, fusion.speed, fusion.radius, fusion.display, fusion.damageDisplayStates, fusion.icon, fusion.rotate, fusion.behaviors, fusion.overlayClass, fusion.tags, fusion.mods, fusion.collisionGroup, fusion.danger, fusion.hasChildrenWithDifferentTotalHealths, fusion.layerNumber, fusion.isCamo, fusion.isGrow, fusion.isFortified, fusion.depletionEffects, fusion.rotateToFollowPath, fusion.isMoab, fusion.isBoss, fusion.bloonProperties, fusion.leakDamage, fusion.maxHealth, fusion.distributeDamageToChildren, fusion.isInvulnerable, fusion.propertyDisplays, fusion.bonusDamagePerHit, fusion.disallowCosmetics, fusion.isSaved, fusion.loseOnLeak)
-            {
-                this.fusands = fusands;
-            }
+            public FusionBloonModel(BloonModel f, BloonModel[] fs)
+                : base(f.id, f.baseId, f.speed, f.radius, f.display, f.damageDisplayStates, f.icon, f.rotate,
+                      f.behaviors, f.overlayClass, f.tags, f.mods, f.collisionGroup, f.danger, f.hasChildrenWithDifferentTotalHealths,
+                      f.layerNumber, f.isCamo, f.isGrow, f.isFortified, f.depletionEffects, f.rotateToFollowPath, f.isMoab,
+                      f.isBoss, f.bloonProperties, f.leakDamage, f.maxHealth, f.distributeDamageToChildren, f.isInvulnerable,
+                      f.propertyDisplays, f.bonusDamagePerHit, f.disallowCosmetics, f.isSaved, f.loseOnLeak)
+            { fusands = fs; }
         }
 
         public class BloonsionReactor

@@ -128,29 +128,27 @@ namespace Combloonation
             return Math.Min(Math.Max(0, Math.FloorToInt(i)), n - 1);
         }
 
-        public static float[] WeightsToPivots(float[] ws)
+        public static List<float> WeightsToPivots(List<float> ws)
         {
             var s = ws.Sum();
-            var wsn = ws.Take(ws.Length - 1).Select(w => w / s);
+            var wsn = ws.Take(ws.Count - 1).Select(w => w / s);
             var ps = new List<float>();
             var c = 0f;
             foreach (var w in wsn) ps.Add(c += w);
-            return ps.ToArray();
+            return ps;
         }
 
-        public static int SplitRange(float[] s, bool w, bool b, float lo, float hi, float x)
+        public static int SplitRange(List<float> ps, bool b, float lo, float hi, float x)
         {
-            if (s.Length <= 0) throw new ArgumentException("Number of parts must be positive.", nameof(s));
             if (hi <= lo) throw new ArgumentException("High terminal must be greater than low terminal.");
-            if (w) s = WeightsToPivots(s);
             var t = (x - lo) / (hi - lo);
             if (b && (Near(t, 0) || Near(t,1))) return -1;
-            for (int i = 0; i < s.Length; i++)
+            for (int i = 0; i < ps.Count; i++)
             {
-                if (b && Near(t,s[i])) return -1;
-                if (t < s[i]) return i;
+                if (b && Near(t,ps[i])) return -1;
+                if (t < ps[i]) return i;
             }
-            return s.Length;
+            return ps.Count;
         }
     }
 
@@ -163,10 +161,10 @@ namespace Combloonation
             return i == -1 ? b : list[i];
         }
 
-        public static T SplitRange<T>(this List<T> list, float[] s, bool w, T b, float lo, float hi, float x)
+        public static T SplitRange<T>(this List<T> list, List<float> ps, T b, float lo, float hi, float x)
         {
             if (list.Count == 0) throw new ArgumentException("List must not be empty.", nameof(list));
-            var i = RegionScalarMap.SplitRange(s, w, b != null, lo, hi, x);
+            var i = RegionScalarMap.SplitRange(ps, b != null, lo, hi, x);
             return i == -1 ? b : list[i];
         }
 
@@ -175,9 +173,9 @@ namespace Combloonation
             return SplitRange(list, b, map.zlo, map.zhi, map.f(x, y));
         }
 
-        public static T SplitRange<T>(this List<T> list, float[] s, bool w, T b, RegionScalarMap map, float x, float y)
+        public static T SplitRange<T>(this List<T> list, List<float> ps, T b, RegionScalarMap map, float x, float y)
         {
-            return SplitRange(list, s, w, b, map.zlo, map.zhi, map.f(x, y));
+            return SplitRange(list, ps, b, map.zlo, map.zhi, map.f(x, y));
         }
     }
 }

@@ -10,6 +10,7 @@ using System;
 using UnityEngine;
 using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
+using static Combloonation.RegionScalarMap;
 using MelonLoader;
 
 namespace Combloonation
@@ -21,18 +22,9 @@ namespace Combloonation
         public static IOverlay boundaryColor = emptyColor;
         public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("dd4d10"));
         public static IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
-        public static List<Tuple<IOverlay, float>> fortifiedColors = new List<Tuple<IOverlay, float>>
-        {
-            new Tuple<IOverlay,float>(emptyColor,30f),
-            new Tuple<IOverlay,float>(fortifiedColorB,2f),
-            new Tuple<IOverlay,float>(fortifiedColorA,8f),
-            new Tuple<IOverlay,float>(fortifiedColorB,2f),
-            new Tuple<IOverlay,float>(emptyColor,30f),
-            new Tuple<IOverlay,float>(fortifiedColorB,2f),
-            new Tuple<IOverlay,float>(fortifiedColorA,8f),
-            new Tuple<IOverlay,float>(fortifiedColorB,2f),
-            new Tuple<IOverlay,float>(emptyColor,30f)
-        };
+        public static Tuple<List<IOverlay>, List<float>> fortifiedColors = new Tuple<List<IOverlay>, List<float>>(
+            new List<IOverlay>{emptyColor,fortifiedColorB,fortifiedColorA,fortifiedColorB,emptyColor,fortifiedColorB,fortifiedColorA,fortifiedColorB,emptyColor},
+            new List<float>{30f,2f,8f,2f,30f,2f,8f,2f,30f});
         public static Dictionary<string, IOverlay> baseColors = new Dictionary<string, IOverlay>()
         {
             { "Red",     new ColorOverlay(HexColor("fe2020")) },
@@ -94,34 +86,20 @@ namespace Combloonation
             }
         }
 
-        public class GrayscaleOverlay : IOverlay
+        public class RegionOverlay : IOverlay
         {
-            public IOverlay c;
-            public GrayscaleOverlay(IOverlay c)
+            public List<IOverlay> cs;
+            public List<float> ps;
+            public RegionScalarMap map;
+
+            public RegionOverlay(List<IOverlay> cs, List<float> ws, RegionScalarMap map)
             {
-                this.c = c;
+                this.cs = cs; this.ps = WeightsToPivots(ws); this.map = map;
             }
 
             public Color Pixel(Color c, int x, int y)
             {
-                var _c = this.c.Pixel(c,x,y);
-                var t = _c.grayscale;
-                return new Color(t, t, t, _c.a);
-            }
-        }
-
-        public class ValueInvertOverlay : IOverlay
-        {
-            public IOverlay c;
-            public ValueInvertOverlay(IOverlay c)
-            {
-                this.c = c;
-            }
-
-            public Color Pixel(Color c, int x, int y)
-            {
-                var _c = this.c.Pixel(c,x,y);
-                return new Color(1-_c.r,1-_c.g,1-_c.b,_c.a);
+                return cs.SplitRange(null, map, x, y).Pixel(c, x, y);
             }
         }
 
@@ -131,32 +109,14 @@ namespace Combloonation
             public Func<float, float, float> tf;
             public IOverlay c;
 
-            public TintOverlay(IOverlay c)
-            {
-                this.c = c;
-            }
-            public TintOverlay(IOverlay c, float t) : this(c)
-            {
-                this.t = t;
-            }
-            public TintOverlay(IOverlay c, Func<float, float, float> tf) : this(c)
-            {
-                this.tf = tf;
-            }
+            public TintOverlay(IOverlay c) { this.c = c; }
+            public TintOverlay(IOverlay c, float t) : this(c) { this.t = t; }
+            public TintOverlay(IOverlay c, Func<float, float, float> tf) : this(c) { this.tf = tf; }
 
             public Color Pixel(Color mc, int x, int y)
             {
-                var tp = t;
-                if (tf != null)
-                {
-                    tp = tf(x, y);
-                }
+                var tp = (tf != null) ? tf(x,y) : t;
                 var tc = c.Pixel(mc, x, y);
-                //Color.RGBToHSV(mc, out var mh, out var ms, out var mv);
-                //Color.RGBToHSV(tc, out var th, out var ts, out var tv);
-                //var col = Color.HSVToRGB(th, ms, mv);
-                //col.a = mc.a;
-                //return Color.Lerp(col, new Color(tc.r, tc.g, tc.b, mc.a), tp
                 return Color.Lerp(mc, new Color(tc.r, tc.g, tc.b, mc.a), tp);
             }
         }
@@ -165,10 +125,7 @@ namespace Combloonation
         {
 
             public Color c;
-            public ColorOverlay(Color c)
-            {
-                this.c = c;
-            }
+            public ColorOverlay(Color c) { this.c = c; }
             public Color Pixel(Color c, int x, int y)
             {
                 return new Color(this.c.r, this.c.g, this.c.b, c.a);
@@ -183,35 +140,16 @@ namespace Combloonation
             public float b = 1f;
             public Func<float,float,bool> bf;
 
-            public BoundOverlay(IOverlay ci, IOverlay co)
-            {
-                this.ci = ci;
-                this.co = co;
-            }
-
-            public BoundOverlay(IOverlay ci, IOverlay co, float b) : this(ci, co)
-            {
-                this.b = b;
-            }
-
-            public BoundOverlay(IOverlay ci, IOverlay co, Func<float,float,bool> bf) : this(ci, co)
-            {
-                this.bf = bf;
-            }
+            public BoundOverlay(IOverlay ci, IOverlay co) { this.ci = ci; this.co = co; }
+            public BoundOverlay(IOverlay ci, IOverlay co, float b) : this(ci, co) { this.b = b; }
+            public BoundOverlay(IOverlay ci, IOverlay co, Func<float,float,bool> bf) : this(ci, co) { this.bf = bf; }
                             
-
             public Color Pixel(Color c, int x, int y)
             {
                 bool ins;
-                if (bf == null)
-                {
-                    ins = x * x + y * y > b * b;
-                }
+                if (bf == null) ins = x * x + y * y > b * b;
                 else ins = bf(x, y);
-                if (ins)
-                {
-                    return co.Pixel(c, x, y);
-                }
+                if (ins) return co.Pixel(c, x, y);
                 return ci.Pixel(c, x, y);
             }
         }
@@ -227,13 +165,6 @@ namespace Combloonation
         public static Color Average(this Color a, Color b)
         {
             return Color.Lerp(a, b, (1 + b.a - a.a) / 2);
-        }
-
-        public static IOverlay FortifiedColor(Rect r)
-        {
-            var map = RegionScalarMap.Regions.vertical(r.x,r.x + r.width, r.y, r.y + r.height);
-            return new DelegateOverlay((_c, _x, _y) =>
-                fortifiedColors.Select(c=>c.Item1).ToList().SplitRange(fortifiedColors.Select(c=>c.Item2).ToArray(), true, null, map, _x, _y).Pixel(_c, _x, _y));
         }
 
         public static Tuple<IOverlay, List<IOverlay>> GetColors(this BloonModel bloon)
@@ -312,10 +243,7 @@ namespace Combloonation
 
         public static Texture2D Duplicate(this Texture texture, Func<int, int, Color, Color> func, Rect? proj = null)
         {
-            if (proj == null)
-            {
-                proj = new Rect(0, 0, texture.width, texture.height);
-            }
+            if (proj == null) { proj = new Rect(0, 0, texture.width, texture.height); }
             var t = texture.Duplicate(proj);
             foreach (var xy in t.GetEnumerator())
             {
@@ -340,14 +268,13 @@ namespace Combloonation
             return new Rect(x, y, w, h);
         }
 
-        public static Tuple<RegionScalarMap, Rect> GetRegionMap(Texture texture, Rect? proj = null)
+        public static Rect GetRegionRect(Texture texture, Rect? proj = null)
         {
             int w; int h;
             if (proj is Rect rect) { w = (int)rect.width; h = (int)rect.height; }
             else { w = texture.width; h = texture.height; }
             var w2 = w / 2; var h2 = h / 2;
-            var map = RegionScalarMap.Regions.spiral(1.3f, 0.6f)(-w2, w - w2, -h2, h - h2);
-            return new Tuple<RegionScalarMap, Rect>(map, new Rect(-w2, -h2, w, h));
+            return new Rect(-w2, -h2, w, h);
         }
 
         public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Rect? proj = null)
@@ -355,9 +282,9 @@ namespace Combloonation
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var cols = GetColors(bloon);
             if (cols.Item2.Count == 0) return texture.Duplicate(proj);
-            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.baseId)).Select(b => b.danger).ToArray();
-            var map = GetRegionMap(texture, proj);
-            var mrect = map.Item2;
+            var ws = bloon.fusands.Skip(1).Where(b => baseColors.ContainsKey(b.baseId)).Select(b => b.danger).ToList();
+            var mrect = GetRegionRect(texture, proj);
+            var map = Regions.spiral(1.3f, 0.6f)(mrect.x, mrect.x + mrect.width, mrect.y, mrect.y + mrect.height);
             var r = Math.Min(mrect.width, mrect.height)/2;
             var fbase = bloon.fusands.First();
             r *= ws[0] / fbase.danger;
@@ -368,10 +295,7 @@ namespace Combloonation
                 dy = mrect.height * 0.1f;
                 r *= 0.5f;
             }
-            else if (!fbase.isGrow)
-            {
-                dy = -mrect.height * 0.05f;
-            }
+            else if (!fbase.isGrow) dy = -mrect.height * 0.05f;
             float r_iob, r_iib, r_oob;
             Func<float, float, float> curve;
             if (!fbase.isGrow && bloon.isGrow)
@@ -387,13 +311,13 @@ namespace Combloonation
             IOverlay fcol = emptyColor;
             if (!fbase.isFortified && bloon.isFortified)
             {
-                fcol = FortifiedColor(mrect);
+                fcol = new RegionOverlay(fortifiedColors.Item1, fortifiedColors.Item2,
+                    Regions.vertical(mrect.x,mrect.x + mrect.width, mrect.y, mrect.y + mrect.height));
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
             Func<float,float,float> tf = (x,y) => (float)TERF(curve(x/r_oob,y/r_oob),1f,-1f);
             var tcols = cols.Item2;
-            var dcol = new DelegateOverlay((_c, _x, _y) =>
-                tcols.SplitRange(ws, true, null, map.Item1, _x, _y).Pixel(_c, _x, _y));
+            var dcol = new RegionOverlay(tcols, ws, map);
             var bcol = new BoundOverlay(dcol, boundaryColor, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
             var bbcol = new BoundOverlay(bcol, dcol, (x,y) => curve(x/r_iob,y/r_iob) >= 0);
             var bbbcol = new BoundOverlay(new TintOverlay(bbcol, tf), emptyColor, (x, y) => curve(x / r_oob, y / r_oob) >= 0);
