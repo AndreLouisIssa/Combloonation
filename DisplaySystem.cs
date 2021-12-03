@@ -45,11 +45,6 @@ namespace Combloonation
             { "Ddt",     new ColorOverlay(HexColor("454b41")) },
             { "Bad",     new ColorOverlay(HexColor("bb00c6")) },
         };
-        public static Dictionary<string, IOverlay> propColors = new Dictionary<string, IOverlay>()
-        {
-            { "Camo",       new ColorOverlay(HexColor("000000")) },
-            { "Fortified",  new ColorOverlay(HexColor("ff8f20")) },
-        };
 
         public interface IOverlay
         {
