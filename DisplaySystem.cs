@@ -285,11 +285,14 @@ namespace Combloonation
             var fbase = bloon.fusands.First();
             r *= ws[0] / fbase.danger;
             var dx = 0f; var dy = 0f;
+            var csx = 1f; var csy = 1f;
             if (fromMesh)
             {
                 dx = mrect.width * 0.165f;
                 dy = mrect.height * 0.1f;
                 r *= 0.5f;
+                csy *= 1.5f;
+                csy /= 1.5f;
             }
             else if (!fbase.isGrow) dy = -mrect.height * 0.05f;
             float r_iob, r_iib, r_oob;
@@ -307,7 +310,7 @@ namespace Combloonation
             var col = emptyColor;
             if (!fbase.isCamo && bloon.isCamo)
             {
-                var cmx = 66f / mrect.width; var cmy = 84f / mrect.height;
+                var cmx = 66f / mrect.width / csx; var cmy = 84f / mrect.height / csy;
                 col = new PipeOverlay(col,new DelegateOverlay((c,x,y) => { 
                     x *= cmx; y *= cmy;
                     var n1 = Mathf.PerlinNoise(18.05f + x / 31f, 67f + y / 17f);
@@ -358,7 +361,6 @@ namespace Combloonation
             else
             {
                 var renderer = graphic.genericRenderers.First(r => r.name == "Body");
-                MelonLogger.Msg(string.Join(", ", graphic.genericRenderers.Select(r => r.name)));
                 var texture = bloon.GetMergedTexture(renderer.material.mainTexture, true);
                 if (texture != null) graphic.genericRenderers.Where(r => r.name == "Body" || r.name == "RightTurbine").Do(r => r.SetMainTexture(texture));
             }
