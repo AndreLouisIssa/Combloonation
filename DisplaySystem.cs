@@ -315,7 +315,7 @@ namespace Combloonation
                     x *= cmx; y *= cmy;
                     var n1 = Mathf.PerlinNoise(18.05f + x / 31f, 67f + y / 17f);
                     var n2 = Mathf.PerlinNoise(184f + x / 20f,627f + y / 8f);
-                    return c.RGBMultiplied((float)Math.Ceiling(4*n1 + 2*n2)/6);
+                    return c.RGBMultiplied((float)Math.Ceiling(4*n1 + 2*n2)/6 + 0.3f);
                 }));
             }
             if (!fbase.isFortified && bloon.isFortified)
