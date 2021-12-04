@@ -12,6 +12,7 @@ using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
 using static Combloonation.RegionScalarMap;
 using MelonLoader;
+using Mesh = Assets.Scripts.Simulation.Display.Mesh;
 
 namespace Combloonation
 {
@@ -48,16 +49,16 @@ namespace Combloonation
 
         public interface IOverlay
         {
-            Color Pixel(Color c, int x, int y);
+            Color Pixel(Color c, float x, float y);
         }
 
         public class DelegateOverlay : IOverlay
         {
-            public Func<Color, int, int, Color> func;
+            public Func<Color, float, float, Color> func;
 
-            public DelegateOverlay(Func<Color, int, int, Color> func) { this.func = func; }
+            public DelegateOverlay(Func<Color, float, float, Color> func) { this.func = func; }
 
-            public Color Pixel(Color c, int x, int y)
+            public Color Pixel(Color c, float x, float y)
             {
                 return func(c, x, y);
             }
@@ -72,7 +73,7 @@ namespace Combloonation
             {
                 this.a = a; this.b = b;
             }
-            public Color Pixel(Color c, int x, int y)
+            public Color Pixel(Color c, float x, float y)
             {
                 var _c = a.Pixel(c, x, y);
                 return b.Pixel(_c, x, y);
@@ -90,7 +91,7 @@ namespace Combloonation
                 this.cs = cs; ps = WeightsToPivots(ws); this.map = map;
             }
 
-            public Color Pixel(Color c, int x, int y)
+            public Color Pixel(Color c, float x, float y)
             {
                 return cs.SplitRange(ps, null, map, x, y).Pixel(c, x, y);
             }
@@ -106,7 +107,7 @@ namespace Combloonation
             public TintOverlay(IOverlay c, float t) : this(c) { this.t = t; }
             public TintOverlay(IOverlay c, Func<float, float, float> tf) : this(c) { this.tf = tf; }
 
-            public Color Pixel(Color mc, int x, int y)
+            public Color Pixel(Color mc, float x, float y)
             {
                 var tp = (tf != null) ? tf(x,y) : t;
                 var tc = c.Pixel(mc, x, y);
@@ -119,7 +120,7 @@ namespace Combloonation
 
             public Color c;
             public ColorOverlay(Color c) { this.c = c; }
-            public Color Pixel(Color c, int x, int y)
+            public Color Pixel(Color c, float x, float y)
             {
                 return new Color(this.c.r, this.c.g, this.c.b, c.a);
             }
@@ -137,7 +138,7 @@ namespace Combloonation
             public BoundOverlay(IOverlay ci, IOverlay co, float b) : this(ci, co) { this.b = b; }
             public BoundOverlay(IOverlay ci, IOverlay co, Func<float,float,bool> bf) : this(ci, co) { this.bf = bf; }
                             
-            public Color Pixel(Color c, int x, int y)
+            public Color Pixel(Color c, float x, float y)
             {
                 bool ins;
                 if (bf == null) ins = x * x + y * y > b * b;
@@ -270,7 +271,7 @@ namespace Combloonation
             return new Rect(-w2, -h2, w, h);
         }
 
-        public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Rect? proj = null)
+        public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Mesh mesh, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var cols = GetColors(bloon);
@@ -282,7 +283,7 @@ namespace Combloonation
             var fbase = bloon.fusands.First();
             r *= ws[0] / fbase.danger;
             var dx = 0f; var dy = 0f;
-            if (fbase.isMoab)
+            if (mesh != null)
             {
                 dx = mrect.width * 0.165f;
                 dy = mrect.height * 0.1f;
@@ -318,14 +319,14 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + mrect.x), y + (int)(dy + mrect.y)), proj);
         }
 
-        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Rect? proj = null)
+        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Mesh mesh, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             if (oldTexture == null) return computedTextures[bloon.name] = null;
             if (oldTexture.isReadable) return null;
             var exists = computedTextures.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
-            computedTextures[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, proj);
+            computedTextures[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, mesh, proj);
             if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(bloon.name)}.png");
             return texture;
         }
@@ -335,7 +336,7 @@ namespace Combloonation
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var texture = bloon.GetMergedTexture(sprite.sprite.texture, sprite.sprite.textureRect);
+                var texture = bloon.GetMergedTexture(sprite.sprite.texture, null, sprite.sprite.textureRect);
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
@@ -344,7 +345,7 @@ namespace Combloonation
             else
             {
                 var renderer = graphic.genericRenderers.First(r => r.name == "Body");
-                var texture = bloon.GetMergedTexture(renderer.material.mainTexture);
+                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, graphic.mesh);
                 if (texture != null) foreach (var r in graphic.genericRenderers.Where(r => r.name == "Body")) r.SetMainTexture(texture);
             }
         }
