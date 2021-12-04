@@ -13,6 +13,8 @@ using static Combloonation.Helpers;
 using static Combloonation.RegionScalarMap;
 using MelonLoader;
 using Mesh = Assets.Scripts.Simulation.Display.Mesh;
+using Assets.Scripts.Simulation.Display;
+using HarmonyLib;
 
 namespace Combloonation
 {
@@ -271,7 +273,7 @@ namespace Combloonation
             return new Rect(-w2, -h2, w, h);
         }
 
-        public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, Mesh mesh, Rect? proj = null)
+        public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, bool fromMesh, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var cols = GetColors(bloon);
@@ -283,7 +285,7 @@ namespace Combloonation
             var fbase = bloon.fusands.First();
             r *= ws[0] / fbase.danger;
             var dx = 0f; var dy = 0f;
-            if (mesh != null)
+            if (fromMesh)
             {
                 dx = mrect.width * 0.165f;
                 dy = mrect.height * 0.1f;
@@ -302,31 +304,42 @@ namespace Combloonation
                 curve = (x, y) => (float)CircleCurve(x, y);
                 r *= 1.25f;
             }
-            IOverlay fcol = emptyColor;
+            var col = emptyColor;
+            if (!fbase.isCamo && bloon.isCamo)
+            {
+                var cmx = 66f / mrect.width; var cmy = 84f / mrect.height;
+                col = new PipeOverlay(col,new DelegateOverlay((c,x,y) => { 
+                    x *= cmx; y *= cmy;
+                    var n1 = Mathf.PerlinNoise(18.05f + x / 31f, 67f + y / 17f);
+                    var n2 = Mathf.PerlinNoise(184f + x / 20f,627f + y / 8f);
+                    return c.RGBMultiplied((float)Math.Ceiling(4*n1 + 2*n2)/6);
+                }));
+            }
             if (!fbase.isFortified && bloon.isFortified)
             {
-                fcol = new RegionOverlay(fortifiedColors.Item1, fortifiedColors.Item2,
-                    Regions.vertical(mrect.x,mrect.x + mrect.width, mrect.y, mrect.y + mrect.height));
+                col = new PipeOverlay(col,new RegionOverlay(fortifiedColors.Item1, fortifiedColors.Item2,
+                    Regions.vertical(mrect.x,mrect.x + mrect.width, mrect.y, mrect.y + mrect.height)));
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
             Func<float,float,float> tf = (x,y) => (float)TERF(curve(x/r_oob,y/r_oob),1f,-1f);
             var tcols = cols.Item2;
             var dcol = new RegionOverlay(tcols, ws, map);
             var bcol = new BoundOverlay(dcol, boundaryColor, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
-            var bbcol = new BoundOverlay(bcol, dcol, (x,y) => curve(x/r_iob,y/r_iob) >= 0);
-            var bbbcol = new BoundOverlay(new TintOverlay(bbcol, tf), emptyColor, (x, y) => curve(x / r_oob, y / r_oob) >= 0);
-            var col = new PipeOverlay(fcol, bbbcol);
+            var bbcol = new BoundOverlay(bcol, dcol, (x, y) => curve(x / r_iob, y / r_iob) >= 0);
+            var tcol = new TintOverlay(bbcol, tf);
+            var bbbcol = new BoundOverlay(tcol, emptyColor, (x, y) => curve(x / r_oob, y / r_oob) >= 0);
+            col = new PipeOverlay(col, bbbcol);
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + mrect.x), y + (int)(dy + mrect.y)), proj);
         }
 
-        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Mesh mesh, Rect? proj = null)
+        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, bool fromMesh, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             if (oldTexture == null) return computedTextures[bloon.name] = null;
             if (oldTexture.isReadable) return null;
             var exists = computedTextures.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
-            computedTextures[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, mesh, proj);
+            computedTextures[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(bloon.name)}.png");
             return texture;
         }
@@ -336,7 +349,7 @@ namespace Combloonation
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var texture = bloon.GetMergedTexture(sprite.sprite.texture, null, sprite.sprite.textureRect);
+                var texture = bloon.GetMergedTexture(sprite.sprite.texture, false, sprite.sprite.textureRect);
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
@@ -345,8 +358,9 @@ namespace Combloonation
             else
             {
                 var renderer = graphic.genericRenderers.First(r => r.name == "Body");
-                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, graphic.mesh);
-                if (texture != null) foreach (var r in graphic.genericRenderers.Where(r => r.name == "Body")) r.SetMainTexture(texture);
+                MelonLogger.Msg(string.Join(", ", graphic.genericRenderers.Select(r => r.name)));
+                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, true);
+                if (texture != null) graphic.genericRenderers.Where(r => r.name == "Body" || r.name == "RightTurbine").Do(r => r.SetMainTexture(texture));
             }
         }
 
