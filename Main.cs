@@ -70,27 +70,22 @@ namespace Combloonation
         public class Patch_CosmeticHelper_GetBloonModel
         {
             [HarmonyPrefix]
-            public static void Prefix()
+            public static bool Prefix(ref string id, ref BloonModel __result)
             {
-                var model = GetGameModel();
-                foreach (var mod in CosmeticHelper.coopPlayerBloonMods.GetValues())
-                {
-                    mod.bloonsByName = model.bloonsByName;
-                }
+                //MelonLogger.Msg($"ID: {id}");
+                //var lookup = CosmeticHelper.rootGameModel.bloonsByName;
+                //if (lookup.ContainsKey(id)) {
+                //    __result = lookup[id];
+                //    return false;
+                //}
+                //else {
+                    id = BloonNamesFromName(id).First();
+                    return true;
+                //}
             }
         }
 
         /*
-        [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
-        public class Patch_CosmeticHelper_GetBloonModel
-        {
-            [HarmonyFinalizer]
-            public static Exception Finalizer()
-            {
-                return null;
-            }
-        }
-
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
         public class Patch_BloonMenu_SortBloons
         {
