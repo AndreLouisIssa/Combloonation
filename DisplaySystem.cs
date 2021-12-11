@@ -12,15 +12,16 @@ using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
 using static Combloonation.RegionScalarMap;
 using MelonLoader;
-using Mesh = Assets.Scripts.Simulation.Display.Mesh;
-using Assets.Scripts.Simulation.Display;
 using HarmonyLib;
+using UnityEngine.UI;
+using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
 
 namespace Combloonation
 {
     public static class DisplaySystem
     {
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
+        public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
         public static IOverlay boundaryColor = emptyColor;
         public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("cd5d10"));
@@ -335,14 +336,14 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + mrect.x), y + (int)(dy + mrect.y)), proj);
         }
 
-        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, bool fromMesh, Rect? proj = null)
+        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
-            if (oldTexture == null) return computedTextures[bloon.name] = null;
+            if (oldTexture == null) return computed[bloon.name] = null;
             if (oldTexture.isReadable) return null;
-            var exists = computedTextures.TryGetValue(bloon.name, out var texture);
+            var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
-            computedTextures[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
+            computed[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture != null) texture.SaveToPNG($"{Main.folderPath}/{DebugString(bloon.name)}.png");
             return texture;
         }
@@ -352,7 +353,7 @@ namespace Combloonation
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var texture = bloon.GetMergedTexture(sprite.sprite.texture, false, sprite.sprite.textureRect);
+                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedTextures, false, sprite.sprite.textureRect);
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
@@ -361,8 +362,18 @@ namespace Combloonation
             else
             {
                 var renderer = graphic.genericRenderers.First(r => r.name == "Body");
-                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, true);
+                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true);
                 if (texture != null) graphic.genericRenderers.Where(r => r.name == "Body" || r.name == "RightTurbine").Do(r => r.SetMainTexture(texture));
+            }
+        }
+
+        public static void SetBloonAppearance(this FusionBloonModel bloon, Image icon)
+        {
+            var sprite = icon.sprite;
+            var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, sprite.textureRect);
+            if (texture != null)
+            {
+                icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
             }
         }
 
@@ -370,7 +381,16 @@ namespace Combloonation
         {
             var graphic = bloon?.display?.node?.graphic;
             if (graphic == null) return;
-            if (GetBloonByName(bloon.bloonModel.name) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
+            if (BloonFromName(bloon.bloonModel.name) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
+        }
+
+        public static void SetBloonAppearance(SpawnBloonButton button)
+        {
+            if (button.model is FusionBloonModel bloon)
+            {
+                bloon.SetBloonAppearance(button.bloonIcon);
+                button.UpdateIcon();
+            }
         }
 
         public static void OnInGameUpdate(InGame inGame)

@@ -16,6 +16,7 @@ using BTD_Mod_Helper.Extensions;
 using Assets.Scripts.Models.Rounds;
 using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
+using static Combloonation.DisplaySystem;
 using Assets.Scripts.Models;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "0-beta-r0", "MagicGonads")]
@@ -49,58 +50,50 @@ namespace Combloonation
             //Fuse(models.Values.Cast<BloonModel>());
         }
 
-        [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
-        class Patch_InGame_Update
-        {
-            [HarmonyPostfix]
-            public static void Postfix(InGame __instance)
-            {
-                if (__instance.bridge == null) return;
-                DisplaySystem.OnInGameUpdate(__instance);
-            }
-
-            [HarmonyFinalizer]
-            public static Exception Finalizer()
-            {
-                return null;
-            }
-        }
+        //[HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
+        //class Patch_InGame_Update
+        //{
+        //    [HarmonyPostfix]
+        //    public static void Postfix(InGame __instance)
+        //    {
+        //        if (__instance.bridge == null) return;
+        //        OnInGameUpdate(__instance);
+        //    }
+        //}
 
         [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
         public class Patch_CosmeticHelper_GetBloonModel
         {
-            [HarmonyPrefix]
-            public static bool Prefix(ref string id, ref BloonModel __result)
-            {
-                //MelonLogger.Msg($"ID: {id}");
-                //var lookup = CosmeticHelper.rootGameModel.bloonsByName;
-                //if (lookup.ContainsKey(id)) {
-                //    __result = lookup[id];
-                //    return false;
-                //}
-                //else {
-                    id = BloonNamesFromName(id).First();
-                    return true;
-                //}
-            }
-        }
-
-        /*
-        [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
-        public class Patch_BloonMenu_SortBloons
-        {
             [HarmonyFinalizer]
-            public static Exception Finalizer(Exception __exception)
+            public static Exception Finalizer(Exception __exception, ref BloonModel __result, string id, int emissionIndex, bool useRootModel)
             {
-                if (__exception != null)
-                {
-                    MelonLogger.Msg(__exception.Message);
-                }
 
+                MelonLogger.Msg($"id: {id}, emissionIndex: {emissionIndex}, useRootModel: {useRootModel}");
+                var bid = BaseBloonNamesFromName(id).First();
+                MelonLogger.Msg($"bid: {bid}");
+                if (__exception != null) {
+                    __result = CosmeticHelper.GetBloonModel(bid, emissionIndex, useRootModel);
+                }
                 return null;
             }
         }
-        */
+
+        [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
+        public class Patch_BloonMenu_SortBloons
+        {
+            [HarmonyPrefix]
+            public static void Finalizer(BloonMenu __instance)
+            {
+                foreach (var button in __instance.bloonButtons) SetBloonAppearance(button);
+            }
+
+            [HarmonyFinalizer]
+            public static Exception Finalizer(Exception __exception)
+            {
+                if (__exception != null) MelonLogger.Msg(__exception.Message);
+                return null;
+            }
+        }
 
     }
 }

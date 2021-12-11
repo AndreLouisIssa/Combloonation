@@ -181,7 +181,7 @@ namespace Combloonation
             var j = 0; var group = roundGroups[j];
             while (i < sizes.Length && j < roundGroups.Length)
             {
-                bloons.Add(GetBloonByName(group.bloon));
+                bloons.Add(BloonFromName(group.bloon));
                 var split = Split(group, size, out size);
                 subgroups.Add(split.First());
                 if (size > 0)
@@ -315,7 +315,7 @@ namespace Combloonation
                     }; break;
                 case Directable.BloonGroupModel:
                     func = () => { directable.Is(out BloonGroupModel model);
-                        return Eval(GetBloonByName(model.bloon)) * model.count;// / (model.end - model.start);
+                        return Eval(BloonFromName(model.bloon)) * model.count;// / (model.end - model.start);
                     }; break;
                 case Directable.RoundModel:
                     func = () => { directable.Is(out RoundModel model);
@@ -331,7 +331,7 @@ namespace Combloonation
                     }; break;
                 case Directable.BloonEmissionModel:
                     func = () => { directable.Is(out BloonEmissionModel model);
-                        return Eval(GetBloonByName(model.bloon));// / model.time;
+                        return Eval(BloonFromName(model.bloon));// / model.time;
                     }; break;
                 case Directable.FreeplayBloonGroupModel:
                     func = () => { directable.Is(out FreeplayBloonGroupModel model);
@@ -362,7 +362,7 @@ namespace Combloonation
                     }; break;
                 case Directable.BloonGroupModel:
                     func = () => { directable.Is(out BloonGroupModel model);
-                        return Eval(GetBloonByName(model.bloon)) * model.count;
+                        return Eval(BloonFromName(model.bloon)) * model.count;
                     }; break;
                 case Directable.RoundModel:
                     func = () => { directable.Is(out RoundModel model);
@@ -378,7 +378,7 @@ namespace Combloonation
                     }; break;
                 case Directable.BloonEmissionModel:
                     func = () => { directable.Is(out BloonEmissionModel model);
-                        return Eval(GetBloonByName(model.bloon));
+                        return Eval(BloonFromName(model.bloon));
                     }; break;
                 case Directable.FreeplayBloonGroupModel:
                     func = () => { directable.Is(out FreeplayBloonGroupModel model);
