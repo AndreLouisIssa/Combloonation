@@ -66,6 +66,20 @@ namespace Combloonation
             }
         }
 
+        [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
+        public class Patch_CosmeticHelper_GetBloonModel
+        {
+            [HarmonyPrefix]
+            public static void Prefix()
+            {
+                var model = GetGameModel();
+                foreach (var mod in CosmeticHelper.coopPlayerBloonMods.GetValues())
+                {
+                    mod.bloonsByName = model.bloonsByName;
+                }
+            }
+        }
+
         /*
         [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
         public class Patch_CosmeticHelper_GetBloonModel
