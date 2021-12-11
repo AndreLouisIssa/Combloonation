@@ -48,7 +48,6 @@ namespace Combloonation
             //}
             //Fuse(models.Values.Cast<BloonModel>());
         }
-        
 
         [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
         class Patch_InGame_Update
@@ -58,6 +57,23 @@ namespace Combloonation
             {
                 if (__instance.bridge == null) return;
                 DisplaySystem.OnInGameUpdate(__instance);
+            }
+
+            [HarmonyFinalizer]
+            public static Exception Finalizer()
+            {
+                return null;
+            }
+        }
+
+        /*
+        [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
+        public class Patch_CosmeticHelper_GetBloonModel
+        {
+            [HarmonyFinalizer]
+            public static Exception Finalizer()
+            {
+                return null;
             }
         }
 
@@ -75,6 +91,7 @@ namespace Combloonation
                 return null;
             }
         }
+        */
 
     }
 }

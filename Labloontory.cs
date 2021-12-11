@@ -17,7 +17,7 @@ namespace Combloonation
 
         public static readonly Dictionary<string, FusionBloonModel> _bloonsByName = new Dictionary<string, FusionBloonModel>();
         public static string fusionTag = "CombloonationFusion";
-        public static string delim = $"({fusionTag})";
+        public static string delim = "_";//$"({fusionTag})";
         public static string debuglim = "_";
         public static List<string> properties = new List<string>
         {
@@ -297,6 +297,7 @@ namespace Combloonation
             var model = GetGameModel();
             if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
+            model.AddChildDependant(bloon.Cast<BloonModel>());
             //MelonLogger.Msg("Registered " + DebugString(bloon.name));
             return bloon;
         }
