@@ -17,9 +17,12 @@ namespace Combloonation
     {
 
         public static readonly Dictionary<string, FusionBloonModel> _bloonsByName = new Dictionary<string, FusionBloonModel>();
-        public static string fusionTag = "CombloonationFusion";
-        public static string delim = "_";//$"({fusionTag})";
-        public static string debuglim = "_";
+        public static string fusionComponentTag = "CombloonationFusionComponent";
+        public static string fusionComponentDelim = $"({fusionComponentTag})";
+        public static string fusionComponentDebuglim = "_";
+        public static string fusionPropertiesTag = "CombloonationFusionProperties";
+        public static string fusionPropertiesDelim = $"({fusionPropertiesTag})";
+        public static string fusionPropertiesDebuglim = "~";
         public static List<string> properties = new List<string>
         {
             "Regrow", "Fortified", "Camo"
@@ -55,14 +58,13 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> bloons)
             {
-                var noDuplicates = bloons.SelectMany(b => BloonNamesFromName(b.name)).Distinct().Select(s => BloonFromName(s));
-                var sepProps = noDuplicates.GroupBy(b => b.baseId).Select(g => new Tuple<string,IEnumerable<string>>(g.Key,
-                    g.Select(b => GetProperties(b)).Aggregate((a, b) => a.Union(b))));
-                var baseFusands = sepProps.Select(s => BloonFromName(s.Item1)).OrderByDescending(f => f.danger).Take(Math.Max(5,sepProps.Count()));
-                var allProps = GetProperties(string.Join("", sepProps.SelectMany(s => s.Item2).Distinct())).ToList();
-                var fusands = BloonsFromName(BloonsToName(baseFusands.Select(b => BloonFromName(b.name + string.Join("", ProbeProperties(b, allProps))))));
+                var components = BloonsFromBloons(bloons);
+                var allProps = GetProperties(components).ToList();
+                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).TakeAtMost(5);
+                var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
+                var fusands = baseFusands.Select(b => BloonFromName(b.name + GetPropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
-                fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
+                fusion._name = fusion.name = fusion.id = name;
                 fusion.baseId = BaseBloonNameFromName(fusion.name);
             }
 
@@ -84,7 +86,7 @@ namespace Combloonation
                 fusion.isMoab = fusion.fusands.Any(f => f.isMoab);
 
                 fusion.distributeDamageToChildren = fusion.fusands.All(f => f.distributeDamageToChildren);
-                fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
+                fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionComponentTag).Distinct().ToArray();
 
                 return this;
             }
@@ -152,8 +154,9 @@ namespace Combloonation
 
         public static string DebugString(string s)
         {
-            return s.Replace(delim, debuglim);
+            return s.Replace(fusionComponentDelim, fusionComponentDebuglim).Replace(fusionPropertiesDelim, fusionPropertiesDebuglim);
         }
+
         public static Dictionary<int, string> Decompose(this string body, string[] parts)
         {
             var map = new Dictionary<int, string>();
@@ -166,6 +169,7 @@ namespace Combloonation
             }
             return map;
         }
+
         public static string[] Split(this string s, string d)
         {
             if (s == "") return new string[] { };
@@ -181,38 +185,76 @@ namespace Combloonation
             b.Add(s);
             return b.ToArray();
         }
-        public static string BloonsToName(IEnumerable<BloonModel> bloons)
+
+        public static string GetPropertyString(IEnumerable<string> props)
         {
-            return string.Join(delim, bloons.Select(f => f.name));
+            var s = "";
+            foreach (var p in properties) if (props.Contains(p)) s += p;
+            return s;
         }
 
-        public static IEnumerable<string> BloonsToNames(IEnumerable<BloonModel> bloons)
+        public static BloonModel Clone(BloonModel bloon)
         {
-            return bloons.Select(f => f.name);
+            return bloon.Clone().Cast<BloonModel>();
         }
 
-        public static IEnumerable<BloonModel> BloonsFromName(string name)
+        public static GameModel GetGameModel()
         {
-            return BloonNamesFromName(name).Select(s => BloonFromName(s));
+            var model = InGame.instance?.bridge?.Model;
+            if (model == null) model = Game.instance.model;
+            return model;
         }
 
-        public static IEnumerable<string> BloonNamesFromName(string name)
+        public static BloonModel Fuse(IEnumerable<BloonModel> bloons)
         {
-            return name.Split(delim).Distinct();
+            if (bloons.Count() == 0) return null;
+            var reactor = new BloonsionReactor(bloons);
+            var bloon = (BloonModel)reactor.fusion;
+            var oldBloon = BloonFromName(bloon.name, false);
+            if (oldBloon != null) bloon = oldBloon;
+            else Register(reactor.Merge().fusion);
+            return bloon;
+        }
+
+        public static BloonModel Register(FusionBloonModel bloon)
+        {
+            _bloonsByName[bloon.name] = bloon;
+            var model = GetGameModel();
+            if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
+            model.bloonsByName[bloon.name] = bloon;
+            model.AddChildDependant(bloon.Cast<BloonModel>());
+            //MelonLogger.Msg("Registered " + DebugString(bloon.name));
+            return bloon;
+        }
+
+        public static BloonModel BloonFromName(string name, bool direct = true)
+        {
+            var exists = _bloonsByName.TryGetValue(name, out var model);
+            if (exists) return model;
+            var lookup = GetGameModel().bloonsByName;
+            if (direct || lookup.ContainsKey(name)) return lookup[name];
+            return null;
+        }
+
+        public static string BloonNameFromBloons(IEnumerable<string> bases, IEnumerable<string> props)
+        {
+            var name = string.Join(fusionComponentDelim, bases);
+            if (bases.Count() > 1) name += fusionPropertiesDelim + GetPropertyString(props);
+            return name;
+        }
+
+        public static string BloonNameFromNames(IEnumerable<string> names)
+        {
+            var name = string.Join(fusionComponentDelim, names);
+            if (names.Count() > 1) name += fusionPropertiesDelim + GetPropertyString(GetProperties(names.Select(n => BloonFromName(n))));
+            return name;
         }
 
         public static string BaseBloonNameFromName(string name)
         {
-            foreach (var p in properties)
-            {
-                name = name.Replace(p, "");
-            }
+            name = BloonNameFromNames(name.Split(fusionPropertiesDelim).First().Split(fusionComponentDelim));
+            foreach (var p in properties) name = name.Replace(p, "");
             return name;
-        }
-
-        public static IEnumerable<string> BaseBloonNamesFromName(string name)
-        {
-            return BaseBloonNameFromName(name).Split(delim).Distinct();
         }
 
         public static IEnumerable<string> ProbeProperties(BloonModel bloon, List<string> allProps = null)
@@ -231,14 +273,17 @@ namespace Combloonation
             return props;
         }
 
-        public static IEnumerable<string> GetProperties(string name)
+        public static IEnumerable<string> GetExtraProperties(BloonModel bloon)
         {
+            var name = bloon.name;
             var props = new List<string>();
-            foreach (var p in properties)
-            {
-                if (name.Contains(p)) props.Add(p);
-            }
+            foreach (var p in properties) if (name.Contains(p)) props.Add(p);
             return props;
+        }
+
+        public static IEnumerable<string> GetBaseProperties(BloonModel bloon)
+        {
+            return GetProperties(BloonFromName(bloon.baseId));
         }
 
         public static IEnumerable<string> GetProperties(BloonModel bloon)
@@ -250,65 +295,70 @@ namespace Combloonation
             return props;
         }
 
-        public static string GetPropertyString(HashSet<string> props)
+        public static IEnumerable<string> BloonNamesFromName(string name)
         {
-            var s = "";
-            foreach (var p in properties)
-            {
-                if (props.Contains(p)) s += p;
-            }
-            return s;
+            return name.Split(fusionPropertiesDelim).First().Split(fusionComponentDelim).Distinct();
         }
 
-        public static string GetPropertyString(IEnumerable<string> props)
+        public static IEnumerable<string> BloonNamesFromBloons(IEnumerable<BloonModel> bloons)
         {
-            return GetPropertyString(new HashSet<string>(props));
+            return bloons.SelectMany(f => BloonNamesFromName(f.name)).Distinct();
         }
+
+        public static IEnumerable<BloonModel> BloonsFromBloons(IEnumerable<BloonModel> bloons)
+        {
+            return BloonNamesFromBloons(bloons).Select(s => BloonFromName(s));
+        }
+
+        public static IEnumerable<string> BaseBloonNamesFromName(string name)
+        {
+            return BloonNamesFromName(BaseBloonNameFromName(name));
+        }
+
+        public static IEnumerable<string> BaseBloonNamesFromNames(IEnumerable<string> names)
+        {
+            return names.SelectMany(n => BaseBloonNamesFromName(n)).Distinct();
+        }
+
+        public static IEnumerable<string> BaseBloonNamesFromBloons(IEnumerable<BloonModel> bloons)
+        {
+            return BaseBloonNamesFromNames(BloonNamesFromBloons(bloons));
+        }
+
+        public static IEnumerable<BloonModel> BaseBloonsFromBloons(IEnumerable<BloonModel> bloons)
+        {
+            return BaseBloonNamesFromBloons(bloons).Select(n => BloonFromName(n));
+        }
+
+        public static IEnumerable<string> GetProperties(IEnumerable<BloonModel> bloons)
+        {
+            return bloons.SelectMany(b => GetProperties(b)).Distinct();
+        }
+
+        public static IEnumerable<string> GetExtraProperties(IEnumerable<BloonModel> bloons)
+        {
+            return bloons.SelectMany(b => GetExtraProperties(b)).Distinct();
+        }
+
+        public static IEnumerable<string> GetBaseProperties(IEnumerable<BloonModel> bloons)
+        {
+            return bloons.SelectMany(b => GetBaseProperties(b)).Distinct();
+        }
+
         public static BloonModel Fuse(IEnumerable<string> bloons)
         {
             return Fuse(bloons.Select(b => BloonFromName(b)));
         }
-        public static BloonModel Fuse(IEnumerable<BloonModel> bloons)
+
+
+        public static BloonModel Fuse(params string[] bloons)
         {
-            if (bloons.Count() == 0) return null;
-            var reactor = new BloonsionReactor(bloons);
-            var bloon = (BloonModel)reactor.fusion;
-            var oldBloon = BloonFromName(bloon.name, false);
-            if (oldBloon != null) bloon = oldBloon;
-            else Register(reactor.Merge().fusion);
-            return bloon;
+            return Fuse(bloons);
         }
 
-        public static BloonModel Clone(BloonModel bloon)
+        public static BloonModel Fuse(params BloonModel[] bloons)
         {
-            return bloon.Clone().Cast<BloonModel>();
-        }
-
-        public static GameModel GetGameModel()
-        {
-            var model = InGame.instance?.bridge?.Model;
-            if (model == null) model = Game.instance.model;
-            return model;
-        }
-
-        public static BloonModel BloonFromName(string name, bool direct = true)
-        {
-            var exists = _bloonsByName.TryGetValue(name, out var model);
-            if (exists) return model;
-            var lookup = GetGameModel().bloonsByName;
-            if (direct || lookup.ContainsKey(name)) return lookup[name];
-            return null;
-        }
-
-        public static BloonModel Register(FusionBloonModel bloon, bool inGame = false)
-        {
-            _bloonsByName[bloon.name] = bloon;
-            var model = GetGameModel();
-            if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
-            model.bloonsByName[bloon.name] = bloon;
-            model.AddChildDependant(bloon.Cast<BloonModel>());
-            //MelonLogger.Msg("Registered " + DebugString(bloon.name));
-            return bloon;
+            return Fuse(bloons);
         }
     }
 }

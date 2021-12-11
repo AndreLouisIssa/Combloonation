@@ -179,25 +179,6 @@ namespace Combloonation
             return new Tuple<IOverlay, List<IOverlay>>(pcol, cols);
         }
 
-        public static List<IOverlay> GetSecondaryColors(this BloonModel bloon)
-        {
-            var cols = new List<IOverlay> { };
-            foreach (var id in BaseBloonNamesFromName(bloon.name).Skip(1))
-            {
-                var got = baseColors.TryGetValue(id, out var col);
-                if (got) cols.Add(col);
-            }
-            return cols;
-        }
-        public static IOverlay GetPrimaryColor(this BloonModel bloon)
-        {
-            var primary = BaseBloonNamesFromName(bloon.name).First();
-            var got = baseColors.TryGetValue(primary, out var col);
-            if (got) return col;
-            return emptyColor;
-
-        }
-
         public static IEnumerable<Tuple<int, int>> GetEnumerator(this Texture2D texture)
         {
             for (int x = 0; x < texture.width; x++) for (int y = 0; y < texture.height; y++)

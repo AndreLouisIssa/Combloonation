@@ -10,7 +10,7 @@ namespace Combloonation
     {
 
         public string scalarOp = " ";
-        public string vectorOp = debuglim;
+        public string vectorOp = fusionComponentDebuglim;
         public string directOp = ", ";
 
         public readonly Dictionary<T, C> terms;
