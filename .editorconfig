@@ -1,0 +1,4 @@
+﻿[*.cs]
+
+# CS0618: 'MelonLogger.Msg(string)' is obsolete: 'In a future update this MelonLogger Method will no longer automatically find the name of the Melon running it. Use LoggerInstance instead if you want the Melon's name added.'
+dotnet_diagnostic.CS0618.severity = silent
