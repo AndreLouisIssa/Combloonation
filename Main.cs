@@ -18,6 +18,7 @@ using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
 using static Combloonation.DisplaySystem;
 using Assets.Scripts.Models;
+using Assets.Scripts.Simulation.Bloons.Behaviors;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "0-beta-r0", "MagicGonads")]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -50,16 +51,16 @@ namespace Combloonation
             //Fuse(models.Values.Cast<BloonModel>());
         }
 
-        //[HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
-        //class Patch_InGame_Update
-        //{
-        //    [HarmonyPostfix]
-        //    public static void Postfix(InGame __instance)
-        //    {
-        //        if (__instance.bridge == null) return;
-        //        OnInGameUpdate(__instance);
-        //    }
-        //}
+        [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
+        class Patch_InGame_Update
+        {
+            [HarmonyPostfix]
+            public static void Postfix(InGame __instance)
+            {
+                if (__instance.bridge == null) return;
+                OnInGameUpdate(__instance);
+            }
+        }
 
         [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
         public class Patch_CosmeticHelper_GetBloonModel
@@ -67,12 +68,23 @@ namespace Combloonation
             [HarmonyFinalizer]
             public static Exception Finalizer(Exception __exception, ref BloonModel __result, string id, int emissionIndex, bool useRootModel)
             {
+                if (__exception != null)
+                {
+                    //MelonLogger.Msg($"id: {id}");
+                    __result = CosmeticHelper.GetBloonModel(BaseBloonNameFromName(id), emissionIndex, useRootModel);
+                }
+                return null;
+            }
+        }
 
-                MelonLogger.Msg($"id: {id}, emissionIndex: {emissionIndex}, useRootModel: {useRootModel}");
-                var bid = BaseBloonNamesFromName(id).First();
-                MelonLogger.Msg($"bid: {bid}");
+        [HarmonyPatch(typeof(Grow), nameof(Grow.Process))]
+        public class Patch_Grow_Process
+        {
+            [HarmonyFinalizer]
+            public static Exception Finalizer(Grow __instance, Exception __exception)
+            {
                 if (__exception != null) {
-                    __result = CosmeticHelper.GetBloonModel(bid, emissionIndex, useRootModel);
+                    __instance.Regenerate();
                 }
                 return null;
             }

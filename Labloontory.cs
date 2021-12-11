@@ -4,6 +4,7 @@ using Assets.Scripts.Models.Bloons.Behaviors;
 using Assets.Scripts.Unity;
 using Assets.Scripts.Unity.UI_New.InGame;
 using BTD_Mod_Helper.Extensions;
+using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,12 +62,14 @@ namespace Combloonation
                 var allProps = GetProperties(string.Join("", sepProps.SelectMany(s => s.Item2).Distinct())).ToList();
                 var fusands = BloonsFromName(BloonsToName(baseFusands.Select(b => BloonFromName(b.name + string.Join("", ProbeProperties(b, allProps))))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
-                fusion.baseId = fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
+                fusion._name = fusion.name = fusion.id = BloonsToName(fusion.fusands);
+                fusion.baseId = BaseBloonNameFromName(fusion.name);
             }
 
             public BloonsionReactor Merge()
             {
-                //MelonLogger.Msg("Creating " + DebugString(fusion.name));
+                if (fusion.name != fusion.baseId) Fuse(BloonNamesFromName(fusion.baseId));
+                MelonLogger.Msg("Creating " + DebugString(fusion.name));
                 return MergeProperties().MergeStats().MergeBehaviors().MergeChildren().MergeSpawnBloonsActionModel();
             }
 
@@ -197,13 +200,19 @@ namespace Combloonation
         {
             return name.Split(delim).Distinct();
         }
-        public static IEnumerable<string> BaseBloonNamesFromName(string name)
+
+        public static string BaseBloonNameFromName(string name)
         {
             foreach (var p in properties)
             {
                 name = name.Replace(p, "");
             }
-            return name.Split(delim).Distinct();
+            return name;
+        }
+
+        public static IEnumerable<string> BaseBloonNamesFromName(string name)
+        {
+            return BaseBloonNameFromName(name).Split(delim).Distinct();
         }
 
         public static IEnumerable<string> ProbeProperties(BloonModel bloon, List<string> allProps = null)
