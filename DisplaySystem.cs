@@ -24,7 +24,7 @@ namespace Combloonation
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
-        public static IOverlay invertColor = new DelegateOverlay((c, x, y) => {var t = 1 - c.grayscale; return new Color(t, t, t, c.a);});
+        public static IOverlay invertColor = new DelegateOverlay((c, x, y) => {var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a);});
         public static IOverlay boundaryColor = emptyColor;
         public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("cd5d10"));
         public static IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
