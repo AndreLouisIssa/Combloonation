@@ -29,6 +29,7 @@ namespace Combloonation
 
         public static string folderPath;
         public static int seed = 2000;
+        public static System.Random random;
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -36,6 +37,7 @@ namespace Combloonation
             folderPath = FileIOUtil.GetSandboxPath() + "/Combloonation";
             MelonLogger.Msg("Dumping at " + folderPath);
             Directory.CreateDirectory(folderPath);
+            random = new System.Random(seed);
         }
 
         public override void OnTitleScreen()

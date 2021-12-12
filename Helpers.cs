@@ -3,6 +3,8 @@ using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
+using Random = System.Random;
 
 namespace Combloonation
 {
@@ -21,15 +23,15 @@ namespace Combloonation
 
         public static double HeartCurve(double x, double y)
         {
-            x = 1.3d*Math.Abs(x);
+            x = 1.3d * Math.Abs(x);
             y = (y + 0.25d) * 1.25d;
             var z = x * x + y * y - x * (y + 0.75d);
-            return Math.Sign(z)*Math.Sqrt(Math.Abs(z)/2) - 1;
+            return Math.Sign(z) * Math.Sqrt(Math.Abs(z) / 2) - 1;
         }
 
         public static double CircleCurve(double x, double y)
         {
-            return Math.Sqrt(x*x+y*y) - 1;
+            return Math.Sqrt(x * x + y * y) - 1;
         }
 
         //https://www.johndcook.com/blog/csharp_erf/
@@ -55,11 +57,11 @@ namespace Combloonation
 
             return sign * y;
         }
-    
+
         public static double TERF(double x, double s, double r)
         {
             // transformed error function to interpolate from near 0 to near 1 from s to r
-            return (ERF(((x-s)/(r-s)*4d)-2d)+1d)/2d;
+            return (ERF(((x - s) / (r - s) * 4d) - 2d) + 1d) / 2d;
         }
 
         public static void AddValues<K, V>(this SortedList<K, V> list, IEnumerable<V> values, Func<V, K> selector)
@@ -104,7 +106,7 @@ namespace Combloonation
 
         public static IEnumerable<T> TakeAtMost<T>(this IEnumerable<T> list, int n)
         {
-            return list.Take(Math.Max(n,list.Count()));
+            return list.Take(Math.Max(n, list.Count()));
         }
 
         //https://stackoverflow.com/questions/50300125/how-to-find-consecutive-same-values-items-as-a-linq-group
@@ -180,6 +182,11 @@ namespace Combloonation
         public static IEnumerable<M> Cast<M>(this IEnumerable<DirectableModel> ms) where M : Model
         {
             return ms.Select(m => m.Cast<M>());
+        }
+
+        public static Color NextColor(this Random random)
+        {
+            return Color.HSVToRGB((float)random.NextDouble(),1f,1f);
         }
     }
 }
