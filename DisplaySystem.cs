@@ -21,6 +21,7 @@ namespace Combloonation
 {
     public static class DisplaySystem
     {
+        public static Func<Renderer,bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
@@ -302,6 +303,7 @@ namespace Combloonation
             if (fromMesh)
             {
                 dx = bound.width * 0.165f;
+                if (bloon.isBoss) dx = -dx;
                 dy = bound.height * 0.1f;
                 r *= 0.5f;
                 csy *= 1.5f;
@@ -373,9 +375,9 @@ namespace Combloonation
             }
             else
             {
-                var renderer = graphic.genericRenderers.First(r => r.name == "Body");
+                var renderer = graphic.genericRenderers.First(mainRenderer);
                 var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true);
-                if (texture != null) graphic.genericRenderers.Where(r => r.name == "Body" || r.name == "RightTurbine").Do(r => r.SetMainTexture(texture));
+                if (texture != null) graphic.genericRenderers.Where(mainRenderer).Do(r => r.SetMainTexture(texture));
             }
         }
 

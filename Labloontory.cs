@@ -60,7 +60,7 @@ namespace Combloonation
             {
                 var components = BloonsFromBloons(bloons);
                 var allProps = GetProperties(components).ToList();
-                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).TakeAtMost(5);
+                var baseFusands = BaseBloonsFromBloons(components).Reverse().OrderByDescending(f => f.danger).TakeAtMost(5);
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + GetPropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
@@ -115,6 +115,7 @@ namespace Combloonation
             {
                 var _behaviors = fusion.fusands.Select(f => f.GetBehaviors<SpawnChildrenModel>());
                 var _children = _behaviors.Select(l => l.SelectMany(b => b.children));
+                if (_behaviors.Count() == 0 || _behaviors.All(l => l.Count == 0)) return this;
                 var behavior = _behaviors.First(l => l.Count > 0).First().Duplicate();
 
                 var bound = _children.Max(c => c.Count());
