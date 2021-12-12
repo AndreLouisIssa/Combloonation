@@ -219,12 +219,6 @@ namespace Combloonation
                     {
                         var groups = round.groups;
                         if (groups.Count <= 1) continue;
-                        if (groups.Count >= 3)
-                        {
-                            groups[0].bloon = "Golden3";
-                            groups[1].bloon = "LychElite5";
-                            groups[2].bloon = "BloonariusElite5";
-                        }
                         var size = groups.Sum(g => g.count);
                         var parts = random.Next(1, groups.Count / 2);
                         round.groups = Split(groups, Partition(size, parts, random));

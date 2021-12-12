@@ -60,7 +60,7 @@ namespace Combloonation
             {
                 var components = BloonsFromBloons(bloons);
                 var allProps = GetProperties(components).ToList();
-                var baseFusands = BaseBloonsFromBloons(components).Reverse().OrderByDescending(f => f.danger).TakeAtMost(5);
+                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).TakeAtMost(5);
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + GetPropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
