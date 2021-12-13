@@ -1,6 +1,7 @@
 ﻿using Assets.Scripts.Models;
 using Assets.Scripts.Models.Bloons;
 using Assets.Scripts.Models.Bloons.Behaviors;
+using Assets.Scripts.Models.GenericBehaviors;
 using Assets.Scripts.Unity;
 using Assets.Scripts.Unity.UI_New.InGame;
 using BTD_Mod_Helper.Extensions;
@@ -27,16 +28,15 @@ namespace Combloonation
         {
             "Regrow", "Fortified", "Camo"
         };
-        public static HashSet<string> stackableBehaviors = new HashSet<string>
+        public static HashSet<string> unstackableBehaviors = new HashSet<string>
         {
-            Il2CppType.Of<PopEffectModel>().FullName,
-            Il2CppType.Of<CreateSoundOnDamageBloonModel>().FullName,
-            Il2CppType.Of<DistributeCashModel>().FullName,
+            Il2CppType.Of<DisplayModel>().FullName,
         };
         public static HashSet<string> removeBehaviors = new HashSet<string>
         {
             Il2CppType.Of<SpawnBloonsActionModel>().FullName,
             Il2CppType.Of<SpawnChildrenModel>().FullName,
+            Il2CppType.Of<DamageStateModel>().FullName,
         };
 
         public class FusionBloonModel : BloonModel
@@ -60,7 +60,7 @@ namespace Combloonation
             {
                 var components = BloonsFromBloons(bloons);
                 var allProps = GetProperties(components).ToList();
-                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).TakeAtMost(5);
+                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.name).OrderByDescending(f => f.danger).TakeAtMost(5);
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + GetPropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
@@ -93,10 +93,9 @@ namespace Combloonation
 
             public BloonsionReactor MergeStats()
             {
-             
-                fusion.maxHealth = fusion.fusands.Max(f => f.maxHealth)*fusion.fusands.Count();
-                fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
+                fusion.maxHealth = fusion.fusands.Max(f => f.maxHealth) * fusion.fusands.Count();
                 fusion.totalLeakDamage = fusion.leakDamage = fusion.fusands.Max(f => f.leakDamage)*fusion.fusands.Count();
+                fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
                 fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
                 fusion.speed = fusion.fusands.Max(f => f.speed);
                 return this;
@@ -104,10 +103,10 @@ namespace Combloonation
 
             public BloonsionReactor MergeBehaviors()
             {
-                fusion.RemoveBehaviors<DamageStateModel>();
                 fusion.damageDisplayStates = new DamageStateModel[] { };
                 fusion.behaviors = fusion.fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
-                    .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : stackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
+                    .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : !unstackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
+                fusion.childDependants = fusion.fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
                 return this;
             }
 
