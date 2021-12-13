@@ -219,11 +219,6 @@ namespace Combloonation
                     {
                         var groups = round.groups;
                         if (groups.Count <= 1) continue;
-                        if (groups.Count >= 2)
-                        {
-                            groups[0].bloon = "BloonariusElite5";
-                            groups[1].bloon = "LychElite5";
-                        }
                         var size = groups.Sum(g => g.count);
                         var parts = random.Next(1, groups.Count / 2);
                         round.groups = Split(groups, Partition(size, parts, random));

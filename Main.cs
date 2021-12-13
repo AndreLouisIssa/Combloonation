@@ -73,7 +73,6 @@ namespace Combloonation
             {
                 if (__exception != null)
                 {
-                    //MelonLogger.Msg($"id: {id}");
                     __result = CosmeticHelper.GetBloonModel(BaseBloonNameFromName(id), emissionIndex, useRootModel);
                 }
                 return null;
@@ -93,13 +92,24 @@ namespace Combloonation
             }
         }
 
-        [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.CreateBloonButtons))]
-        public class Patch_BloonMenu_CreateBloonButtons
+        [HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.SpawnBloon))]
+        public class Patch_SpawnBloonButton_SpawnBloon
         {
             [HarmonyPostfix]
-            public static void Postfix(BloonMenu __instance)
+            public static void Postfix(SpawnBloonButton __instance)
             {
-                foreach (var button in __instance.bloonButtons) SetBloonAppearance(button);
+                MelonLogger.Msg("Spawning " + DebugString(__instance.model.name));
+                SetBloonAppearance(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.UpdateIcon))]
+        public class Patch_SpawnBloonButton_UpdateIcon
+        {
+            [HarmonyPostfix]
+            public static void Postfix(SpawnBloonButton __instance)
+            {
+                __instance.model.ColorByDisplayPatchStatus(__instance.bloonIcon);
             }
         }
 

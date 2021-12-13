@@ -16,6 +16,7 @@ using MelonLoader;
 using HarmonyLib;
 using UnityEngine.UI;
 using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
+using Assets.Scripts.Utils;
 
 namespace Combloonation
 {
@@ -24,6 +25,8 @@ namespace Combloonation
         public static Func<Renderer,bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
+        public static Color enabledColor = new Color(1, 1, 1, 1);
+        public static Color disabledColor = new Color(1, 1, 1, 0.5f);
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
         public static IOverlay invertColor = new DelegateOverlay((c, x, y) => {var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a);});
         public static IOverlay boundaryColor = emptyColor;
@@ -350,7 +353,7 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + bound.x), y + (int)(dy + bound.y)), proj);
         }
 
-        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, Rect? proj = null)
+        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
         {
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             if (oldTexture == null) return computed[bloon.name] = null;
@@ -358,7 +361,7 @@ namespace Combloonation
             var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
             computed[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
-            if (texture != null) texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.png");
+            if (texture != null) texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
             return texture;
         }
 
@@ -367,7 +370,7 @@ namespace Combloonation
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedTextures, false, sprite.sprite.textureRect);
+                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedTextures, false, "sprite", sprite.sprite.textureRect);
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
@@ -376,7 +379,7 @@ namespace Combloonation
             else
             {
                 var renderer = graphic.genericRenderers.First(mainRenderer);
-                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true);
+                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true, "mesh");
                 if (texture != null) graphic.genericRenderers.Where(mainRenderer).Do(r => r.SetMainTexture(texture));
             }
         }
@@ -384,11 +387,21 @@ namespace Combloonation
         public static void SetBloonAppearance(this FusionBloonModel bloon, Image icon)
         {
             var sprite = icon.sprite;
-            var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, sprite.textureRect);
+            var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
             if (texture != null)
             {
                 icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
             }
+        }
+
+        public static void ColorByDisplayPatchStatus(Image icon)
+        {
+            icon.color = (icon.sprite.texture.isReadable) ? enabledColor : disabledColor;
+        }
+
+        public static void ColorByDisplayPatchStatus(this BloonModel bloon, Image icon)
+        {
+            if (BloonFromName(bloon.name) is FusionBloonModel) ColorByDisplayPatchStatus(icon);
         }
 
         public static void SetBloonAppearance(Bloon bloon)
@@ -400,10 +413,9 @@ namespace Combloonation
 
         public static void SetBloonAppearance(SpawnBloonButton button)
         {
-            if (button.model is FusionBloonModel bloon)
+            if (BloonFromName(button.model.name) is FusionBloonModel bloon)
             {
-                bloon.SetBloonAppearance(button.bloonIcon);
-                button.UpdateIcon();
+                bloon.SetBloonAppearance(button.Button.image);
             }
         }
 
