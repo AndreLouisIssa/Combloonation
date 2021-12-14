@@ -25,6 +25,7 @@ namespace Combloonation
         public static Color initColor = new Color(0.929f, 0.059f, 0.059f, 1);
         public static Color enabledColor = new Color(1, 1, 1, 1);
         public static Color disabledColor = new Color(1, 1, 1, 0.5f);
+        public static bool tryPatchingIcons = true;
 
         public static Func<Renderer,bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
@@ -421,8 +422,9 @@ namespace Combloonation
             }
         }
 
-        public static void OnInGameUpdate(InGame inGame)
+        public static void SetBloonAppearance(InGame inGame)
         {
+            if (inGame.bridge == null) return;
             List<BloonToSimulation> bloonSims;
             try { bloonSims = inGame.bridge.GetAllBloons().ToList(); } catch { return; }
             foreach (var bloonSim in bloonSims) { SetBloonAppearance(bloonSim.GetBloon()); }

@@ -60,8 +60,17 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(InGame __instance)
             {
-                if (__instance.bridge == null) return;
-                OnInGameUpdate(__instance);
+                SetBloonAppearance(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(InGame), nameof(InGame.RoundStart))]
+        class Patch_InGame_RoundStart
+        {
+            [HarmonyPrefix]
+            public static void Prefix()
+            {
+                tryPatchingIcons = false;
             }
         }
 
@@ -99,7 +108,7 @@ namespace Combloonation
             public static void Postfix(SpawnBloonButton __instance)
             {
                 MelonLogger.Msg("Spawning " + DebugString(__instance.model.name));
-                SetBloonAppearance(__instance);
+                //SetBloonAppearance(__instance);
             }
         }
 
@@ -109,8 +118,8 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(SpawnBloonButton __instance)
             {
-                SetBloonAppearance(__instance);
-                __instance.model.ColorByDisplayPatchStatus(__instance.bloonIcon);
+                if (tryPatchingIcons) SetBloonAppearance(__instance);
+                //__instance.model.ColorByDisplayPatchStatus(__instance.bloonIcon);
             }
         }
 
