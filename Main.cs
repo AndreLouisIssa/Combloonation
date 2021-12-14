@@ -109,6 +109,7 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(SpawnBloonButton __instance)
             {
+                SetBloonAppearance(__instance);
                 __instance.model.ColorByDisplayPatchStatus(__instance.bloonIcon);
             }
         }

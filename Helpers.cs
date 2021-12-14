@@ -136,12 +136,12 @@ namespace Combloonation
             var vals = val.Select(i => new Tuple<int, int>(i, _i++)).OrderByDescending(i => i.Item1).ToArray();
             Tuple<int, int>[] best = Enumerable.Repeat(new Tuple<int, int>(0, 0), total + 1).ToArray();
             for (int i = 0; i <= total; i++) for (int j = 0; j < n; j++)
-            {
-                if (vals[j].Item1 > i) continue;
-                var v = best[i - vals[j].Item1].Item1 + vals[j].Item1;
-                if (v > best[i].Item1) best[i] = new Tuple<int, int>(v, j + 1);
-                if (v > w) w = v;
-            }
+                {
+                    if (vals[j].Item1 > i) continue;
+                    var v = best[i - vals[j].Item1].Item1 + vals[j].Item1;
+                    if (v > best[i].Item1) best[i] = new Tuple<int, int>(v, j + 1);
+                    if (v > w) w = v;
+                }
             var list = new List<int>();
             int k;
             while (true)
@@ -186,7 +186,24 @@ namespace Combloonation
 
         public static Color NextColor(this Random random)
         {
-            return Color.HSVToRGB((float)random.NextDouble(),1f,1f);
+            return Color.HSVToRGB((float)random.NextDouble(), 1f, 1f);
+        }
+
+        public static Color GetCenterColor(this Sprite sprite)
+        {
+            var rect = sprite.textureRect;
+            var w = sprite.texture.width/2; var h = sprite.texture.height / 2;
+            var texture = sprite.texture.isReadable ? sprite.texture : sprite.texture.Duplicate(rect);
+            return texture.GetPixel(w, h);
+        }
+
+        public static bool IsSimilar(this Color color, Color other)
+        {
+            var dr = color.r - other.r;
+            var dg = color.g - other.g;
+            var db = color.b - other.b;
+            var da = color.a - other.a;
+            return dr*dr + dg*dg + db*db + da*da < 0.001;
         }
     }
 }

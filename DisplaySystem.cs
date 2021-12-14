@@ -22,19 +22,23 @@ namespace Combloonation
 {
     public static class DisplaySystem
     {
+        public static Color initColor = new Color(0.929f, 0.059f, 0.059f, 1);
+        public static Color enabledColor = new Color(1, 1, 1, 1);
+        public static Color disabledColor = new Color(1, 1, 1, 0.5f);
+
         public static Func<Renderer,bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
-        public static Color enabledColor = new Color(1, 1, 1, 1);
-        public static Color disabledColor = new Color(1, 1, 1, 0.5f);
+
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
         public static IOverlay invertColor = new DelegateOverlay((c, x, y) => {var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a);});
         public static IOverlay boundaryColor = emptyColor;
         public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("cd5d10"));
         public static IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
         public static Tuple<List<IOverlay>, List<float>> fortifiedColors = new Tuple<List<IOverlay>, List<float>>(
-            new List<IOverlay>{emptyColor,fortifiedColorB,fortifiedColorA,fortifiedColorB,emptyColor,fortifiedColorB,fortifiedColorA,fortifiedColorB,emptyColor},
-            new List<float>{30f,2f,8f,2f,30f,2f,8f,2f,30f});
+            new List<IOverlay> { emptyColor, fortifiedColorB, fortifiedColorA, fortifiedColorB, emptyColor, fortifiedColorB, fortifiedColorA, fortifiedColorB, emptyColor },
+            new List<float> { 30f, 2f, 8f, 2f, 30f, 2f, 8f, 2f, 30f });
+
         public static Dictionary<string, IOverlay> baseColors = new Dictionary<string, IOverlay>()
         {
             { "Red",     new ColorOverlay(HexColor("fe2020")) },
@@ -387,11 +391,9 @@ namespace Combloonation
         public static void SetBloonAppearance(this FusionBloonModel bloon, Image icon)
         {
             var sprite = icon.sprite;
+            if (sprite.texture.isReadable || sprite.GetCenterColor().IsSimilar(initColor)) return;
             var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
-            if (texture != null)
-            {
-                icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
-            }
+            if (texture != null) icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
         }
 
         public static void ColorByDisplayPatchStatus(Image icon)
