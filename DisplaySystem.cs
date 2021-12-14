@@ -375,7 +375,7 @@ namespace Combloonation
             var sprite = graphic.sprite;
             if (sprite != null)
             {
-                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedTextures, false, "sprite", sprite.sprite.textureRect);
+                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedIcons, false, "icon", sprite.sprite.textureRect);
                 if (texture != null)
                 {
                     sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
@@ -384,7 +384,7 @@ namespace Combloonation
             else
             {
                 var renderer = graphic.genericRenderers.First(mainRenderer);
-                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true, "mesh");
+                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true, "texture");
                 if (texture != null) graphic.genericRenderers.Where(mainRenderer).Do(r => r.SetMainTexture(texture));
             }
         }

@@ -30,7 +30,6 @@ namespace Combloonation
         public static string folderPath;
         public static int seed = 2000;
         public static System.Random random;
-        public static bool allowToggles = true;
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -124,26 +123,21 @@ namespace Combloonation
         }
 
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleFortified))]
-        public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() { return allowToggles; } }
+        public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() { return false; } }
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleCamo))]
-        public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() { return allowToggles; } }
+        public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() { return false; } }
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleRegen))]
-        public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() { return allowToggles; } }
+        public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() { return false; } }
 
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
         public class Patch_BloonMenu_SortBloons
         {
-            [HarmonyFinalizer]
-            public static Exception Finalizer(BloonMenu __instance, Exception __exception)
+            [HarmonyPrefix]
+            public static bool Prefix(BloonMenu __instance)
             {
-                if (__exception != null)
-                {
-                    __instance.ClearButtons();
-                    __instance.CreateBloonButtons(GetGameModel().bloons.OrderBy(b => b.danger).ToIl2CppList());
-                    allowToggles = false;
-                }
-                else allowToggles = true;
-                return null;
+                __instance.ClearButtons();
+                __instance.CreateBloonButtons(GetGameModel().bloons.OrderBy(b => b.danger).ToIl2CppList());
+                return false;
             }
         }
 

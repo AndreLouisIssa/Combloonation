@@ -1,6 +1,7 @@
 ﻿using Assets.Scripts.Models;
 using Assets.Scripts.Models.Bloons;
 using Assets.Scripts.Models.Bloons.Behaviors;
+using Assets.Scripts.Models.Effects;
 using Assets.Scripts.Models.GenericBehaviors;
 using Assets.Scripts.Unity;
 using Assets.Scripts.Unity.UI_New.InGame;
@@ -10,6 +11,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnhollowerRuntimeLib;
+using UnhollowerBaseLib;
+using static Combloonation.Main;
+using static Combloonation.DisplaySystem;
+using System.IO;
+using UnityEngine;
 
 namespace Combloonation
 {
@@ -72,7 +78,22 @@ namespace Combloonation
             {
                 if (fusion.name != fusion.baseId) Fuse(BloonNamesFromName(fusion.baseId));
                 MelonLogger.Msg("Creating " + DebugString(fusion.name));
-                return MergeProperties().MergeStats().MergeBehaviors().MergeChildren().MergeSpawnBloonsActionModel();
+                return MergeProperties().MergeStats().MergeBehaviors().MergeDisplay().MergeChildren().MergeSpawnBloonsActionModel();
+            }
+
+            public BloonsionReactor MergeDisplay()
+            {
+                fusion.damageDisplayStates = new DamageStateModel[] { };
+                //fusion.depletionEffects = new Il2CppReferenceArray<EffectModel>(fusion.fusands.SelectMany(f => f.depletionEffects).ToArray());
+                //fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays).ToArray());
+
+                //var prefix = $"{folderPath}/{DebugString(fusion.name)}";
+                //var texturePath = prefix + ".texture.png";
+                //var iconPath = prefix + ".icon.png";
+                //if (File.Exists(texturePath)) computedTextures[fusion.name] = new Texture2D(1, 1).LoadFromFile(texturePath);
+                //if (File.Exists(iconPath)) computedIcons[fusion.name] = new Texture2D(1,1).LoadFromFile(iconPath);
+
+                return this;
             }
 
             public BloonsionReactor MergeProperties()
@@ -103,7 +124,6 @@ namespace Combloonation
 
             public BloonsionReactor MergeBehaviors()
             {
-                fusion.damageDisplayStates = new DamageStateModel[] { };
                 fusion.behaviors = fusion.fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
                     .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : !unstackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
                 fusion.childDependants = fusion.fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
