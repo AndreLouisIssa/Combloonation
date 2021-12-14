@@ -192,7 +192,7 @@ namespace Combloonation
         public static Color GetCenterColor(this Sprite sprite)
         {
             var rect = sprite.textureRect;
-            var w = sprite.texture.width/2; var h = sprite.texture.height / 2;
+            var w = sprite.texture.width / 2; var h = sprite.texture.height / 2;
             var texture = sprite.texture.isReadable ? sprite.texture : sprite.texture.Duplicate(rect);
             return texture.GetPixel(w, h);
         }
@@ -203,7 +203,19 @@ namespace Combloonation
             var dg = color.g - other.g;
             var db = color.b - other.b;
             var da = color.a - other.a;
-            return dr*dr + dg*dg + db*db + da*da < 0.001;
+            return dr * dr + dg * dg + db * db + da * da < 0.001;
+        }
+
+        public static List<List<T>> Power<T>(this List<T> list)
+        {
+            List<List<T>> power(List<List<T>> p, List<T> s)
+            {
+                if (s.Count == 0) return p;
+                if (s.Count > 1) p = power(p, s.Skip(1).ToList());
+                var n = s.First();
+                return p.Concat(p.Select(e => e.Append(n).ToList())).ToList();
+            }
+            return power(new List<List<T>> { new List<T>{ } }, list);
         }
     }
 }

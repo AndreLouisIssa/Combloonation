@@ -393,6 +393,7 @@ namespace Combloonation
         {
             var sprite = icon.sprite;
             if (sprite.texture.isReadable || sprite.GetCenterColor().IsSimilar(initColor)) return;
+            MelonLogger.Msg("Setting icon of " + DebugString(bloon.name));
             var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
             if (texture != null) icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
         }

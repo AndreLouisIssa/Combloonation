@@ -73,7 +73,7 @@ namespace Combloonation
             }
         }
 
-        [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
+/*        [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
         public class Patch_CosmeticHelper_GetBloonModel
         {
             [HarmonyFinalizer]
@@ -98,7 +98,7 @@ namespace Combloonation
                 }
                 return null;
             }
-        }
+        }*/
 
         [HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.SpawnBloon))]
         public class Patch_SpawnBloonButton_SpawnBloon
@@ -107,7 +107,6 @@ namespace Combloonation
             public static void Postfix(SpawnBloonButton __instance)
             {
                 MelonLogger.Msg("Spawning " + DebugString(__instance.model.name));
-                //SetBloonAppearance(__instance);
             }
         }
 
@@ -118,7 +117,6 @@ namespace Combloonation
             public static void Postfix(SpawnBloonButton __instance)
             {
                 if (tryPatchingIcons) SetBloonAppearance(__instance);
-                //__instance.model.ColorByDisplayPatchStatus(__instance.bloonIcon);
             }
         }
 
