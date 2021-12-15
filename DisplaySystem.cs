@@ -298,23 +298,15 @@ namespace Combloonation
             var cols = GetColors(bloon, bound);
             var r = Math.Min(bound.width, bound.height) / 2;
             var dx = 0f; var dy = 0f;
-            var csx = 1f; var csy = 1f;
             var fbase = bloon.fusands.First();
             var tcols = cols.Skip(1).ToList();
-            IOverlay dcol;
-            IOverlay ddcol;
+            IOverlay dcol = null; IOverlay ddcol = emptyColor;
             if (cols.Count > 1)
             {
                 var ws = bloon.fusands.Skip(1).Select(b => b.danger).ToList();
                 var map = Regions.spiral(1.3f, 0.6f)(bound.x, bound.x + bound.width, bound.y, bound.y + bound.height);
                 r *= ws[0] / fbase.danger;
                 dcol = new RegionOverlay(tcols, ws, map);
-                ddcol = emptyColor;
-            }
-            else
-            {
-                dcol = emptyColor;
-                ddcol = boundaryColor;
             }
             if (fromMesh)
             {
@@ -329,7 +321,11 @@ namespace Combloonation
             if (!fbase.isGrow && bloon.isGrow)
             {
                 curve = (x, y) => (float)HeartCurve(x, y);
-                r *= 0.90f;
+                r *= 0.9f;
+                if (dcol == null) {
+                    ddcol = boundaryColor;
+                    r *= 0.75f;
+                }
             }
             else
             {
@@ -339,7 +335,7 @@ namespace Combloonation
             var col = emptyColor;
             if (!fbase.isCamo && bloon.isCamo)
             {
-                var cmx = 66f / bound.width / csx; var cmy = 84f / bound.height / csy;
+                var cmx = 66f / bound.width; var cmy = 84f / bound.height;
                 col = new PipeOverlay(col,new DelegateOverlay((c,x,y) => { 
                     x *= cmx; y *= cmy;
                     var n1 = Mathf.PerlinNoise(18.05f + x / 31f, 67f + y / 17f);
@@ -353,7 +349,8 @@ namespace Combloonation
                     Regions.vertical(bound.x,bound.x + bound.width, bound.y, bound.y + bound.height)));
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
-            Func<float,float,float> tf = (x,y) => (float)TERF(curve(x/r_oob,y/r_oob),1f,-1f);
+            Func<float, float, float> tf = (x, y) => (float)TERF(curve(x / r_oob, y / r_oob), 1f, -1f);
+            if (dcol == null) dcol = emptyColor;
             var bcol = new BoundOverlay(dcol, ddcol, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
             var bbcol = new BoundOverlay(bcol, dcol, (x, y) => curve(x / r_iob, y / r_iob) >= 0);
             var tcol = new TintOverlay(bbcol, tf);

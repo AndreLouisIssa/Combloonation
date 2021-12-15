@@ -169,11 +169,6 @@ namespace Combloonation
 
         public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes)
         {
-            return Split(roundGroups, sizes, bloons => Fuse(bloons));
-        }
-
-        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes, Func<List<BloonModel>, BloonModel> fuser)
-        {
             var groups = new List<BloonGroupModel>();
             var subgroups = new List<BloonGroupModel>();
             var bloons = new List<BloonModel>();
@@ -184,16 +179,12 @@ namespace Combloonation
                 bloons.Add(BloonFromName(group.bloon));
                 var split = Split(group, size, out size);
                 subgroups.Add(split.First());
-                if (size > 0)
-                {
-                    if (++j < roundGroups.Length) group = roundGroups[j];
-                    continue;
-                }
+                if (size > 0 && ++j < roundGroups.Length) { group = roundGroups[j]; continue; }
                 if (size == 0) group = split.Last();
                 else if (++j < roundGroups.Length) group = roundGroups[j];
                 if (++i < sizes.Length) size = sizes[i];
 
-                var bloon = fuser(bloons);
+                var bloon = Fuse(bloons/*, Property.all.FindAll(p => p.name == "Regrow")*/);
                 foreach (var subgroup in subgroups)
                 {
                     subgroup.bloon = bloon.name;
@@ -220,7 +211,7 @@ namespace Combloonation
                         var groups = round.groups;
                         if (groups.Count <= 1) continue;
                         var size = groups.Sum(g => g.count);
-                        var parts = random.Next(1, groups.Count / 2);
+                        var parts = random.Next(1, groups.Count);
                         round.groups = Split(groups, Partition(size, parts, random));
                     }
                 }

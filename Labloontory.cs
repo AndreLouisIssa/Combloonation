@@ -48,18 +48,18 @@ namespace Combloonation
         {
             public static List<Property> all = new List<Property>
             {
-                new Property( "Regrow", "Grow", b => b.isGrow, b => {
+                new Property( "Regrow", "Grow", true, b => b.isGrow, b => {
                     b.isGrow = true;
                     b.tags = b.tags.Append("Grow").ToArray();
-                    b.AddBehavior(new GrowModel($"GrowModel({b.name})", 1, b.name));
-                    b.AddBehavior(new SetGrowToOnChildrenModel($"SetGrowToOnChildrenModel({b.name})", b.name, b.name));
+                    b.AddBehavior(new GrowModel("GrowModel_", 3, b.name));
+                    //b.AddBehavior(new SetGrowToOnChildrenModel($"SetGrowToOnChildrenModel({b.name})", b.name, b.name));
                 }),
-                new Property( "Fortified", "Fortified", b => b.isFortified, b => {
+                new Property( "Fortified", "Fortified", false, b => b.isFortified, b => {
                     b.isFortified = true;
                     b.tags = b.tags.Append("Fortified").ToArray();
                     b.maxHealth *= 2;
                 }),
-                new Property( "Camo", "Camo", b => b.isCamo, b => {
+                new Property( "Camo", "Camo", true, b => b.isCamo, b => {
                     b.isCamo = true;
                     b.tags = b.tags.Append("Camo").ToArray();
                 }),
@@ -67,11 +67,12 @@ namespace Combloonation
 
             public readonly string name;
             public readonly string tag;
+            public readonly bool heir;
             public readonly Func<BloonModel, bool> has;
             public readonly Action<FusionBloonModel> add;
-            public Property(string name, string tag, Func<BloonModel, bool> has, Action<FusionBloonModel> add)
+            public Property(string name, string tag, bool heir, Func<BloonModel, bool> has, Action<FusionBloonModel> add)
             {
-                this.name = name; this.tag = tag; this.has = has; this.add = add;
+                this.name = name; this.tag = tag; this.heir = heir; this.has = has; this.add = add;
             }
         }
 
@@ -79,6 +80,7 @@ namespace Combloonation
         {
             public readonly BloonModel[] fusands;
             public readonly Property[] props;
+            public readonly string inherit;
 
             public FusionBloonModel(BloonModel f, BloonModel[] fs, Property[] ps)
                 : base(f.id, f.baseId, f.speed, f.radius, f.display, f.damageDisplayStates, f.icon, f.rotate,
@@ -86,7 +88,7 @@ namespace Combloonation
                       f.layerNumber, f.isCamo, f.isGrow, f.isFortified, f.depletionEffects, f.rotateToFollowPath, f.isMoab,
                       f.isBoss, f.bloonProperties, f.leakDamage, f.maxHealth, f.distributeDamageToChildren, f.isInvulnerable,
                       f.propertyDisplays, f.bonusDamagePerHit, f.disallowCosmetics, f.isSaved, f.loseOnLeak)
-            { fusands = fs; props = ps; }
+            { fusands = fs; props = ps; inherit = GetPropertyString(ps.Where(p => p.heir)); }
         }
 
         public class BloonsionReactor
@@ -191,7 +193,7 @@ namespace Combloonation
 
                 var bound = _children.Max(c => c.Count());
                 var children = _children.Select(c => new Combinomial<string>(c)).Aggregate((a, b) => a.Product(b).Cull().BoundAbove(bound));
-                var models = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key), p.Value)).ToList();
+                var models = children.Terms().SelectMany(p => Enumerable.Repeat(Fuse(p.Key, fusion.inherit), p.Value)).ToList();
 
                 fusion.childBloonModels = models.ToIl2CppList();
                 fusion.UpdateChildBloonModels();
@@ -209,12 +211,11 @@ namespace Combloonation
 
                 var bound = _behaviors.Max(l => l.Count == 0 ? 0 : l.Max(m => m.spawnCount));
                 var children = _children.Select(c => new Ordinomial<Tuple<SpawnBloonsActionModel, string>>(c)).Aggregate((a, b) => a.Product(b).Cull().BoundAbove(bound));
-                var models = children.Terms().SelectMany(p =>
-                {
+                var models = children.Terms().SelectMany(p => {
                     if (p.Key.Count == 0) return new List<Model> { };
                     var model = p.Key.First().Item1.Duplicate();
                     model.spawnCount = p.Value;
-                    var bloon = Fuse(p.Key.Select(t => t.Item2));
+                    var bloon = Fuse(p.Key.Select(t => t.Item2), fusion.inherit);
                     model.bloonType = bloon.name;
                     return new List<Model> { model };
                 });
@@ -341,8 +342,8 @@ namespace Combloonation
             allProps = allProps ?? Property.all;
             foreach (var p in allProps.ToArray())
             {
-                var can = BloonFromName(id + p.name, false) != null;
-                if (can) props.Add(p);
+                bloon = BloonFromName(id + p.name, false);
+                if (bloon != null && !(bloon is FusionBloonModel)) props.Add(p);
             }
             return props;
         }
