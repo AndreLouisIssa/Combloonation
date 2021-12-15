@@ -48,17 +48,30 @@ namespace Combloonation
         {
             public static List<Property> all = new List<Property>
             {
-                new Property( "Regrow", b => b.isGrow, b => { b.isGrow = true; } ),
-                new Property( "Fortified", b => b.isFortified, b => { b.isFortified = true; } ),
-                new Property( "Camo", b => b.isCamo, b => { b.isCamo = true; } ),
+                new Property( "Regrow", "Grow", b => b.isGrow, b => {
+                    b.isGrow = true;
+                    b.tags = b.tags.Append("Grow").ToArray();
+                    b.AddBehavior(new GrowModel($"GrowModel({b.name})", 1, b.name));
+                    b.AddBehavior(new SetGrowToOnChildrenModel($"SetGrowToOnChildrenModel({b.name})", b.name, b.name));
+                }),
+                new Property( "Fortified", "Fortified", b => b.isFortified, b => {
+                    b.isFortified = true;
+                    b.tags = b.tags.Append("Fortified").ToArray();
+                    b.maxHealth *= 2;
+                }),
+                new Property( "Camo", "Camo", b => b.isCamo, b => {
+                    b.isCamo = true;
+                    b.tags = b.tags.Append("Camo").ToArray();
+                }),
             };
 
             public readonly string name;
+            public readonly string tag;
             public readonly Func<BloonModel, bool> has;
             public readonly Action<FusionBloonModel> add;
-            public Property( string name, Func<BloonModel, bool> has, Action<FusionBloonModel> add)
+            public Property(string name, string tag, Func<BloonModel, bool> has, Action<FusionBloonModel> add)
             {
-                this.name = name; this.has = has; this.add = add;
+                this.name = name; this.tag = tag; this.has = has; this.add = add;
             }
         }
 
@@ -95,7 +108,7 @@ namespace Combloonation
             public BloonsionReactor Merge()
             {
                 //MelonLogger.Msg("Creating " + DebugString(fusion.name));
-                return MergeProperties().MergeStats().MergeBehaviors().MergeDisplay().MergeChildren().MergeSpawnBloonsActionModel();
+                return MergeBehaviors().MergeDisplay().MergeProperties().MergeStats().MergeChildren().MergeSpawnBloonsActionModel();
             }
 
             public BloonsionReactor MergeDisplay()
@@ -119,16 +132,15 @@ namespace Combloonation
 
             public BloonsionReactor MergeProperties()
             {
-                fusion.bloonProperties = fusion.fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
-
                 fusion.isBoss = fusion.fusands.Any(f => f.isBoss);
                 fusion.isCamo = fusion.fusands.Any(f => f.isCamo);
                 fusion.isFortified = fusion.fusands.Any(f => f.isFortified);
                 fusion.isGrow = fusion.fusands.Any(f => f.isGrow);
                 fusion.isMoab = fusion.fusands.Any(f => f.isMoab);
-
-                fusion.distributeDamageToChildren = fusion.fusands.All(f => f.distributeDamageToChildren);
+                
                 fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
+                fusion.bloonProperties = fusion.fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
+                foreach (var p in fusion.props) if (!p.has(fusion)) p.add(fusion);
 
                 return this;
             }
@@ -140,6 +152,7 @@ namespace Combloonation
                 fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
                 fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
                 fusion.speed = fusion.fusands.Max(f => f.speed);
+                fusion.distributeDamageToChildren = fusion.fusands.All(f => f.distributeDamageToChildren);
                 return this;
             }
 
