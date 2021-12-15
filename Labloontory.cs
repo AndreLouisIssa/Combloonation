@@ -84,7 +84,7 @@ namespace Combloonation
             {
                 var components = BloonsFromBloons(bloons);
                 var allProps = (props != null ? props : GetProperties(components)).ToList();
-                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.name).OrderByDescending(f => f.danger).TakeAtMost(5);
+                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).TakeAtMost(5);
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + GetPropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray(), allProps.ToArray());
@@ -109,7 +109,10 @@ namespace Combloonation
                 var texturePath = prefix + ".texture.png";
                 var iconPath = prefix + ".icon.png";
                 if (File.Exists(texturePath)) computedTextures[fusion.name] = LoadTexture(texturePath);
-                if (File.Exists(iconPath)) computedIcons[fusion.name] = LoadTexture(iconPath);
+                if (File.Exists(iconPath)) {
+                    computedIcons[fusion.name] = LoadTexture(iconPath);
+                    fusion.SetHelpfulAdditionsBloon();
+                }
 
                 return this;
             }

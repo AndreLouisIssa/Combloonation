@@ -370,7 +370,10 @@ namespace Combloonation
             var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
             computed[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
-            if (texture != null) texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
+            if (texture != null) {
+                texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
+                bloon.SetHelpfulAdditionsBloon();
+            }
             return texture;
         }
 
@@ -399,7 +402,6 @@ namespace Combloonation
             if (sprite.texture.isReadable || sprite.GetCenterColor().IsSimilar(initColor)) return;
             var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
             if (texture != null) {
-                bloon.SetHelpfulAdditionsBloon();
                 icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
                 icon.rectTransform.sizeDelta = new Vector2(2,2);
                 icon.rectTransform.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
