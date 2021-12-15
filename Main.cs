@@ -19,6 +19,8 @@ using static Combloonation.Helpers;
 using static Combloonation.DisplaySystem;
 using Assets.Scripts.Models;
 using Assets.Scripts.Simulation.Bloons.Behaviors;
+using System.Reflection;
+using UnityEngine;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), "Combloonation", "0-beta-r0", "MagicGonads")]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -30,6 +32,8 @@ namespace Combloonation
         public static string folderPath;
         public static int seed = 2000;
         public static System.Random random;
+        public static MethodInfo optional_HelpfulAdditions_AddCustomBloon = null;
+
         public override void OnApplicationStart()
         {
             base.OnApplicationStart();
@@ -38,6 +42,25 @@ namespace Combloonation
             MelonLogger.Msg("Dumping at " + folderPath);
             Directory.CreateDirectory(folderPath);
             random = new System.Random(seed);
+        }
+
+        public override void OnApplicationLateStart() {
+            // Gets all loaded assemblies
+            Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+            // Find Helpful Addtions
+            Assembly helpfulAdditions = assemblies.FirstOrDefault(assembly => assembly.GetName().Name.Equals("Helpful Additions"));
+            // If found
+            if (!(helpfulAdditions is null)) {
+                // Get the Mod class in Helpful Addtions
+                System.Type mod = helpfulAdditions.GetType("HelpfulAdditions.Mod");
+                // Get the AddCustomBloon method in Mod
+                optional_HelpfulAdditions_AddCustomBloon = mod.GetMethod("AddCustomBloon", new System.Type[] {
+                    typeof(string),
+                    typeof(Texture2D),
+                    typeof(Texture2D),
+                    typeof(Texture2D)
+                });
+            }
         }
 
         public override void OnTitleScreen()

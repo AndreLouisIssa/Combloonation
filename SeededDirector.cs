@@ -197,7 +197,7 @@ namespace Combloonation
                 foreach (var subgroup in subgroups)
                 {
                     subgroup.bloon = bloon.name;
-                    if (bloon is FusionBloonModel fusion) subgroup.count /= fusion.fusands.Count();
+                    if (bloon is FusionBloonModel fusion) subgroup.count = (int)Math.Ceiling(((double)subgroup.count)/fusion.fusands.Count());
                     groups.Add(subgroup);
                 }
                 bloons.Clear();

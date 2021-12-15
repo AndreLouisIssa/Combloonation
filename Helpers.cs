@@ -2,6 +2,7 @@
 using MelonLoader;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 using Random = System.Random;
@@ -215,7 +216,14 @@ namespace Combloonation
                 var n = s.First();
                 return p.Concat(p.Select(e => e.Append(n).ToList())).ToList();
             }
-            return power(new List<List<T>> { new List<T>{ } }, list);
+            return power(new List<List<T>> { new List<T> { } }, list);
+        }
+
+        public static Texture2D LoadTexture(string path) {
+            byte[] data = File.ReadAllBytes(path);
+            Texture2D tex = new Texture2D(0, 0) { wrapMode = TextureWrapMode.Clamp };
+            ImageConversion.LoadImage(tex, data);
+            return tex;
         }
     }
 }

@@ -395,7 +395,21 @@ namespace Combloonation
             if (sprite.texture.isReadable || sprite.GetCenterColor().IsSimilar(initColor)) return;
             MelonLogger.Msg("Setting icon of " + DebugString(bloon.name));
             var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
+            if (texture != null) bloon.SetHelpfulAdditionsBloon();
             if (texture != null) icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
+        }
+
+        public static void SetHelpfulAdditionsBloon(this FusionBloonModel bloon)
+        {
+            var name = bloon.name;
+            var icon = computedIcons[name];
+            var ecol = new PipeOverlay(GetColors(bloon, new Rect(0,0,25,50)).Item1, invertColor);
+            var edge = new Texture2D(25, 50).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
+            var scol = GetColors(bloon, new Rect(0,0,1,50)).Item1;
+            var span = new Texture2D(1, 50).Duplicate((x, y, c) => scol.Pixel(c, x, y));
+            optional_HelpfulAdditions_AddCustomBloon.Invoke(null, new object[] {
+                name, icon, edge, span
+            });
         }
 
         public static void ColorByDisplayPatchStatus(Image icon)

@@ -14,6 +14,7 @@ using UnhollowerRuntimeLib;
 using UnhollowerBaseLib;
 using static Combloonation.Main;
 using static Combloonation.DisplaySystem;
+using static Combloonation.Helpers;
 using System.IO;
 using UnityEngine;
 
@@ -24,11 +25,10 @@ namespace Combloonation
     {
 
         public static readonly Dictionary<string, FusionBloonModel> _bloonsByName = new Dictionary<string, FusionBloonModel>();
-        public static string fusionComponentTag = "CombloonationFusionComponent";
-        public static string fusionComponentDelim = $"({fusionComponentTag})";
+        public static string fusionTag = "CombloonationFusion";
+        public static string fusionComponentDelim = "ˇ";
         public static string fusionComponentDebuglim = "_";
-        public static string fusionPropertiesTag = "CombloonationFusionProperties";
-        public static string fusionPropertiesDelim = $"({fusionPropertiesTag})";
+        public static string fusionPropertiesDelim = "干";
         public static string fusionPropertiesDebuglim = "~";
         public static List<string> properties = new List<string>
         {
@@ -43,6 +43,8 @@ namespace Combloonation
         public static HashSet<string> unstackableBehaviors = new HashSet<string>
         {
             Il2CppType.Of<DisplayModel>().FullName,
+            Il2CppType.Of<GrowModel>().FullName,
+            Il2CppType.Of<SetGrowToOnChildrenModel>().FullName,
         };
         public static HashSet<string> removeBehaviors = new HashSet<string>
         {
@@ -93,11 +95,11 @@ namespace Combloonation
                 //fusion.depletionEffects = new Il2CppReferenceArray<EffectModel>(fusion.fusands.SelectMany(f => f.depletionEffects).ToArray());
                 //fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays).ToArray());
 
-                //var prefix = $"{folderPath}/{DebugString(fusion.name)}";
-                //var texturePath = prefix + ".texture.png";
-                //var iconPath = prefix + ".icon.png";
-                //if (File.Exists(texturePath)) computedTextures[fusion.name] = new Texture2D(1, 1).LoadFromFile(texturePath);
-                //if (File.Exists(iconPath)) computedIcons[fusion.name] = new Texture2D(1,1).LoadFromFile(iconPath);
+                var prefix = $"{folderPath}/{DebugString(fusion.name)}";
+                var texturePath = prefix + ".texture.png";
+                var iconPath = prefix + ".icon.png";
+                if (File.Exists(texturePath)) computedTextures[fusion.name] = LoadTexture(texturePath);
+                if (File.Exists(iconPath)) computedIcons[fusion.name] = LoadTexture(iconPath);
 
                 return this;
             }
@@ -113,7 +115,7 @@ namespace Combloonation
                 fusion.isMoab = fusion.fusands.Any(f => f.isMoab);
 
                 fusion.distributeDamageToChildren = fusion.fusands.All(f => f.distributeDamageToChildren);
-                fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionComponentTag).Distinct().ToArray();
+                fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
 
                 return this;
             }
@@ -133,6 +135,24 @@ namespace Combloonation
                 fusion.behaviors = fusion.fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
                     .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : !unstackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
                 fusion.childDependants = fusion.fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
+
+                //var grow  = fusion.fusands.SelectMany(f => f.GetBehaviors<GrowModel>()).FirstOrDefault();
+                //if (grow != null)
+                //{
+                //    grow = grow.Duplicate();
+                //    grow.growToId = fusion.name;
+                //    fusion.AddBehavior(grow);
+                //}
+
+                //var growTo  = fusion.fusands.SelectMany(f => f.GetBehaviors<SetGrowToOnChildrenModel>()).FirstOrDefault();
+                //if (growTo != null)
+                //{
+                //    growTo = growTo.Duplicate();
+                //    growTo.bloonBaseId = fusion.name;
+                //    growTo.growToBaseId = fusion.name;
+                //    fusion.AddBehavior(growTo);
+                //}
+                
                 return this;
             }
 
