@@ -389,38 +389,35 @@ namespace Combloonation
         {
             var sprite = icon.sprite;
             if (sprite.texture.isReadable || sprite.GetCenterColor().IsSimilar(initColor)) return;
-            MelonLogger.Msg("Setting icon of " + DebugString(bloon.name));
             var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
             if (texture != null) {
                 bloon.SetHelpfulAdditionsBloon();
                 icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
                 icon.rectTransform.sizeDelta = new Vector2(2,2);
-                icon.rectTransform.localScale = new Vector3(texture.width/110f,texture.height/110f);
+                icon.rectTransform.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
+                //MelonLogger.Msg("Set icon of " + DebugString(bloon.name));
             } 
         }
 
         public static void SetHelpfulAdditionsBloon(this FusionBloonModel bloon)
         {
-            var ox = 25; var oy = 50;
-            var ix = 20; var iy = 40;
-            var or = ox*ox;
+            Func<float,float,float> ms = (x,y) => x*x + y*y;
+            var ox = 25; var oy = 50; var or = ox * ox;
+            var ix = 20; var iy = 40; var ir = ix * ix;
             var name = bloon.name;
             var icon = computedIcons[name];
             var bound = new Rect(0, 0, ox, oy);
-            var cols = GetColors(bloon, new Rect(0, 0, 1, 50));
-            var map = Regions.vertical(0, bound.width, 0, bound.height);
+            var cols = GetColors(bloon, bound);
+            var map = Regions.vertical(0, ix, 0, iy);
             var ws = bloon.fusands.Select(b => b.danger).ToList();
-            var scol = new RegionOverlay(cols, ws, map);
+            var bcol = invertColor;
+            var scol = new BoundOverlay(new RegionOverlay(cols, ws, map), bcol, (x,y) => Math.Abs(y - ox) > ix);
             var span = new Texture2D(ox, oy).Duplicate((x, y, c) => scol.Pixel(c, x, y));
-            var ecol = new BoundOverlay(scol, invisColor, (x,y) => {
-                x = x - ox;
-                y = y - ox;
-                return x*x + y*y > or;
-            });
+            var ecol = new BoundOverlay(new BoundOverlay(scol, bcol, (x,y) => ms(x-ox,y-ox) > ir), invisColor, (x,y) => ms(x-ox,y-ox) > or);
             var edge = new Texture2D(ox, oy).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
             optional_HelpfulAdditions_AddCustomBloon.Invoke(null, new object[] {
                 name, icon, edge, span, new Vector2(icon.width*2, icon.height*2)
-            });;
+            });
         }
 
         public static void SetBloonAppearance(Bloon bloon)
