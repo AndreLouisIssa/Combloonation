@@ -30,9 +30,9 @@ namespace Combloonation
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
 
         public static IOverlay invisColor = new DelegateOverlay((c,x,y) => new Color(0,0,0,0));
-        public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
-        public static IOverlay invertColor = new DelegateOverlay((c, x, y) => {var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a);});
-        public static IOverlay boundaryColor = emptyColor;
+        public static IOverlay emptyColor = new DelegateOverlay((c,x,y) => c);
+        public static IOverlay invertColor = new DelegateOverlay((c,x,y) => {var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a);});
+        public static IOverlay boundaryColor = new DelegateOverlay((c,x,y)=> c.RGBMultiplied(0.5f));
         public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("cd5d10"));
         public static IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
         public static Tuple<List<IOverlay>, List<float>> fortifiedColors = new Tuple<List<IOverlay>, List<float>>(
@@ -296,22 +296,32 @@ namespace Combloonation
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var bound = GetRegionRect(texture, proj);
             var cols = GetColors(bloon, bound);
-            if (cols.Count <= 1) return texture.Duplicate(proj);
-            var ws = bloon.fusands.Skip(1).Select(b => b.danger).ToList();
-            var map = Regions.spiral(1.3f, 0.6f)(bound.x, bound.x + bound.width, bound.y, bound.y + bound.height);
-            var r = Math.Min(bound.width, bound.height)/2;
-            var fbase = bloon.fusands.First();
-            r *= ws[0] / fbase.danger;
+            var r = Math.Min(bound.width, bound.height) / 2;
             var dx = 0f; var dy = 0f;
             var csx = 1f; var csy = 1f;
+            var fbase = bloon.fusands.First();
+            var tcols = cols.Skip(1).ToList();
+            IOverlay dcol;
+            IOverlay ddcol;
+            if (cols.Count > 1)
+            {
+                var ws = bloon.fusands.Skip(1).Select(b => b.danger).ToList();
+                var map = Regions.spiral(1.3f, 0.6f)(bound.x, bound.x + bound.width, bound.y, bound.y + bound.height);
+                r *= ws[0] / fbase.danger;
+                dcol = new RegionOverlay(tcols, ws, map);
+                ddcol = emptyColor;
+            }
+            else
+            {
+                dcol = emptyColor;
+                ddcol = boundaryColor;
+            }
             if (fromMesh)
             {
                 dx = bound.width * 0.165f;
                 if (bloon.isBoss) dx = -dx;
                 dy = bound.height * 0.1f;
                 r *= 0.5f;
-                csy *= 1.5f;
-                csy /= 1.5f;
             }
             else if (!fbase.isGrow) dy = -bound.height * 0.05f;
             float r_iob, r_iib, r_oob;
@@ -344,9 +354,7 @@ namespace Combloonation
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
             Func<float,float,float> tf = (x,y) => (float)TERF(curve(x/r_oob,y/r_oob),1f,-1f);
-            var tcols = cols.Skip(1).ToList();
-            var dcol = new RegionOverlay(tcols, ws, map);
-            var bcol = new BoundOverlay(dcol, boundaryColor, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
+            var bcol = new BoundOverlay(dcol, ddcol, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
             var bbcol = new BoundOverlay(bcol, dcol, (x, y) => curve(x / r_iob, y / r_iob) >= 0);
             var tcol = new TintOverlay(bbcol, tf);
             var bbbcol = new BoundOverlay(tcol, emptyColor, (x, y) => curve(x / r_oob, y / r_oob) >= 0);
@@ -403,17 +411,18 @@ namespace Combloonation
         {
             Func<float,float,float> ms = (x,y) => x*x + y*y;
             var ox = 25; var oy = 50; var or = ox * ox;
-            var ix = 20; var iy = 40; var ir = ix * ix;
+            var ix = 20; var ir = ix * ix;
             var name = bloon.name;
             var icon = computedIcons[name];
             var bound = new Rect(0, 0, ox, oy);
-            var cols = GetColors(bloon, bound);
-            var map = Regions.vertical(0, ix, 0, iy);
-            var ws = bloon.fusands.Select(b => b.danger).ToList();
-            var bcol = invertColor;
-            var scol = new BoundOverlay(new RegionOverlay(cols, ws, map), bcol, (x,y) => Math.Abs(y - ox) > ix);
+            var cols = GetColors(bloon, bound); cols.Reverse();
+            var map = Regions.vertical(0, ox, 0, oy);
+            var ws = bloon.fusands.Select(b => 1f).ToList();
+            var bcol = boundaryColor;
+            var mcol = new RegionOverlay(cols, ws, map);
+            var scol = new PipeOverlay(mcol,new BoundOverlay(emptyColor, bcol, (x,y) => Math.Abs(y - ox) > ix));
             var span = new Texture2D(ox, oy).Duplicate((x, y, c) => scol.Pixel(c, x, y));
-            var ecol = new BoundOverlay(new BoundOverlay(scol, bcol, (x,y) => ms(x-ox,y-ox) > ir), invisColor, (x,y) => ms(x-ox,y-ox) > or);
+            var ecol = new BoundOverlay(new PipeOverlay(mcol, new BoundOverlay(emptyColor, bcol, (x,y) => ms(x-ox,y-ox) > ir)), invisColor, (x,y) => ms(x-ox,y-ox) > or);
             var edge = new Texture2D(ox, oy).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
             optional_HelpfulAdditions_AddCustomBloon.Invoke(null, new object[] {
                 name, icon, edge, span, new Vector2(icon.width*2, icon.height*2)
