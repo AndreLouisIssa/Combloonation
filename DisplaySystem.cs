@@ -372,7 +372,7 @@ namespace Combloonation
             computed[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture != null) {
                 texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
-                bloon.SetHelpfulAdditionsBloon();
+                if (computed == computedIcons) bloon.SetHelpfulAdditionsBloon();
             }
             return texture;
         }
