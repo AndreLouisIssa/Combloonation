@@ -24,6 +24,7 @@ namespace Combloonation
     {
         public static Color initColor = new Color(0.929f, 0.059f, 0.059f, 1);
         public static bool tryPatchingIcons = true;
+        public static bool beganPatchingIcons = false;
 
         public static Func<Renderer,bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
@@ -174,7 +175,7 @@ namespace Combloonation
             public Color Pixel(Color c, float x, float y)
             {
                 bool ins;
-                if (bf == null) ins = x * x + y * y > b * b;
+                if (bf is null) ins = x * x + y * y > b * b;
                 else ins = bf(x, y);
                 if (ins) return co.Pixel(c, x, y);
                 return ci.Pixel(c, x, y);
@@ -225,7 +226,7 @@ namespace Combloonation
 
         public static Texture2D Duplicate(this Texture texture, Rect? proj = null)
         {
-            if (proj == null) proj = new Rect(0, 0, texture.width, texture.height);
+            if (proj is null) proj = new Rect(0, 0, texture.width, texture.height);
             var rect = (Rect)proj;
             texture.filterMode = FilterMode.Point;
             RenderTexture rt = RenderTexture.GetTemporary(texture.width, texture.height);
@@ -257,7 +258,7 @@ namespace Combloonation
 
         public static Texture2D Duplicate(this Texture texture, Func<int, int, Color, Color> func, Rect? proj = null)
         {
-            if (proj == null) { proj = new Rect(0, 0, texture.width, texture.height); }
+            if (proj is null) { proj = new Rect(0, 0, texture.width, texture.height); }
             var t = texture.Duplicate(proj);
             foreach (var xy in t.GetEnumerator())
             {
@@ -293,7 +294,7 @@ namespace Combloonation
 
         public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, bool fromMesh, Rect? proj = null)
         {
-            if (bloon == null) throw new ArgumentNullException(nameof(bloon));
+            if (bloon is null) throw new ArgumentNullException(nameof(bloon));
             var bound = GetRegionRect(texture, proj);
             var cols = GetColors(bloon, bound);
             var r = Math.Min(bound.width, bound.height) / 2;
@@ -322,7 +323,7 @@ namespace Combloonation
             {
                 curve = (x, y) => (float)HeartCurve(x, y);
                 r *= 0.9f;
-                if (dcol == null) {
+                if (dcol is null) {
                     ddcol = boundaryColor;
                     r *= 0.75f;
                 }
@@ -350,7 +351,7 @@ namespace Combloonation
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
             Func<float, float, float> tf = (x, y) => (float)TERF(curve(x / r_oob, y / r_oob), 1f, -1f);
-            if (dcol == null) dcol = emptyColor;
+            if (dcol is null) dcol = emptyColor;
             var bcol = new BoundOverlay(dcol, ddcol, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
             var bbcol = new BoundOverlay(bcol, dcol, (x, y) => curve(x / r_iob, y / r_iob) >= 0);
             var tcol = new TintOverlay(bbcol, tf);
@@ -361,8 +362,8 @@ namespace Combloonation
 
         public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
         {
-            if (bloon == null) throw new ArgumentNullException(nameof(bloon));
-            if (oldTexture == null) return computed[bloon.name] = null;
+            if (bloon is null) throw new ArgumentNullException(nameof(bloon));
+            if (oldTexture is null) return computed[bloon.name] = null;
             if (oldTexture.isReadable) return null;
             var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
@@ -408,6 +409,7 @@ namespace Combloonation
 
         public static void SetHelpfulAdditionsBloon(this FusionBloonModel bloon)
         {
+            if (optional_HelpfulAdditions_AddCustomBloon is null) return; 
             Func<float,float,float> ms = (x,y) => x*x + y*y;
             var ox = 25; var oy = 50; var or = ox * ox;
             var ix = 20; var ir = ix * ix;
@@ -431,7 +433,7 @@ namespace Combloonation
         public static void SetBloonAppearance(Bloon bloon)
         {
             var graphic = bloon?.display?.node?.graphic;
-            if (graphic == null) return;
+            if (graphic is null) return;
             if (BloonFromName(bloon.bloonModel.name) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
         }
 
@@ -445,7 +447,7 @@ namespace Combloonation
 
         public static void SetBloonAppearance(InGame inGame)
         {
-            if (inGame.bridge == null) return;
+            if (inGame.bridge is null) return;
             List<BloonToSimulation> bloonSims;
             try { bloonSims = inGame.bridge.GetAllBloons().ToList(); } catch { return; }
             foreach (var bloonSim in bloonSims) { SetBloonAppearance(bloonSim.GetBloon()); }

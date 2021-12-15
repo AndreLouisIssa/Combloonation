@@ -45,23 +45,12 @@ namespace Combloonation
         }
 
         public override void OnApplicationLateStart() {
-            // Gets all loaded assemblies
             Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-            // Find Helpful Addtions
             Assembly helpfulAdditions = assemblies.FirstOrDefault(assembly => assembly.GetName().Name.Equals("Helpful Additions"));
-            // If found
-            if (!(helpfulAdditions is null)) {
-                // Get the Mod class in Helpful Addtions
-                System.Type mod = helpfulAdditions.GetType("HelpfulAdditions.Mod");
-                // Get the AddCustomBloon method in Mod
-                optional_HelpfulAdditions_AddCustomBloon = mod.GetMethod("AddCustomBloon", new System.Type[] {
-                    typeof(string),
-                    typeof(Texture2D),
-                    typeof(Texture2D),
-                    typeof(Texture2D),
-                    typeof(Vector2?)
-                });
-            }
+            if (helpfulAdditions is null) return;
+            System.Type mod = helpfulAdditions.GetType("HelpfulAdditions.Mod");
+            optional_HelpfulAdditions_AddCustomBloon = mod.GetMethod("AddCustomBloon", new System.Type[] {
+                typeof(string), typeof(Texture2D), typeof(Texture2D), typeof(Texture2D), typeof(Vector2?) });
         }
 
         public override void OnTitleScreen()
@@ -83,17 +72,25 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(InGame __instance)
             {
+                if (tryPatchingIcons && !beganPatchingIcons && __instance.IsSandbox)
+                {
+                    MelonLogger.Msg("Setting icons...");
+                    beganPatchingIcons = true;
+                }
                 SetBloonAppearance(__instance);
             }
         }
 
-        [HarmonyPatch(typeof(InGame), nameof(InGame.RoundStart))]
-        class Patch_InGame_RoundStart
+        [HarmonyPatch(typeof(InGame), nameof(InGame.PlayFastForwardClicked))]
+        class Patch_InGame_PlayFastForwardClicked
         {
             [HarmonyPrefix]
-            public static void Prefix()
+            public static void Prefix(InGame __instance)
             {
-                tryPatchingIcons = false;
+                if (tryPatchingIcons && __instance.IsSandbox) {
+                    MelonLogger.Msg("Finished setting icons!");
+                    tryPatchingIcons = false;
+                }
             }
         }
 

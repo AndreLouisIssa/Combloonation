@@ -274,7 +274,7 @@ namespace Combloonation
         public static GameModel GetGameModel()
         {
             var model = InGame.instance?.bridge?.Model;
-            if (model == null) model = Game.instance.model;
+            if (model is null) model = Game.instance.model;
             return model;
         }
 
@@ -282,7 +282,7 @@ namespace Combloonation
         {
             if (bloons.Count() == 0) return null;
             BloonModel bloon = null;
-            if (props == null) props = GetProperties(bloons);
+            if (props is null) props = GetProperties(bloons);
             else props = GetProperties(bloons).Concat(props).Distinct();
             foreach (var propSet in props.ToList().Power()) {
                 var reactor = new BloonsionReactor(bloons, propSet);
