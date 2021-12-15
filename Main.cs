@@ -58,7 +58,8 @@ namespace Combloonation
                     typeof(string),
                     typeof(Texture2D),
                     typeof(Texture2D),
-                    typeof(Texture2D)
+                    typeof(Texture2D),
+                    typeof(Vector2?)
                 });
             }
         }

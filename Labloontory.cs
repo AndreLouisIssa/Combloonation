@@ -30,16 +30,7 @@ namespace Combloonation
         public static string fusionComponentDebuglim = "_";
         public static string fusionPropertiesDelim = "干";
         public static string fusionPropertiesDebuglim = "~";
-        public static List<string> properties = new List<string>
-        {
-            "Regrow", "Fortified", "Camo"
-        };
-        public static Dictionary<string,Func<BloonModel,bool>> hasProperties = new Dictionary<string, Func<BloonModel, bool>>
-        {
-            { "Regrow", b => b.isGrow },
-            { "Fortified", b => b.isFortified },
-            { "Camo", b => b.isCamo }
-        };
+
         public static HashSet<string> unstackableBehaviors = new HashSet<string>
         {
             Il2CppType.Of<DisplayModel>().FullName,
@@ -53,31 +44,50 @@ namespace Combloonation
             Il2CppType.Of<DamageStateModel>().FullName,
         };
 
+        public struct Property
+        {
+            public static List<Property> all = new List<Property>
+            {
+                new Property( "Regrow", b => b.isGrow, b => { b.isGrow = true; } ),
+                new Property( "Fortified", b => b.isFortified, b => { b.isFortified = true; } ),
+                new Property( "Camo", b => b.isCamo, b => { b.isCamo = true; } ),
+            };
+
+            public readonly string name;
+            public readonly Func<BloonModel, bool> has;
+            public readonly Action<FusionBloonModel> add;
+            public Property( string name, Func<BloonModel, bool> has, Action<FusionBloonModel> add)
+            {
+                this.name = name; this.has = has; this.add = add;
+            }
+        }
+
         public class FusionBloonModel : BloonModel
         {
             public readonly BloonModel[] fusands;
+            public readonly Property[] props;
 
-            public FusionBloonModel(BloonModel f, BloonModel[] fs)
+            public FusionBloonModel(BloonModel f, BloonModel[] fs, Property[] ps)
                 : base(f.id, f.baseId, f.speed, f.radius, f.display, f.damageDisplayStates, f.icon, f.rotate,
                       f.behaviors, f.overlayClass, f.tags, f.mods, f.collisionGroup, f.danger, f.hasChildrenWithDifferentTotalHealths,
                       f.layerNumber, f.isCamo, f.isGrow, f.isFortified, f.depletionEffects, f.rotateToFollowPath, f.isMoab,
                       f.isBoss, f.bloonProperties, f.leakDamage, f.maxHealth, f.distributeDamageToChildren, f.isInvulnerable,
                       f.propertyDisplays, f.bonusDamagePerHit, f.disallowCosmetics, f.isSaved, f.loseOnLeak)
-            { fusands = fs; }
+            { fusands = fs; props = ps; }
         }
 
         public class BloonsionReactor
         {
             public readonly FusionBloonModel fusion;
 
-            public BloonsionReactor(IEnumerable<BloonModel> bloons, IEnumerable<string> props = null)
+            public BloonsionReactor(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
             {
                 var components = BloonsFromBloons(bloons);
                 var allProps = (props != null ? props : GetProperties(components)).ToList();
                 var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.name).OrderByDescending(f => f.danger).TakeAtMost(5);
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + GetPropertyString(ProbeProperties(b, allProps))));
-                fusion = new FusionBloonModel(fusands.First(), fusands.ToArray());
+                fusion = new FusionBloonModel(fusands.First(), fusands.ToArray(), allProps.ToArray());
                 fusion._name = fusion.name = fusion.id = name;
                 fusion.baseId = BaseBloonNameFromName(fusion.name);
             }
@@ -232,10 +242,10 @@ namespace Combloonation
             return b.ToArray();
         }
 
-        public static string GetPropertyString(IEnumerable<string> props)
+        public static string GetPropertyString(IEnumerable<Property> props)
         {
             var s = "";
-            foreach (var p in properties) if (props.Contains(p)) s += p;
+            foreach (var p in Property.all) if (props.Contains(p)) s += p.name;
             return s;
         }
 
@@ -251,7 +261,7 @@ namespace Combloonation
             return model;
         }
 
-        public static BloonModel Fuse(IEnumerable<BloonModel> bloons, IEnumerable<string> props = null)
+        public static BloonModel Fuse(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
         {
             if (bloons.Count() == 0) return null;
             BloonModel bloon = null;
@@ -287,11 +297,11 @@ namespace Combloonation
             return null;
         }
 
-        public static string BloonNameFromBloons(IEnumerable<string> bases, IEnumerable<string> props)
+        public static string BloonNameFromBloons(IEnumerable<string> bases, IEnumerable<Property> props)
         {
             var name = string.Join(fusionComponentDelim, bases);
-            if (bases.Count() > 1) name += fusionPropertiesDelim + GetPropertyString(props);
-            return name;
+            if (bases.Count() > 1) name += fusionPropertiesDelim;
+            return name + GetPropertyString(props);
         }
 
         public static string BloonNameFromNames(IEnumerable<string> names)
@@ -304,44 +314,44 @@ namespace Combloonation
         public static string BaseBloonNameFromName(string name)
         {
             name = BloonNameFromNames(name.Split(fusionPropertiesDelim).First().Split(fusionComponentDelim));
-            foreach (var p in properties) name = name.Replace(p, "");
+            foreach (var p in Property.all) name = name.Replace(p.name, "");
             return name;
         }
 
-        public static IEnumerable<string> ProbeProperties(BloonModel bloon, List<string> allProps = null)
+        public static IEnumerable<Property> ProbeProperties(BloonModel bloon, List<Property> allProps = null)
         {
-            var props = new List<string>();
+            var props = new List<Property>();
             var id = bloon.baseId;
-            allProps = allProps ?? properties;
+            allProps = allProps ?? Property.all;
             foreach (var p in allProps.ToArray())
             {
-                var can = BloonFromName(id + p, false) != null;
+                var can = BloonFromName(id + p.name, false) != null;
                 if (can) props.Add(p);
             }
             return props;
         }
 
-        public static IEnumerable<string> GetExtraProperties(string name)
+        public static IEnumerable<Property> GetExtraProperties(string name)
         {
-            var props = new List<string>();
-            foreach (var p in properties) if (name.Contains(p)) props.Add(p);
+            var props = new List<Property>();
+            foreach (var p in Property.all) if (name.Contains(p.name)) props.Add(p);
             return props;
         }
 
-        public static IEnumerable<string> GetExtraProperties(BloonModel bloon)
+        public static IEnumerable<Property> GetExtraProperties(BloonModel bloon)
         {
             return GetExtraProperties(bloon.name);
         }
 
-        public static IEnumerable<string> GetBaseProperties(BloonModel bloon)
+        public static IEnumerable<Property> GetBaseProperties(BloonModel bloon)
         {
             return GetProperties(BloonFromName(bloon.baseId));
         }
 
-        public static IEnumerable<string> GetProperties(BloonModel bloon)
+        public static IEnumerable<Property> GetProperties(BloonModel bloon)
         {
-            var props = new List<string>();
-            foreach (var p in properties) if (hasProperties[p](bloon)) props.Add(p);
+            var props = new List<Property>();
+            foreach (var p in Property.all) if (p.has(bloon)) props.Add(p);
             return props;
         }
 
@@ -380,17 +390,17 @@ namespace Combloonation
             return BaseBloonNamesFromBloons(bloons).Select(n => BloonFromName(n));
         }
 
-        public static IEnumerable<string> GetProperties(IEnumerable<BloonModel> bloons)
+        public static IEnumerable<Property> GetProperties(IEnumerable<BloonModel> bloons)
         {
             return bloons.SelectMany(b => GetProperties(b)).Distinct();
         }
 
-        public static IEnumerable<string> GetExtraProperties(IEnumerable<BloonModel> bloons)
+        public static IEnumerable<Property> GetExtraProperties(IEnumerable<BloonModel> bloons)
         {
             return bloons.SelectMany(b => GetExtraProperties(b)).Distinct();
         }
 
-        public static IEnumerable<string> GetBaseProperties(IEnumerable<BloonModel> bloons)
+        public static IEnumerable<Property> GetBaseProperties(IEnumerable<BloonModel> bloons)
         {
             return bloons.SelectMany(b => GetBaseProperties(b)).Distinct();
         }
