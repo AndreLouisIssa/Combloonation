@@ -23,14 +23,13 @@ namespace Combloonation
     public static class DisplaySystem
     {
         public static Color initColor = new Color(0.929f, 0.059f, 0.059f, 1);
-        public static Color enabledColor = new Color(1, 1, 1, 1);
-        public static Color disabledColor = new Color(1, 1, 1, 0.5f);
         public static bool tryPatchingIcons = true;
 
         public static Func<Renderer,bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
 
+        public static IOverlay invisColor = new DelegateOverlay((c,x,y) => new Color(0,0,0,0));
         public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
         public static IOverlay invertColor = new DelegateOverlay((c, x, y) => {var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a);});
         public static IOverlay boundaryColor = emptyColor;
@@ -195,20 +194,17 @@ namespace Combloonation
             return Color.Lerp(a, b, (1 + b.a - a.a) / 2);
         }
 
-        public static Tuple<IOverlay, List<IOverlay>> GetColors(this BloonModel bloon, Rect bound)
+        public static List<IOverlay> GetColors(this BloonModel bloon, Rect bound)
         {
             var ids = BaseBloonNamesFromName(bloon.name);
-            var primary = ids.First();
-            var got = baseColors.TryGetValue(primary, out var pcol);
-            if (!got) pcol = emptyColor;
             var cols = new List<IOverlay> { };
-            foreach (var id in ids.Skip(1))
+            foreach (var id in ids)
             {
-                got = baseColors.TryGetValue(id, out var col);
+                var got = baseColors.TryGetValue(id, out var col);
                 if (got) cols.Add(col);
                 else cols.Add(GetMissingColor(id, bound));
             }
-            return new Tuple<IOverlay, List<IOverlay>>(pcol, cols);
+            return cols;
         }
 
         private static IOverlay GetMissingColor(string id, Rect b)
@@ -300,7 +296,7 @@ namespace Combloonation
             if (bloon == null) throw new ArgumentNullException(nameof(bloon));
             var bound = GetRegionRect(texture, proj);
             var cols = GetColors(bloon, bound);
-            if (cols.Item2.Count == 0) return texture.Duplicate(proj);
+            if (cols.Count <= 1) return texture.Duplicate(proj);
             var ws = bloon.fusands.Skip(1).Select(b => b.danger).ToList();
             var map = Regions.spiral(1.3f, 0.6f)(bound.x, bound.x + bound.width, bound.y, bound.y + bound.height);
             var r = Math.Min(bound.width, bound.height)/2;
@@ -348,7 +344,7 @@ namespace Combloonation
             }
             r_iob = r*0.6f; r_iib = 0.85f*r_iob; r_oob = r_iob * 1.15f;
             Func<float,float,float> tf = (x,y) => (float)TERF(curve(x/r_oob,y/r_oob),1f,-1f);
-            var tcols = cols.Item2;
+            var tcols = cols.Skip(1).ToList();
             var dcol = new RegionOverlay(tcols, ws, map);
             var bcol = new BoundOverlay(dcol, boundaryColor, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
             var bbcol = new BoundOverlay(bcol, dcol, (x, y) => curve(x / r_iob, y / r_iob) >= 0);
@@ -405,25 +401,26 @@ namespace Combloonation
 
         public static void SetHelpfulAdditionsBloon(this FusionBloonModel bloon)
         {
+            var ox = 25; var oy = 50;
+            var ix = 20; var iy = 40;
+            var or = ox*ox;
             var name = bloon.name;
             var icon = computedIcons[name];
-            var ecol = new PipeOverlay(GetColors(bloon, new Rect(0,0,25,50)).Item1, invertColor);
-            var edge = new Texture2D(25, 50).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
-            var scol = GetColors(bloon, new Rect(0,0,1,50)).Item1;
-            var span = new Texture2D(1, 50).Duplicate((x, y, c) => scol.Pixel(c, x, y));
+            var bound = new Rect(0, 0, ox, oy);
+            var cols = GetColors(bloon, new Rect(0, 0, 1, 50));
+            var map = Regions.vertical(0, bound.width, 0, bound.height);
+            var ws = bloon.fusands.Select(b => b.danger).ToList();
+            var scol = new RegionOverlay(cols, ws, map);
+            var span = new Texture2D(ox, oy).Duplicate((x, y, c) => scol.Pixel(c, x, y));
+            var ecol = new BoundOverlay(scol, invisColor, (x,y) => {
+                x = x - ox;
+                y = y - ox;
+                return x*x + y*y > or;
+            });
+            var edge = new Texture2D(ox, oy).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
             optional_HelpfulAdditions_AddCustomBloon.Invoke(null, new object[] {
                 name, icon, edge, span, new Vector2(icon.width*2, icon.height*2)
             });;
-        }
-
-        public static void ColorByDisplayPatchStatus(Image icon)
-        {
-            icon.color = (icon.sprite.texture.isReadable) ? enabledColor : disabledColor;
-        }
-
-        public static void ColorByDisplayPatchStatus(this BloonModel bloon, Image icon)
-        {
-            if (BloonFromName(bloon.name) is FusionBloonModel) ColorByDisplayPatchStatus(icon);
         }
 
         public static void SetBloonAppearance(Bloon bloon)
