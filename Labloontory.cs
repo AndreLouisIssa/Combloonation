@@ -34,14 +34,14 @@ namespace Combloonation
         public static HashSet<string> unstackableBehaviors = new HashSet<string>
         {
             Il2CppType.Of<DisplayModel>().FullName,
-            Il2CppType.Of<GrowModel>().FullName,
-            Il2CppType.Of<SetGrowToOnChildrenModel>().FullName,
         };
         public static HashSet<string> removeBehaviors = new HashSet<string>
         {
             Il2CppType.Of<SpawnBloonsActionModel>().FullName,
             Il2CppType.Of<SpawnChildrenModel>().FullName,
             Il2CppType.Of<DamageStateModel>().FullName,
+            Il2CppType.Of<GrowModel>().FullName,
+            Il2CppType.Of<SetGrowToOnChildrenModel>().FullName,
         };
 
         public struct Property
@@ -51,8 +51,9 @@ namespace Combloonation
                 new Property( "Regrow", "Grow", true, b => b.isGrow, b => {
                     b.isGrow = true;
                     b.tags = b.tags.Append("Grow").ToArray();
-                    b.AddBehavior(new GrowModel("GrowModel_", 3, b.name));
-                    //b.AddBehavior(new SetGrowToOnChildrenModel($"SetGrowToOnChildrenModel({b.name})", b.name, b.name));
+                    b.AddBehavior(new GrowModel("GrowModel_", 3, ""));
+                    b.childBloonModels.ToList().ForEach(c => c.AddBehavior(new GrowModel("GrowModel_", 3, b.baseId)));
+                    //b.childBloonModels.ToList().ForEach(c => b.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", c.baseId, b.baseId)));
                 }),
                 new Property( "Fortified", "Fortified", false, b => b.isFortified, b => {
                     b.isFortified = true;
@@ -110,15 +111,15 @@ namespace Combloonation
             public BloonsionReactor Merge()
             {
                 //MelonLogger.Msg("Creating " + DebugString(fusion.name));
-                return MergeBehaviors().MergeDisplay().MergeProperties().MergeStats().MergeChildren().MergeSpawnBloonsActionModel();
+                return MergeBehaviors().MergeDisplay().MergeChildren().MergeSpawnBloonsActionModel().MergeProperties().MergeStats();
             }
 
             public BloonsionReactor MergeDisplay()
             {
                 fusion.overlayClass = fusion.baseId;
                 fusion.damageDisplayStates = new DamageStateModel[] { };
-                //fusion.depletionEffects = new Il2CppReferenceArray<EffectModel>(fusion.fusands.SelectMany(f => f.depletionEffects).ToArray());
-                //fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays).ToArray());
+                fusion.depletionEffects = new Il2CppReferenceArray<EffectModel>(fusion.fusands.SelectMany(f => f.depletionEffects).ToArray());
+                fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays ?? new Il2CppStringArray(new string[]{ })).ToArray());
 
                 var prefix = $"{folderPath}/{DebugString(fusion.name)}";
                 var texturePath = prefix + ".texture.png";
@@ -142,19 +143,26 @@ namespace Combloonation
                 
                 fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
                 fusion.bloonProperties = fusion.fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
+                if (fusion.isGrow) foreach (var child in fusion.childBloonModels)
+                {
+                    //fusion.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", child.baseId, fusion.baseId));
+                    fusion.AddBehavior(new GrowModel("GrowModel_", 3, ""));
+                    child.AddBehavior(new GrowModel("GrowModel_", 3, fusion.name));
+                }
                 foreach (var p in fusion.props) if (!p.has(fusion)) p.add(fusion);
-
                 return this;
             }
 
             public BloonsionReactor MergeStats()
             {
                 fusion.maxHealth = fusion.fusands.Max(f => f.maxHealth) * fusion.fusands.Count();
-                fusion.totalLeakDamage = fusion.leakDamage = fusion.fusands.Max(f => f.leakDamage)*fusion.fusands.Count();
+                fusion.leakDamage = fusion.fusands.Max(f => f.leakDamage)*fusion.fusands.Count();
                 fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
                 fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
                 fusion.speed = fusion.fusands.Max(f => f.speed);
                 fusion.distributeDamageToChildren = fusion.fusands.All(f => f.distributeDamageToChildren);
+                fusion.totalLeakDamage = fusion.leakDamage + fusion.childBloonModels.ToList().Sum(c => c.totalLeakDamage);
+                if (fusion.isMoab && fusion.isGrow) fusion.maxHealth *= 1.25f;
                 return this;
             }
 
@@ -163,23 +171,6 @@ namespace Combloonation
                 fusion.behaviors = fusion.fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
                     .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : !unstackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
                 fusion.childDependants = fusion.fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
-
-                //var grow  = fusion.fusands.SelectMany(f => f.GetBehaviors<GrowModel>()).FirstOrDefault();
-                //if (grow != null)
-                //{
-                //    grow = grow.Duplicate();
-                //    grow.growToId = fusion.name;
-                //    fusion.AddBehavior(grow);
-                //}
-
-                //var growTo  = fusion.fusands.SelectMany(f => f.GetBehaviors<SetGrowToOnChildrenModel>()).FirstOrDefault();
-                //if (growTo != null)
-                //{
-                //    growTo = growTo.Duplicate();
-                //    growTo.bloonBaseId = fusion.name;
-                //    growTo.growToBaseId = fusion.name;
-                //    fusion.AddBehavior(growTo);
-                //}
                 
                 return this;
             }
@@ -197,7 +188,6 @@ namespace Combloonation
 
                 fusion.childBloonModels = models.ToIl2CppList();
                 fusion.UpdateChildBloonModels();
-                fusion.totalLeakDamage = fusion.leakDamage + models.Sum(c => c.totalLeakDamage);
 
                 behavior.children = models.Select(c => c.name).ToArray();
                 fusion.AddBehavior(behavior);
