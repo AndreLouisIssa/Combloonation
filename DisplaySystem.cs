@@ -402,10 +402,10 @@ namespace Combloonation
             if (!computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
             var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
             if (texture != null) {
-                bloonMenuFusions.Remove(bloon.name);
                 icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
                 icon.rectTransform.sizeDelta = new Vector2(2,2);
                 icon.rectTransform.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
+                bloonMenuFusions.Remove(bloon.name);
                 //MelonLogger.Msg("Set icon of " + DebugString(bloon.name));
             } 
         }

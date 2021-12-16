@@ -137,7 +137,7 @@ namespace Combloonation
                     if (bloonMenuFusions.Count == 0)
                     {
                         tryPatchingIcons = false;
-                        MelonLogger.Msg("Finished patching icons!");
+                        MelonLogger.Msg("Finished setting icons!");
                     }
                 }
             }
