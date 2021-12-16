@@ -17,6 +17,7 @@ using static Combloonation.DisplaySystem;
 using static Combloonation.Helpers;
 using System.IO;
 using UnityEngine;
+using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
 
 namespace Combloonation
 {
@@ -48,19 +49,19 @@ namespace Combloonation
         {
             public static List<Property> all = new List<Property>
             {
-                new Property( "Regrow", "Grow", true, b => b.isGrow, b => {
+                new Property( "Regrow", "Grow", true, b => b.isGrow, m => m.regen, b => {
                     b.isGrow = true;
                     b.tags = b.tags.Append("Grow").ToArray();
                     b.AddBehavior(new GrowModel("GrowModel_", 3, ""));
                     b.childBloonModels.ToList().ForEach(c => c.AddBehavior(new GrowModel("GrowModel_", 3, b.baseId)));
                     //b.childBloonModels.ToList().ForEach(c => b.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", c.baseId, b.baseId)));
                 }),
-                new Property( "Fortified", "Fortified", false, b => b.isFortified, b => {
+                new Property( "Fortified", "Fortified", false, b => b.isFortified, m => m.fortified, b => {
                     b.isFortified = true;
                     b.tags = b.tags.Append("Fortified").ToArray();
                     b.maxHealth *= 2;
                 }),
-                new Property( "Camo", "Camo", true, b => b.isCamo, b => {
+                new Property( "Camo", "Camo", true, b => b.isCamo, m => m.camo, b => {
                     b.isCamo = true;
                     b.tags = b.tags.Append("Camo").ToArray();
                 }),
@@ -70,10 +71,11 @@ namespace Combloonation
             public readonly string tag;
             public readonly bool heir;
             public readonly Func<BloonModel, bool> has;
+            public readonly Func<BloonMenu, bool> menu;
             public readonly Action<FusionBloonModel> add;
-            public Property(string name, string tag, bool heir, Func<BloonModel, bool> has, Action<FusionBloonModel> add)
+            public Property(string name, string tag, bool heir, Func<BloonModel, bool> has, Func<BloonMenu, bool> menu, Action<FusionBloonModel> add)
             {
-                this.name = name; this.tag = tag; this.heir = heir; this.has = has; this.add = add;
+                this.name = name; this.tag = tag; this.heir = heir; this.has = has; this.menu = menu; this.add = add;
             }
         }
 
@@ -89,7 +91,7 @@ namespace Combloonation
                       f.layerNumber, f.isCamo, f.isGrow, f.isFortified, f.depletionEffects, f.rotateToFollowPath, f.isMoab,
                       f.isBoss, f.bloonProperties, f.leakDamage, f.maxHealth, f.distributeDamageToChildren, f.isInvulnerable,
                       f.propertyDisplays, f.bonusDamagePerHit, f.disallowCosmetics, f.isSaved, f.loseOnLeak)
-            { fusands = fs; props = ps; inherit = GetPropertyString(ps.Where(p => p.heir)); }
+            { fusands = fs; props = ps; inherit = PropertyString(ps.Where(p => p.heir)); }
         }
 
         public class BloonsionReactor
@@ -102,7 +104,7 @@ namespace Combloonation
                 var allProps = (props != null ? props : GetProperties(components)).ToList();
                 var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).TakeAtMost(5);
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
-                var fusands = baseFusands.Select(b => BloonFromName(b.name + GetPropertyString(ProbeProperties(b, allProps))));
+                var fusands = baseFusands.Select(b => BloonFromName(b.name + PropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray(), allProps.ToArray());
                 fusion._name = fusion.name = fusion.id = name;
                 fusion.baseId = BaseBloonNameFromName(fusion.name);
@@ -249,7 +251,7 @@ namespace Combloonation
             return b.ToArray();
         }
 
-        public static string GetPropertyString(IEnumerable<Property> props)
+        public static string PropertyString(IEnumerable<Property> props)
         {
             var s = "";
             foreach (var p in Property.all) if (props.Contains(p)) s += p.name;
@@ -308,13 +310,13 @@ namespace Combloonation
         {
             var name = string.Join(fusionComponentDelim, bases);
             if (bases.Count() > 1) name += fusionPropertiesDelim;
-            return name + GetPropertyString(props);
+            return name + PropertyString(props);
         }
 
         public static string BloonNameFromNames(IEnumerable<string> names)
         {
             var name = string.Join(fusionComponentDelim, names);
-            if (names.Count() > 1) name += fusionPropertiesDelim + GetPropertyString(GetProperties(names.Select(n => BloonFromName(n))));
+            if (names.Count() > 1) name += fusionPropertiesDelim + PropertyString(GetProperties(names.Select(n => BloonFromName(n))));
             return name;
         }
 

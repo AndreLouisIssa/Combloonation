@@ -72,34 +72,7 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(InGame __instance)
             {
-                __instance.SetBloonAppearance();
-            }
-        }
-
-        //[HarmonyPatch(typeof(InGame), nameof(InGame.PlayFastForwardClicked))]
-        //class Patch_InGame_PlayFastForwardClicked
-        //{
-        //    [HarmonyPrefix]
-        //    public static void Prefix(InGame __instance)
-        //    {
-        //        if (tryPatchingIcons && __instance.IsSandbox) {
-        //            MelonLogger.Msg("Finished setting icons!");
-        //            tryPatchingIcons = false;
-        //        }
-        //    }
-        //}
-
-/*        [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
-        public class Patch_CosmeticHelper_GetBloonModel
-        {
-            [HarmonyFinalizer]
-            public static Exception Finalizer(Exception __exception, ref BloonModel __result, string id, int emissionIndex, bool useRootModel)
-            {
-                if (__exception != null)
-                {
-                    __result = CosmeticHelper.GetBloonModel(BaseBloonNameFromName(id), emissionIndex, useRootModel);
-                }
-                return null;
+                InGameUpdate(__instance);
             }
         }
 
@@ -109,12 +82,11 @@ namespace Combloonation
             [HarmonyFinalizer]
             public static Exception Finalizer(Grow __instance, Exception __exception)
             {
-                if (__exception != null) {
-                    __instance.Regenerate();
-                }
+                // TODO: set the growTo appropriately here somehow
+                if (__exception != null) __instance.Regenerate();
                 return null;
             }
-        }*/
+        }
 
         [HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.SpawnBloon))]
         public class Patch_SpawnBloonButton_SpawnBloon
@@ -132,23 +104,16 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(SpawnBloonButton __instance)
             {
-                if (tryPatchingIcons && beganPatchingIcons) {
-                    __instance.SetBloonAppearance();
-                    if (bloonMenuFusions.Count == 0)
-                    {
-                        tryPatchingIcons = false;
-                        MelonLogger.Msg("Finished setting icons!");
-                    }
-                }
+                SetBloonAppearance(__instance);
             }
         }
 
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleFortified))]
-        public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() { return false; } }
+        public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() { return patchingIcons = patchedIcons; } }
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleCamo))]
-        public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() { return false; } }
+        public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() { return patchingIcons = patchedIcons; } }
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleRegen))]
-        public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() { return false; } }
+        public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() { return patchingIcons = patchedIcons; } }
 
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
         public class Patch_BloonMenu_SortBloons
@@ -156,15 +121,7 @@ namespace Combloonation
             [HarmonyPrefix]
             public static bool Prefix(BloonMenu __instance)
             {
-                __instance.ClearButtons();
-                var bloons = GetGameModel().bloons.OrderBy(b => b.danger);
-                __instance.CreateBloonButtons(bloons.ToIl2CppList());
-                if (tryPatchingIcons && !beganPatchingIcons)
-                {
-                    MelonLogger.Msg("Setting icons...");
-                    bloonMenuFusions = bloons.Select(b => b.name).Where(n => BloonFromName(n) is FusionBloonModel bloon).ToList();
-                    beganPatchingIcons = true;
-                }
+                BloonMenuSortBloons(__instance);
                 return false;
             }
         }
