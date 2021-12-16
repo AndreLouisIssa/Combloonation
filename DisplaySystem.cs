@@ -29,6 +29,7 @@ namespace Combloonation
         public static Func<Renderer,bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
+        public static List<string> bloonMenuFusions = null;
 
         public static IOverlay invisColor = new DelegateOverlay((c,x,y) => new Color(0,0,0,0));
         public static IOverlay emptyColor = new DelegateOverlay((c,x,y) => c);
@@ -397,9 +398,11 @@ namespace Combloonation
         public static void SetBloonAppearance(this FusionBloonModel bloon, Image icon)
         {
             var sprite = icon.sprite;
-            if (sprite.texture.isReadable || sprite.GetCenterColor().IsSimilar(initColor)) return;
+            if (sprite.texture.isReadable) return;
+            if (!computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
             var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
             if (texture != null) {
+                bloonMenuFusions.Remove(bloon.name);
                 icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
                 icon.rectTransform.sizeDelta = new Vector2(2,2);
                 icon.rectTransform.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
@@ -430,14 +433,14 @@ namespace Combloonation
             });
         }
 
-        public static void SetBloonAppearance(Bloon bloon)
+        public static void SetBloonAppearance(this Bloon bloon)
         {
             var graphic = bloon?.display?.node?.graphic;
             if (graphic is null) return;
             if (BloonFromName(bloon.bloonModel.name) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
         }
 
-        public static void SetBloonAppearance(SpawnBloonButton button)
+        public static void SetBloonAppearance(this SpawnBloonButton button)
         {
             if (BloonFromName(button.model.name) is FusionBloonModel bloon)
             {
@@ -445,12 +448,12 @@ namespace Combloonation
             }
         }
 
-        public static void SetBloonAppearance(InGame inGame)
+        public static void SetBloonAppearance(this InGame inGame)
         {
             if (inGame.bridge is null) return;
             List<BloonToSimulation> bloonSims;
             try { bloonSims = inGame.bridge.GetAllBloons().ToList(); } catch { return; }
-            foreach (var bloonSim in bloonSims) { SetBloonAppearance(bloonSim.GetBloon()); }
+            foreach (var bloonSim in bloonSims) { bloonSim.GetBloon().SetBloonAppearance(); }
         }
 
     }

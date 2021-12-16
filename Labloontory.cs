@@ -25,7 +25,7 @@ namespace Combloonation
     {
 
         public static readonly Dictionary<string, FusionBloonModel> _bloonsByName = new Dictionary<string, FusionBloonModel>();
-        public static string fusionTag = "CombloonationFusion";
+        public static string fusionTag = "Fusion";
         public static string fusionComponentDelim = "ˇ";
         public static string fusionComponentDebuglim = "_";
         public static string fusionPropertiesDelim = "干";

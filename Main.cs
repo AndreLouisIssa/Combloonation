@@ -72,27 +72,22 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(InGame __instance)
             {
-                if (tryPatchingIcons && !beganPatchingIcons && __instance.IsSandbox)
-                {
-                    MelonLogger.Msg("Setting icons...");
-                    beganPatchingIcons = true;
-                }
-                SetBloonAppearance(__instance);
+                __instance.SetBloonAppearance();
             }
         }
 
-        [HarmonyPatch(typeof(InGame), nameof(InGame.PlayFastForwardClicked))]
-        class Patch_InGame_PlayFastForwardClicked
-        {
-            [HarmonyPrefix]
-            public static void Prefix(InGame __instance)
-            {
-                if (tryPatchingIcons && __instance.IsSandbox) {
-                    MelonLogger.Msg("Finished setting icons!");
-                    tryPatchingIcons = false;
-                }
-            }
-        }
+        //[HarmonyPatch(typeof(InGame), nameof(InGame.PlayFastForwardClicked))]
+        //class Patch_InGame_PlayFastForwardClicked
+        //{
+        //    [HarmonyPrefix]
+        //    public static void Prefix(InGame __instance)
+        //    {
+        //        if (tryPatchingIcons && __instance.IsSandbox) {
+        //            MelonLogger.Msg("Finished setting icons!");
+        //            tryPatchingIcons = false;
+        //        }
+        //    }
+        //}
 
 /*        [HarmonyPatch(typeof(CosmeticHelper), nameof(CosmeticHelper.GetBloonModel))]
         public class Patch_CosmeticHelper_GetBloonModel
@@ -137,7 +132,14 @@ namespace Combloonation
             [HarmonyPostfix]
             public static void Postfix(SpawnBloonButton __instance)
             {
-                if (tryPatchingIcons) SetBloonAppearance(__instance);
+                if (tryPatchingIcons && beganPatchingIcons) {
+                    __instance.SetBloonAppearance();
+                    if (bloonMenuFusions.Count == 0)
+                    {
+                        tryPatchingIcons = false;
+                        MelonLogger.Msg("Finished patching icons!");
+                    }
+                }
             }
         }
 
@@ -155,7 +157,14 @@ namespace Combloonation
             public static bool Prefix(BloonMenu __instance)
             {
                 __instance.ClearButtons();
-                __instance.CreateBloonButtons(GetGameModel().bloons.OrderBy(b => b.danger).ToIl2CppList());
+                var bloons = GetGameModel().bloons.OrderBy(b => b.danger);
+                __instance.CreateBloonButtons(bloons.ToIl2CppList());
+                if (tryPatchingIcons && !beganPatchingIcons)
+                {
+                    MelonLogger.Msg("Setting icons...");
+                    bloonMenuFusions = bloons.Select(b => b.name).Where(n => BloonFromName(n) is FusionBloonModel bloon).ToList();
+                    beganPatchingIcons = true;
+                }
                 return false;
             }
         }
