@@ -171,12 +171,12 @@ namespace Combloonation
         {
             var groups = new List<BloonGroupModel>();
             var subgroups = new List<BloonGroupModel>();
-            var bloons = new List<BloonModel>();
+            var bloons = new List<string>();
             var i = 0; var size = sizes[i];
             var j = 0; var group = roundGroups[j];
             while (i < sizes.Length && j < roundGroups.Length)
             {
-                bloons.Add(BloonFromName(group.bloon));
+                bloons.Add(group.bloon);
                 var split = Split(group, size, out size);
                 subgroups.Add(split.First());
                 if (size > 0 && ++j < roundGroups.Length) { group = roundGroups[j]; continue; }
@@ -184,11 +184,12 @@ namespace Combloonation
                 else if (++j < roundGroups.Length) group = roundGroups[j];
                 if (++i < sizes.Length) size = sizes[i];
 
-                var bloon = Fuse(bloons/*, Property.all.FindAll(p => p.name == "Regrow")*/);
+                var bloon = Fuse(bloons);
                 foreach (var subgroup in subgroups)
                 {
                     subgroup.bloon = bloon.name;
-                    if (bloon is FusionBloonModel fusion) subgroup.count = (int)Math.Ceiling(((double)subgroup.count)/fusion.fusands.Count());
+                    if (bloon is FusionBloonModel fusion)
+                        subgroup.count = (int)Math.Ceiling(((double)subgroup.count)/fusion.fusands.Count());
                     groups.Add(subgroup);
                 }
                 bloons.Clear();
