@@ -76,18 +76,6 @@ namespace Combloonation
             }
         }
 
-        [HarmonyPatch(typeof(Grow), nameof(Grow.Process))]
-        public class Patch_Grow_Process
-        {
-            [HarmonyFinalizer]
-            public static Exception Finalizer(Grow __instance, Exception __exception)
-            {
-                // TODO: set the growTo appropriately here somehow
-                if (__exception != null) __instance.Regenerate();
-                return null;
-            }
-        }
-
         [HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.SpawnBloon))]
         public class Patch_SpawnBloonButton_SpawnBloon
         {
@@ -109,11 +97,11 @@ namespace Combloonation
         }
 
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleFortified))]
-        public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() { return patchingIcons = patchedIcons; } }
+        public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleCamo))]
-        public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() { return patchingIcons = patchedIcons; } }
+        public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleRegen))]
-        public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() { return patchingIcons = patchedIcons; } }
+        public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
 
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
         public class Patch_BloonMenu_SortBloons

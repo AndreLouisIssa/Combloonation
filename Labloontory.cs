@@ -54,7 +54,6 @@ namespace Combloonation
                     b.tags = b.tags.Append("Grow").ToArray();
                     b.AddBehavior(new GrowModel("GrowModel_", 3, ""));
                     b.childBloonModels.ToList().ForEach(c => c.AddBehavior(new GrowModel("GrowModel_", 3, b.baseId)));
-                    //b.childBloonModels.ToList().ForEach(c => b.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", c.baseId, b.baseId)));
                 }),
                 new Property( "Fortified", "Fortified", false, b => b.isFortified, m => m.fortified, b => {
                     b.isFortified = true;
@@ -145,11 +144,22 @@ namespace Combloonation
                 
                 fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
                 fusion.bloonProperties = fusion.fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
-                if (fusion.isGrow) foreach (var child in fusion.childBloonModels)
+                foreach (var child in fusion.childBloonModels)
+                    fusion.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", child.baseId, fusion.baseId));
+                if (fusion.isGrow) 
                 {
-                    //fusion.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", child.baseId, fusion.baseId));
-                    fusion.AddBehavior(new GrowModel("GrowModel_", 3, ""));
-                    child.AddBehavior(new GrowModel("GrowModel_", 3, fusion.name));
+                    var grows = fusion.fusands.SelectMany(f => f.GetBehaviors<GrowModel>());
+                    var rate = Math.Max(3,grows.Max(g => g.rate));
+                    fusion.AddBehavior(new GrowModel("GrowModel_", rate, ""));
+                    foreach (var child in fusion.childBloonModels) {
+                        var cgrows = child.GetBehaviors<GrowModel>();
+                        var crate = Math.Max(rate, cgrows.Max(g => g.rate));
+                        var cgrow = cgrows.FirstOrDefault(g => g.growToId != "");
+                        GrowModel grow = new GrowModel("GrowModel_", crate, fusion.name);
+                        if (cgrow != default) grow.growToId = cgrow.growToId;
+                        child.RemoveBehaviors<GrowModel>();
+                        child.AddBehavior(grow);
+                    }
                 }
                 foreach (var p in fusion.props) if (!p.has(fusion)) p.add(fusion);
                 return this;
