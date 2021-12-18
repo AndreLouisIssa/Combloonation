@@ -482,12 +482,11 @@ namespace Combloonation
 
         public static void BloonMenuSortBloons(BloonMenu menu)
         {
-            foreach (var icon in patchedImages)
-            {
+            try { foreach (var icon in patchedImages) {
                 var rt = icon.rectTransform;
                 rt.sizeDelta = sizeDelta;
                 rt.localScale = localScale;
-            }
+            } } catch { patchedIcons = false; }
             patchedImages.Clear();
             menu.ClearButtons();
             bloonMenuProperties = PropertyString(Property.all.Where(p => p.menu(menu)));
