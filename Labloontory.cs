@@ -56,7 +56,7 @@ namespace Combloonation
                     b.AddBehavior(new GrowModel("GrowModel_", rate, ""));
                     foreach (var child in b.childBloonModels) {
                         var grows = child.GetBehaviors<GrowModel>();
-                        var cgrow = grows.FirstOrDefault(g => g.growToId != "");
+                        var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromName(g.growToId, false)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
                         GrowModel grow = new GrowModel("GrowModel_", rate, b.name);
                         if (cgrow != default) grow.growToId = grow.growToId;
@@ -162,7 +162,7 @@ namespace Combloonation
                     fusion.AddBehavior(new GrowModel("GrowModel_", rate, ""));
                     foreach (var child in fusion.childBloonModels) {
                         grows = child.GetBehaviors<GrowModel>();
-                        var cgrow = grows.FirstOrDefault(g => g.growToId != "");
+                        var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromName(g.growToId, false)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
                         GrowModel grow = new GrowModel("GrowModel_", rate, fusion.name);
                         if (cgrow != default) grow.growToId = grow.growToId;
