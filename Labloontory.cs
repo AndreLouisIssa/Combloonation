@@ -52,8 +52,12 @@ namespace Combloonation
                 new Property( "Regrow", "Grow", true, b => b.isGrow, m => m.regen, b => {
                     b.isGrow = true;
                     b.tags = b.tags.Append("Grow").ToArray();
-                    b.AddBehavior(new GrowModel("GrowModel_", 3, ""));
-                    b.childBloonModels.ToList().ForEach(c => c.AddBehavior(new GrowModel("GrowModel_", 3, b.baseId)));
+                    var rate = 3;
+                    b.AddBehavior(new GrowModel("GrowModel_", rate, ""));
+                    foreach (var child in b.childBloonModels) {
+                        child.RemoveBehaviors<GrowModel>();
+                        child.AddBehavior(new GrowModel("GrowModel_", rate, b.name));
+                    }
                 }),
                 new Property( "Fortified", "Fortified", false, b => b.isFortified, m => m.fortified, b => {
                     b.isFortified = true;
@@ -152,11 +156,9 @@ namespace Combloonation
                     var rate = Math.Max(3,grows.Max(g => g.rate));
                     fusion.AddBehavior(new GrowModel("GrowModel_", rate, ""));
                     foreach (var child in fusion.childBloonModels) {
-                        var cgrows = child.GetBehaviors<GrowModel>();
-                        var crate = Math.Max(rate, cgrows.Max(g => g.rate));
-                        var cgrow = cgrows.FirstOrDefault(g => g.growToId != "");
-                        GrowModel grow = new GrowModel("GrowModel_", crate, fusion.name);
-                        if (cgrow != default) grow.growToId = cgrow.growToId;
+                        var cgrow = child.GetBehaviors<GrowModel>().FirstOrDefault(g => g.growToId != "");
+                        GrowModel grow = new GrowModel("GrowModel_", rate, fusion.name);
+                        if (cgrow != default) grow.growToId = grow.growToId;
                         child.RemoveBehaviors<GrowModel>();
                         child.AddBehavior(grow);
                     }
