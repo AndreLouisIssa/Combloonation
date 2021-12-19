@@ -131,14 +131,14 @@ namespace Combloonation
                 fusion.depletionEffects = new Il2CppReferenceArray<EffectModel>(fusion.fusands.SelectMany(f => f.depletionEffects).ToArray());
                 fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays ?? new Il2CppStringArray(new string[]{ })).ToArray());
 
-                var prefix = $"{folderPath}/{DebugString(fusion.name)}";
-                var texturePath = prefix + ".texture.png";
-                var iconPath = prefix + ".icon.png";
-                if (File.Exists(texturePath)) computedTextures[fusion.name] = LoadTexture(texturePath);
-                if (File.Exists(iconPath)) {
-                    computedIcons[fusion.name] = LoadTexture(iconPath);
-                    fusion.SetHelpfulAdditionsBloon();
-                }
+                //var prefix = $"{folderPath}/{DebugString(fusion.name)}";
+                //var texturePath = prefix + ".texture.png";
+                //var iconPath = prefix + ".icon.png";
+                //if (File.Exists(texturePath)) computedTextures[fusion.name] = LoadTexture(texturePath);
+                //if (File.Exists(iconPath)) {
+                //    computedIcons[fusion.name] = LoadTexture(iconPath);
+                //    fusion.SetHelpfulAdditionsBloon();
+                //}
 
                 return this;
             }

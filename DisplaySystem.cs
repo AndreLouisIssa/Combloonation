@@ -373,36 +373,35 @@ namespace Combloonation
         public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
         {
             if (bloon is null) throw new ArgumentNullException(nameof(bloon));
-            if (oldTexture is null) return computed[bloon.name] = null;
+            if (oldTexture is null) return null;//throw new ArgumentNullException(nameof(oldTexture));
             if (oldTexture.isReadable) return null;
             var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
-            computed[bloon.name] = texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
-            if (texture != null)
-            {
-                texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
-                if (computed == computedIcons) bloon.SetHelpfulAdditionsBloon();
-            }
+            texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
+            if (texture is null) return null;
+            computed[bloon.name] = texture;
+            //texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
+            if (computed == computedIcons) bloon.SetHelpfulAdditionsBloon();
             return texture;
         }
 
         public static void SetBloonAppearance(this FusionBloonModel bloon, UnityDisplayNode graphic)
         {
             var sprite = graphic.sprite;
-            if (sprite != null)
-            {
-                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedIcons, false, "icon", sprite.sprite.textureRect);
-                if (texture != null)
-                {
-                    sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
-                }
-            }
-            else
+            if (sprite is null)
             {
                 var renderer = graphic.genericRenderers.First(mainRenderer);
                 var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true, "texture");
-                if (texture != null) graphic.genericRenderers.Where(mainRenderer).Do(r => r.SetMainTexture(texture));
+                if (texture is null) return;
+                graphic.genericRenderers.Where(mainRenderer).Do(r => r.SetMainTexture(texture));
             }
+            else
+            {
+                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedIcons, false, "icon", sprite.sprite.textureRect);
+                if (texture is null) return;
+                sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
+            }
+
         }
 
         public static void SetBloonAppearance(this FusionBloonModel bloon, Image icon)
@@ -414,6 +413,13 @@ namespace Combloonation
             if (texture != null)
             {
                 icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
+                float w = texture.width; float h = texture.height;
+                float s = Math.Max(w, h);
+                if (s > 150)
+                {
+                    var r = 150 / s;
+                    w *= r; h *= r;
+                }
                 var rt = icon.rectTransform;
                 sizeDelta = rt.sizeDelta; rt.sizeDelta = new Vector2(2, 2);
                 localScale = rt.localScale; rt.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
