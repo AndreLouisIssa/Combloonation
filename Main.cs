@@ -29,7 +29,7 @@ namespace Combloonation
     public class Main : BloonsTD6Mod
     {
 
-        public static string folderPath;
+        //public static string folderPath;
         public static int seed = 2000;
         public static System.Random random;
         public static MethodInfo optional_HelpfulAdditions_AddCustomBloon = null;
@@ -38,9 +38,9 @@ namespace Combloonation
         {
             base.OnApplicationStart();
             MelonLogger.Msg("Combloonations loaded!");
-            folderPath = FileIOUtil.GetSandboxPath() + "/Combloonation";
-            MelonLogger.Msg("Dumping at " + folderPath);
-            Directory.CreateDirectory(folderPath);
+            //folderPath = FileIOUtil.GetSandboxPath() + "/Combloonation";
+            //MelonLogger.Msg("Dumping at " + folderPath);
+            //Directory.CreateDirectory(folderPath);
             random = new System.Random(seed);
         }
 
