@@ -109,8 +109,8 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
             {
                 var components = BloonsFromBloons(bloons);
-                var allProps = (props != null ? props : GetProperties(components)).ToList();
-                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).TakeAtMost(5);
+                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).Take(5);
+                var allProps = (props != null ? props : GetProperties(baseFusands)).ToList();
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + PropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray(), allProps.ToArray());

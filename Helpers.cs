@@ -105,11 +105,6 @@ namespace Combloonation
             return sizes.ToArray();
         }
 
-        public static IEnumerable<T> TakeAtMost<T>(this IEnumerable<T> list, int n)
-        {
-            return list.Take(Math.Max(n, list.Count()));
-        }
-
         //https://stackoverflow.com/questions/50300125/how-to-find-consecutive-same-values-items-as-a-linq-group
         public static IEnumerable<IEnumerable<T>> GroupWhile<T>(this IEnumerable<T> seq, Func<T, T, bool> condition)
         {

@@ -96,6 +96,17 @@ namespace Combloonation
             }
         }
 
+        [HarmonyPatch(typeof(FreeplayBloonGroupModel), nameof(FreeplayBloonGroupModel.CalculateScore))]
+        public class Patch_SpawnBloonButton_CalculateScore
+        {
+            [HarmonyPostfix]
+            public static void Postfix(FreeplayBloonGroupModel __instance, ref float __result)
+            {
+                var bloon = BloonFromName(__instance.group.bloon);
+                __result = __instance.group.count * bloon.danger * (1 + GetProperties(bloon).Count());
+            }
+        }
+
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleFortified))]
         public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleCamo))]

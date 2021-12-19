@@ -205,14 +205,26 @@ namespace Combloonation
             if (m.Is(out GameModel game))
             {
                 MelonLogger.Msg("Mutating rounds...");
-                foreach (RoundSetModel roundSet in game.roundSets)
+                var fbounds = game.freeplayGroups.SelectMany(f => f.bounds);
+                var bound = new FreeplayBloonGroupModel.Bounds();
+                bound.lowerBounds = fbounds.Min(b => b.lowerBounds);
+                bound.upperBounds = fbounds.Max(b => b.upperBounds);
+                var bounds = new FreeplayBloonGroupModel.Bounds[] { bound };
+                var groups = game.freeplayGroups.Select(f => f.group).ToArray();
+                var size = groups.Sum(g => g.count);
+                var parts = random.Next(1, Math.Max(1, size/groups.Length));
+                MelonLogger.Msg($"{size} / {parts}");
+                groups = Split(groups, Partition(size, parts, random));
+                game.freeplayGroups = groups.Select(g => new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, bounds, g)).ToArray();
+                MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> {f.group.end} | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
+                foreach (var roundSet in game.roundSets)
                 {
                     foreach (var round in roundSet.rounds)
                     {
-                        var groups = round.groups;
-                        if (groups.Count <= 1) continue;
-                        var size = groups.Sum(g => g.count);
-                        var parts = random.Next(1, groups.Count);
+                        groups = round.groups;
+                        if (groups.Length <= 1) continue;
+                        size = groups.Sum(g => g.count);
+                        parts = random.Next(1, groups.Length);
                         round.groups = Split(groups, Partition(size, parts, random));
                     }
                 }
