@@ -205,6 +205,18 @@ namespace Combloonation
             if (m.Is(out GameModel game))
             {
                 MelonLogger.Msg("Mutating rounds...");
+                var roundGroups = game.freeplayGroups.ToList();
+                foreach (var rounds in game.roundSets.Select(r => r.rounds))
+                {
+                    for (int i = 0; i < rounds.Length; ++i)
+                    {
+                        var roundBound = new FreeplayBloonGroupModel.Bounds();
+                        roundBound.lowerBounds = roundBound.upperBounds = i;
+                        var roundBounds = new FreeplayBloonGroupModel.Bounds[] { roundBound };
+                        rounds[i].groups.ForEach(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
+                    }
+                }
+                game.freeplayGroups = roundGroups.OrderBy(f => f.CalculateScore(game)).ToArray();
                 var fbounds = game.freeplayGroups.SelectMany(f => f.bounds);
                 var bound = new FreeplayBloonGroupModel.Bounds();
                 bound.lowerBounds = fbounds.Min(b => b.lowerBounds);

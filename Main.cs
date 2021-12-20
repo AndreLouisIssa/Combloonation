@@ -103,7 +103,7 @@ namespace Combloonation
             public static void Postfix(FreeplayBloonGroupModel __instance, ref float __result)
             {
                 var bloon = BloonFromName(__instance.group.bloon);
-                __result = __instance.group.count * bloon.danger * (1 + GetProperties(bloon).Count());
+                __result = __instance.group.count * BaseBloonNamesFromName(bloon.name).Select(n => BloonFromName(n)).Sum(b => b.danger) * (1 + GetProperties(bloon).Count());
             }
         }
 
