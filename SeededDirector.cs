@@ -226,7 +226,7 @@ namespace Combloonation
                         rounds[i].groups.ForEach(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
                     }
                 }
-                game.freeplayGroups = roundGroups.Shuffle(random).Take(1 + roundGroups.Count/8).ToArray();
+                game.freeplayGroups = roundGroups.Shuffle(random).Take(1 + roundGroups.Count/6).ToArray();
                 var size = game.freeplayGroups.Sum(g => g.group.count);
                 var ratio = size/game.freeplayGroups.Length;
                 var parts = random.Next(Math.Min(size, ratio), Math.Max(size, ratio));
