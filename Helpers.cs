@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts.Models;
+using Assets.Scripts.Models.Rounds;
 using MelonLoader;
 using System;
 using System.Collections.Generic;
@@ -214,11 +215,20 @@ namespace Combloonation
             return power(new List<List<T>> { new List<T> { } }, list);
         }
 
-        public static Texture2D LoadTexture(string path) {
+        public static Texture2D LoadTexture(string path)
+        {
             byte[] data = File.ReadAllBytes(path);
             Texture2D tex = new Texture2D(0, 0) { wrapMode = TextureWrapMode.Clamp };
             ImageConversion.LoadImage(tex, data);
             return tex;
+        }
+
+        public static FreeplayBloonGroupModel.Bounds NewFreeplayBounds(int lowerBounds, int upperBounds)
+        {
+            var bound = new FreeplayBloonGroupModel.Bounds();
+            bound.lowerBounds = lowerBounds;
+            bound.upperBounds = upperBounds;
+            return bound;
         }
     }
 }

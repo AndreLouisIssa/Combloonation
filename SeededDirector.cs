@@ -10,7 +10,9 @@ using MelonLoader;
 using Assets.Scripts.Models;
 using System.Runtime.Serialization;
 using UnhollowerRuntimeLib;
+using Bounds = Assets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
 using static Combloonation.DirectableModel;
+using UnhollowerBaseLib;
 
 namespace Combloonation
 {
@@ -155,47 +157,57 @@ namespace Combloonation
         public RoundMutatorDirector(int seed) : base(seed) { }
         public RoundMutatorDirector() : base() { }
 
-        public static BloonGroupModel[] Split(BloonGroupModel group, int size, out int excess)
+        public class GroupOnlyFreeplayBloonGroupModel : FreeplayBloonGroupModel
         {
+            public GroupOnlyFreeplayBloonGroupModel(BloonGroupModel group) : base("", 0, new Bounds[] { }, group) { }
+        }
+
+        public static FreeplayBloonGroupModel[] Split(FreeplayBloonGroupModel fgroup, int size, out int excess)
+        {
+            var group = fgroup.group;
             var first = group.Duplicate();
             var span = group.count;
             excess = size - span;
-            if (size <= 0 || size >= span) return new BloonGroupModel[] { first };
+            if (size <= 0 || size >= span)
+                return new FreeplayBloonGroupModel[] { new FreeplayBloonGroupModel(fgroup.name, fgroup.score, fgroup.bounds, first) };
             var last = group.Duplicate();
             var step = size == 1 ? 0 : (group.end - group.start) / (span - 1);
             last.start = (first.end = group.start + size * step) + step;
-            return new BloonGroupModel[] { first, last };
+            return new FreeplayBloonGroupModel[] { new FreeplayBloonGroupModel(fgroup.name, fgroup.score, fgroup.bounds, first), new FreeplayBloonGroupModel(fgroup.name, fgroup.score, fgroup.bounds, last) };
         }
 
-        public static BloonGroupModel[] Split(BloonGroupModel[] roundGroups, int[] sizes)
+        public static FreeplayBloonGroupModel[] Split(FreeplayBloonGroupModel[] inGroups, int[] sizes)
         {
-            var groups = new List<BloonGroupModel>();
-            var subgroups = new List<BloonGroupModel>();
+            var fgroups = new List<FreeplayBloonGroupModel>();
+            var subfgroups = new List<FreeplayBloonGroupModel>();
             var bloons = new List<string>();
             var i = 0; var size = sizes[i];
-            var j = 0; var group = roundGroups[j];
-            while (i < sizes.Length && j < roundGroups.Length)
+            var j = 0; var fgroup = inGroups[j];
+            while (i < sizes.Length && j < inGroups.Length)
             {
-                bloons.Add(group.bloon);
-                var split = Split(group, size, out size);
-                subgroups.Add(split.First());
-                if (size > 0 && ++j < roundGroups.Length) { group = roundGroups[j]; continue; }
-                if (size == 0) group = split.Last();
-                else if (++j < roundGroups.Length) group = roundGroups[j];
+                bloons.Add(fgroup.group.bloon);
+                var split = Split(fgroup, size, out size);
+                subfgroups.Add(split.First());
+                if (size > 0 && ++j < inGroups.Length) { fgroup = inGroups[j]; continue; }
+                if (size == 0) fgroup = split.Last();
+                else if (++j < inGroups.Length) fgroup = inGroups[j];
                 if (++i < sizes.Length) size = sizes[i];
 
                 var bloon = Fuse(bloons);
-                foreach (var subgroup in subgroups)
+                var bounds = subfgroups.SelectMany(f => f.bounds);
+                var bound = (bounds.Count() > 0) ? NewFreeplayBounds(bounds.Min(b => b.lowerBounds),bounds.Max(b => b.upperBounds)) : NewFreeplayBounds(0,0);
+                foreach (var subgroup in subfgroups)
                 {
-                    subgroup.bloon = bloon.name;
+                    subgroup.bounds = new Bounds[] { bound };
+                    subgroup.group.bloon = bloon.name;
                     if (bloon is FusionBloonModel fusion)
-                        subgroup.count = (int)Math.Ceiling(((double)subgroup.count)/fusion.fusands.Count());
-                    groups.Add(subgroup);
+                        subgroup.group.count = (int)Math.Ceiling(((double)subgroup.group.count)/fusion.fusands.Count());
+                    fgroups.Add(subgroup);
                 }
                 bloons.Clear();
-                subgroups.Clear();
+                subfgroups.Clear();
             }
-            return groups.ToArray();
+            return fgroups.ToArray();
         }
 
         public override float Eval(DirectableModel model) { return 0f; }
@@ -210,34 +222,26 @@ namespace Combloonation
                 {
                     for (int i = 0; i < rounds.Length; ++i)
                     {
-                        var roundBound = new FreeplayBloonGroupModel.Bounds();
-                        roundBound.lowerBounds = roundBound.upperBounds = i;
-                        var roundBounds = new FreeplayBloonGroupModel.Bounds[] { roundBound };
+                        var roundBounds = new Bounds[] { NewFreeplayBounds(i, i) };
                         rounds[i].groups.ForEach(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
                     }
                 }
-                game.freeplayGroups = roundGroups.OrderBy(f => f.CalculateScore(game)).ToArray();
-                var fbounds = game.freeplayGroups.SelectMany(f => f.bounds);
-                var bound = new FreeplayBloonGroupModel.Bounds();
-                bound.lowerBounds = fbounds.Min(b => b.lowerBounds);
-                bound.upperBounds = fbounds.Max(b => b.upperBounds);
-                var bounds = new FreeplayBloonGroupModel.Bounds[] { bound };
-                var groups = game.freeplayGroups.Select(f => f.group).ToArray();
-                var size = groups.Sum(g => g.count);
-                var parts = random.Next(1, Math.Max(1, size/groups.Length));
-                MelonLogger.Msg($"{size} / {parts}");
-                groups = Split(groups, Partition(size, parts, random));
-                game.freeplayGroups = groups.Select(g => new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, bounds, g)).ToArray();
-                MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> {f.group.end} | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
+                game.freeplayGroups = roundGroups.Shuffle(random).ToArray();
+                var size = game.freeplayGroups.Sum(g => g.group.count);
+                var ratio = size/game.freeplayGroups.Length;
+                var parts = random.Next(Math.Min(size, ratio), Math.Max(size, ratio));
+                //MelonLogger.Msg($"{size} / {parts}");
+                game.freeplayGroups = Split(game.freeplayGroups, Partition(size, parts, random));
+                //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> {f.group.end} | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
                 foreach (var roundSet in game.roundSets)
                 {
                     foreach (var round in roundSet.rounds)
                     {
-                        groups = round.groups;
+                        var groups = round.groups;
                         if (groups.Length <= 1) continue;
                         size = groups.Sum(g => g.count);
                         parts = random.Next(1, groups.Length);
-                        round.groups = Split(groups, Partition(size, parts, random));
+                        round.groups = Split(groups.Select(g => new GroupOnlyFreeplayBloonGroupModel(g)).ToArray(), Partition(size, parts, random)).Select(f => f.group).ToArray();
                     }
                 }
                 MelonLogger.Msg("Finished mutating rounds!");
