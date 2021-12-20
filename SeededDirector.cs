@@ -217,21 +217,21 @@ namespace Combloonation
             if (m.Is(out GameModel game))
             {
                 MelonLogger.Msg("Mutating rounds...");
-                var roundGroups = game.freeplayGroups.ToList();
-                foreach (var rounds in game.roundSets.Select(r => r.rounds))
-                {
-                    for (int i = 0; i < rounds.Length; ++i)
-                    {
-                        var roundBounds = new Bounds[] { NewFreeplayBounds(i, i) };
-                        rounds[i].groups.ForEach(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
-                    }
-                }
-                game.freeplayGroups = roundGroups.Shuffle(random).ToArray();
+                //var roundGroups = game.freeplayGroups.ToList();
+                //foreach (var rounds in game.roundSets.Select(r => r.rounds))
+                //{
+                //    for (int i = 0; i < rounds.Length; ++i)
+                //    {
+                //        var roundBounds = new Bounds[] { NewFreeplayBounds(i, i) };
+                //        rounds[i].groups.ForEach(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
+                //    }
+                //}
+                //game.freeplayGroups = roundGroups.Shuffle(random).ToArray();
                 var size = game.freeplayGroups.Sum(g => g.group.count);
                 var ratio = size/game.freeplayGroups.Length;
                 var parts = random.Next(Math.Min(size, ratio), Math.Max(size, ratio));
                 //MelonLogger.Msg($"{size} / {parts}");
-                game.freeplayGroups = Split(game.freeplayGroups, Partition(size, parts, random));
+                //game.freeplayGroups = Split(game.freeplayGroups, Partition(size, parts, random));
                 //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> {f.group.end} | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
                 foreach (var roundSet in game.roundSets)
                 {
