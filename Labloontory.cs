@@ -12,6 +12,7 @@ using UnhollowerBaseLib;
 using static Combloonation.Display;
 using static Combloonation.Helpers;
 using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
+using MelonLoader;
 
 namespace Combloonation
 {
@@ -22,7 +23,7 @@ namespace Combloonation
         public static readonly Dictionary<string, FusionBloonModel> _bloonsByName = new Dictionary<string, FusionBloonModel>();
         public static string fusionTag = "Fusion";
         public static string fusionComponentDelim = "ˇ";
-        public static string fusionComponentDebuglim = "_";
+        public static string fusionComponentDebuglim = "'";
         public static string fusionPropertiesDelim = "‑";
         public static string fusionPropertiesDebuglim = "~";
 
@@ -114,7 +115,7 @@ namespace Combloonation
 
             public BloonsionReactor Merge()
             {
-                //MelonLogger.Msg("Creating " + DebugString(fusion.name));
+                MelonLogger.Msg("Creating " + DebugString(fusion.name));
                 return MergeBehaviors().MergeDisplay().MergeChildren().MergeSpawnBloonsActionModel().MergeProperties().MergeStats();
             }
 
