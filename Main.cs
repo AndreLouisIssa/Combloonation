@@ -35,7 +35,8 @@ namespace Combloonation
             random = new System.Random(seed);
         }
 
-        public override void OnApplicationLateStart() {
+        public override void OnApplicationLateStart()
+        {
             Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
             Assembly helpfulAdditions = assemblies.FirstOrDefault(assembly => assembly.GetName().Name.Equals("Helpful Additions"));
             if (helpfulAdditions is null) return;
@@ -49,11 +50,13 @@ namespace Combloonation
             var game = GetGameModel();
             director = new MainDirector(game, seed);
             MelonLogger.Msg("Mutating rounds...");
-            var produced = director.Produce();
+            var produced = director.Produce(new Goal(null, null, null, new string[] { "Golden3" }, null));
             var bound = produced.Item2.SelectMany(f => f.bounds).Max(b => b.upperBounds);
             game.freeplayGroups.Do(f => f.bounds = f.bounds.Where(b => b.upperBounds >= bound).ToArray());
+            game.freeplayGroups = game.freeplayGroups.Where(f => f.bounds.Length > 0).ToArray();
             game.freeplayGroups.SelectMany(f => f.bounds).Do(b => b.lowerBounds = Math.Max(b.lowerBounds, bound));
             game.roundSets = produced.Item1; game.freeplayGroups = produced.Item2.Concat(game.freeplayGroups).ToArray();
+            //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
             MelonLogger.Msg("Finished mutating rounds!");
         }
 

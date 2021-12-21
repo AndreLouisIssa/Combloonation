@@ -15,14 +15,20 @@ namespace Combloonation
     public static class Helpers
     {
         //https://stackoverflow.com/a/5807166
-        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> list, Random r = null)
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> list, Random random = null)
         {
-            r = r ?? new Random();
+            random = random ?? new Random();
             var shuffledList = list.
-                Select(x => new { Number = r.Next(), Item = x }).
+                Select(x => new { Number = random.Next(), Item = x }).
                 OrderBy(x => x.Number).
                 Select(x => x.Item);
             return shuffledList;
+        }
+
+        public static HashSet<T> RandomSubset<T>(Dictionary<T,double> chances, double scale, Random random = null)
+        {
+            random = random ?? new Random();
+            return new HashSet<T>(chances.Keys.Where(t => random.NextDouble() < 1 - Math.Pow(1 - chances[t], scale)));
         }
 
         public static double HeartCurve(double x, double y)
@@ -66,21 +72,6 @@ namespace Combloonation
         {
             // transformed error function to interpolate from near 0 to near 1 from s to r
             return (ERF(((x - s) / (r - s) * 4d) - 2d) + 1d) / 2d;
-        }
-
-        public static void AddValues<K, V>(this SortedList<K, V> list, IEnumerable<V> values, Func<V, K> selector)
-        {
-            foreach (var value in values) list.Add(selector(value), value);
-        }
-
-        public static void AddKeys<K, V>(this SortedList<K, V> list, IEnumerable<K> keys, Func<K, V> selector)
-        {
-            foreach (var key in keys) list.Add(key, selector(key));
-        }
-
-        public static void AddItems<T>(this List<T> list, IEnumerable<T> items)
-        {
-            foreach (var item in items) list.Add(item);
         }
 
         public static int[] Partition(int size, int parts, Random r = null)

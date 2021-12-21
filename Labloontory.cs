@@ -25,7 +25,7 @@ namespace Combloonation
         public static string fusionComponentDelim = "ˇ";
         public static string fusionComponentDebuglim = "'";
         public static string fusionPropertiesDelim = "‑";
-        public static string fusionPropertiesDebuglim = "~";
+        public static string fusionPropertiesDebuglim = "-";
 
         public static HashSet<string> unstackableBehaviors = new HashSet<string>
         {
@@ -115,7 +115,7 @@ namespace Combloonation
 
             public BloonsionReactor Merge()
             {
-                MelonLogger.Msg("Creating " + DebugString(fusion.name));
+                //MelonLogger.Msg("Creating " + DebugString(fusion.name));
                 return MergeBehaviors().MergeDisplay().MergeChildren().MergeSpawnBloonsActionModel().MergeProperties().MergeStats();
             }
 

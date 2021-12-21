@@ -27,6 +27,7 @@ namespace Combloonation
         public static List<Image> patchedImages = new List<Image>();
         public static Vector2 sizeDelta = default;
         public static Vector3 localScale = default;
+        public static int maxIconSize = 256;
 
         public static Func<Renderer, bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();

@@ -8,39 +8,50 @@ using BTD_Mod_Helper.Extensions;
 using Assets.Scripts.Models;
 using Bounds = Assets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
 using HarmonyLib;
+using Assets.Scripts.Models.Bloons;
 
 namespace Combloonation
 {
 
     public interface IGoal
     {
+        float? strict { get; }
         float? score { get; }
         int? count { get; }
         string[] bloons { get; }
+        string props { get; }
+    }
+
+    public struct Goal : IGoal
+    {
+        public float? strict { get; set; }
+        public float? score { get; set; }
+        public int? count { get; set; }
+        public string[] bloons { get; set; }
+        public string props { get; set; }
+        public Goal(float? strict, float? score, int? count, string[] bloons, string props)
+        {
+            this.strict = strict; this.score = score; this.count = count; this.bloons = bloons; this.props = props;
+        }
     }
 
     public interface IDirector
     {
         GameModel game { get; }
-
-        float? Score(FreeplayBloonGroupModel model);
-
+        float Score(FreeplayBloonGroupModel model);
+        float Score(BloonGroupModel model);
+        float Score(BloonModel model);
         Tuple<RoundSetModel[], FreeplayBloonGroupModel[]> Produce(IGoal goal = null);
     }
 
     public abstract class Director : IDirector
     {
         public GameModel game { get; }
-
-        public Director(GameModel game)
-        {
-            this.game = game;
-        }
-
+        public Director(GameModel game) { this.game = game; }
         public Director() : this(GetGameModel()) { }
-
-        public abstract float? Score(FreeplayBloonGroupModel group);
-
+        public abstract float Score(FreeplayBloonGroupModel model);
+        public abstract float Score(BloonGroupModel model);
+        public abstract float Score(BloonModel model);
         public abstract Tuple<RoundSetModel[], FreeplayBloonGroupModel[]> Produce(IGoal goal);
 
     }
@@ -126,7 +137,7 @@ namespace Combloonation
         public static FreeplayBloonGroupModel[] Infuse(FreeplayBloonGroupModel[] inGroups, Random random)
         {
             var size = inGroups.Sum(g => g.group.count);
-            var ratio = size/inGroups.Length;
+            var ratio = size / inGroups.Length;
             var parts = random.Next(Math.Min(size, ratio), Math.Max(size, ratio));
             return Split(inGroups, Partition(size, parts, random));
         }
@@ -143,7 +154,7 @@ namespace Combloonation
 
         public static void Buff(FreeplayBloonGroupModel[] inGroups, float scale)
         {
-            inGroups.Do(f => { var g = f.group = f.group.Duplicate(); g.count = (int)(g.count*scale); });
+            inGroups.Do(f => { var g = f.group = f.group.Duplicate(); g.count = (int)(g.count * scale); });
         }
 
         public static void Adjust(IEnumerable<FreeplayBloonGroupModel> inGroups)
@@ -153,25 +164,51 @@ namespace Combloonation
 
         public override Tuple<RoundSetModel[], FreeplayBloonGroupModel[]> Produce(IGoal goal = null)
         {
+            Dictionary<string, double> bloonChances = new Dictionary<string, double>();
+
+            if (!(goal?.bloons is null)) goal.bloons.Do(b => bloonChances.Add(b, 1 / (1 + Score(BloonFromName(b)))));
             var freeplayGroups = new List<FreeplayBloonGroupModel> { };
             var roundSets = game.roundSets.Select(rs => { var nrs = rs.Duplicate(); nrs.rounds = rs.rounds.Select(r => r.Duplicate()).ToArray(); return nrs; }).ToList();
             foreach (var roundSet in roundSets) for (int j = 0; j < roundSet.rounds.Length; ++j)
             {
                 var round = roundSet.rounds[j];
-                var groups = round.groups; 
-                if (groups.Length > 1) {
+                var groups = round.groups;
+                if (groups.Length > 1)
+                {
                     groups = Split(groups.Select(g => new RoundBloonGroupModel(g, null)).ToArray(),
                         Partition(groups.Sum(g => g.count), random.Next(1, groups.Length), random)).Select(f => f.group).ToArray();
                 }
+                if (!(goal?.bloons is null)) foreach (var group in groups)
+                    {
+                        IEnumerable<string> bloons;
+                        if (BloonFromName(group.bloon) is FusionBloonModel fusion) bloons = BloonNamesFromBloons(fusion.fusands);
+                        else bloons = new string[] { group.bloon };
+                        group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundSet.rounds.Length, random))).name;
+                    }
                 groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g, j)));
                 round.groups = groups;
             }
             freeplayGroups = freeplayGroups.ToArray().Iterate(l => Infuse(l, random)
-                .Apply(t => Shift(t, 100), t => Widen(t, 50), t => Buff(t, 2))).Take(3).SelectMany(s => s).Apply(Adjust).ToList();
-            return new Tuple<RoundSetModel[], FreeplayBloonGroupModel[]>( roundSets.ToArray(), freeplayGroups.ToArray());
+                .Apply(t => Shift(t, 100), t => Widen(t, 50), t => Buff(t, 5), Adjust)).Skip(1).Take(2).SelectMany(s => s).ToList();
+            if (!(goal?.props is null))
+                roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups)).Do(g => g.bloon = Fuse(new string[] { g.bloon }, goal.props).name);
+            return new Tuple<RoundSetModel[], FreeplayBloonGroupModel[]>(roundSets.ToArray(), freeplayGroups.ToArray());
         }
 
-        public override float? Score(FreeplayBloonGroupModel model) { return null; }
+        public override float Score(FreeplayBloonGroupModel model)
+        {
+            return 4 * Score(model.group);
+        }
+
+        public override float Score(BloonGroupModel model)
+        {
+            return 2 * (float)Math.Pow(model.count, 0.75) * Score(BloonFromName(model.bloon)) * (float)Math.Pow(1 + 1/(1 + model.end - model.start), 0.25);
+        }
+
+        public override float Score(BloonModel model)
+        {
+            return (float)(120*(1+GetProperties(model).Count())*(1+model.speed)*(1+Math.Pow(model.maxHealth,0.5)/25)/(25+model.danger));
+        }
     }
 
 }
