@@ -3,20 +3,14 @@ using Assets.Scripts.Models.Bloons;
 using Assets.Scripts.Models.Bloons.Behaviors;
 using Assets.Scripts.Models.Effects;
 using Assets.Scripts.Models.GenericBehaviors;
-using Assets.Scripts.Unity;
-using Assets.Scripts.Unity.UI_New.InGame;
 using BTD_Mod_Helper.Extensions;
-using MelonLoader;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnhollowerRuntimeLib;
 using UnhollowerBaseLib;
-using static Combloonation.Main;
 using static Combloonation.Display;
 using static Combloonation.Helpers;
-using System.IO;
-using UnityEngine;
 using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
 
 namespace Combloonation
@@ -29,7 +23,7 @@ namespace Combloonation
         public static string fusionTag = "Fusion";
         public static string fusionComponentDelim = "ˇ";
         public static string fusionComponentDebuglim = "_";
-        public static string fusionPropertiesDelim = "干";
+        public static string fusionPropertiesDelim = "‑";
         public static string fusionPropertiesDebuglim = "~";
 
         public static HashSet<string> unstackableBehaviors = new HashSet<string>

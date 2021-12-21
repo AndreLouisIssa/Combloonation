@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using static Combloonation.Labloontory;
 
 namespace Combloonation
 {
-
     public class Polynomial<T, V, C> where T : ICollection<V>, new() where C : IComparable<C>
     {
 
         public string scalarOp = " ";
-        public string vectorOp = fusionComponentDebuglim;
+        public string vectorOp = " ";
         public string directOp = ", ";
 
         public readonly Dictionary<T, C> terms;

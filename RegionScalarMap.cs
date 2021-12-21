@@ -1,5 +1,4 @@
-﻿using MelonLoader;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Math = Assets.Scripts.Simulation.SMath.Math;
