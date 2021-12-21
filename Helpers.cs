@@ -230,5 +230,20 @@ namespace Combloonation
             bound.upperBounds = upperBounds;
             return bound;
         }
+
+        public static IEnumerable<T> Iterate<T>(this T t, Func<T, T> f)
+        {
+            while (true) { yield return t; t = f(t); }
+        }
+
+        public static T Process<T>(this T t, params Action<T>[] fs)
+        {
+            foreach (var f in fs) f(t); return t;
+        }
+
+        public static T Process<T>(this T t, params Func<T,T>[] fs)
+        {
+            foreach (var f in fs) t = f(t); return t;
+        }
     }
 }
