@@ -236,12 +236,12 @@ namespace Combloonation
             while (true) { yield return t; t = f(t); }
         }
 
-        public static T Process<T>(this T t, params Action<T>[] fs)
+        public static T Apply<T>(this T t, params Action<T>[] fs)
         {
             foreach (var f in fs) f(t); return t;
         }
 
-        public static T Process<T>(this T t, params Func<T,T>[] fs)
+        public static T Apply<T>(this T t, params Func<T,T>[] fs)
         {
             foreach (var f in fs) t = f(t); return t;
         }

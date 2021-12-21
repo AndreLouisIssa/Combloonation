@@ -13,6 +13,7 @@ using UnhollowerRuntimeLib;
 using Bounds = Assets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
 using static Combloonation.DirectableModel;
 using UnhollowerBaseLib;
+using HarmonyLib;
 
 namespace Combloonation
 {
@@ -220,17 +221,22 @@ namespace Combloonation
 
         public static void Shift(FreeplayBloonGroupModel[] inGroups, int shift)
         {
-            inGroups.ForEach(f => f.bounds = f.bounds.Select(b => NewFreeplayBounds(b.lowerBounds + shift, b.upperBounds + shift)).ToArray());
+            inGroups.Do(f => f.bounds = f.bounds.Select(b => NewFreeplayBounds(b.lowerBounds + shift, b.upperBounds + shift)).ToArray());
+        }
+
+        public static void Widen(FreeplayBloonGroupModel[] inGroups, int margin)
+        {
+            inGroups.Do(f => f.bounds = f.bounds.Select(b => NewFreeplayBounds(b.lowerBounds - margin, b.upperBounds + margin)).ToArray());
         }
 
         public static void Buff(FreeplayBloonGroupModel[] inGroups, float scale)
         {
-            inGroups.ForEach(f => { var g = f.group = f.group.Duplicate(); g.count = (int)(g.count*scale); });
+            inGroups.Do(f => { var g = f.group = f.group.Duplicate(); g.count = (int)(g.count*scale); });
         }
 
-        public static void Adjust(FreeplayBloonGroupModel[] inGroups)
+        public static void Adjust(IEnumerable<FreeplayBloonGroupModel> inGroups)
         {
-            inGroups.ForEach(f => { var g = f.group; g.end -= g.start; g.start = 0; });
+            inGroups.Do(f => { var g = f.group; g.end -= g.start; g.start = 0; });
         }
 
         public override float Eval(DirectableModel model) { return 0f; }
@@ -247,18 +253,20 @@ namespace Combloonation
                 }
                 MelonLogger.Msg("Mutating rounds...");
                 var roundGroups = new List<FreeplayBloonGroupModel> { };
-                foreach (var rounds in game.roundSets.Select(r => r.rounds))
+                foreach (var rounds in game.roundSets.Select(r => r.rounds)) for (int i = 0; i < rounds.Length; ++i)
                 {
-                    for (int i = 0; i < rounds.Length; ++i)
-                    {
-                        var roundBounds = new Bounds[] { NewFreeplayBounds(i, i) };
-                        rounds[i].groups.ForEach(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
-                    }
+                    var roundBounds = new Bounds[] { NewFreeplayBounds(i, i) };
+                    rounds[i].groups.Do(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
                 }
-                foreach (var roundSet in game.roundSets) roundSet.rounds = roundSet.rounds.Take(1).ToArray();
-                game.freeplayGroups = game.freeplayGroups.Concat(roundGroups.ToArray().Iterate(l => Infuse(l, random).Process(t => Shift(t,100),t => Buff(t,2))).Take(3).SelectMany(s => s)).ToArray();
-                Adjust(game.freeplayGroups);
-                //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> {f.group.end} | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
+                //foreach (var roundSet in game.roundSets) roundSet.rounds = roundSet.rounds.Take(1).ToArray();
+                roundGroups = roundGroups.ToArray().Iterate(l => Infuse(l, random)
+                    .Apply(t => Shift(t, 100), t => Widen(t, 50), t => Buff(t, 2))).Take(3).SelectMany(s => s).Apply(Adjust).ToList();
+                var bound = roundGroups.SelectMany(f => f.bounds).Max(b => b.upperBounds);
+                game.freeplayGroups.Do(f => f.bounds = f.bounds.Where(b => b.upperBounds >= bound).ToArray());
+                game.freeplayGroups.SelectMany(f => f.bounds).Do(b => b.lowerBounds = Math.Max(b.lowerBounds, bound));
+                game.freeplayGroups = game.freeplayGroups.Concat(roundGroups).ToArray();
+                //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: 
+                //{f.group.count} x {f.group.bloon} ~> {f.group.end} | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
                 MelonLogger.Msg("Finished mutating rounds!");
 
                 var list = new List<DirectableModel>(1);
