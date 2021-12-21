@@ -21,7 +21,7 @@ namespace Combloonation
     {
         float? score { get; }
         int? count { get; }
-        string bloons { get; }
+        string[] bloons { get; }
     }
 
     public interface IDirector
