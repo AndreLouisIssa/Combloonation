@@ -217,7 +217,7 @@ namespace Combloonation
             if (m.Is(out GameModel game))
             {
                 MelonLogger.Msg("Mutating rounds...");
-                var roundGroups = game.freeplayGroups.ToList();
+                var roundGroups = game.freeplayGroups.Shuffle(random).Take(1 + game.freeplayGroups.Count/2).ToList();
                 foreach (var rounds in game.roundSets.Select(r => r.rounds))
                 {
                     for (int i = 0; i < rounds.Length; ++i)
@@ -226,12 +226,13 @@ namespace Combloonation
                         rounds[i].groups.ForEach(g => roundGroups.Add(new FreeplayBloonGroupModel("FreeplayBloonGroupModel_", 0, roundBounds, g)));
                     }
                 }
-                game.freeplayGroups = roundGroups.Shuffle(random).Take(1 + roundGroups.Count/6).ToArray();
+                game.freeplayGroups = roundGroups.Shuffle(random).Take(1 + roundGroups.Count/3).ToArray();
                 var size = game.freeplayGroups.Sum(g => g.group.count);
                 var ratio = size/game.freeplayGroups.Length;
                 var parts = random.Next(Math.Min(size, ratio), Math.Max(size, ratio));
                 //MelonLogger.Msg($"{size} / {parts}");
                 game.freeplayGroups = Split(game.freeplayGroups, Partition(size, parts, random));
+                game.freeplayGroups.ForEach(f => { var g = f.group; g.end -= g.start; g.start = 0; });
                 //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> {f.group.end} | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
                 foreach (var roundSet in game.roundSets)
                 {
