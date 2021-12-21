@@ -1,12 +1,14 @@
 ﻿using Assets.Scripts.Models;
 using Assets.Scripts.Models.Rounds;
-using MelonLoader;
+using Assets.Scripts.Unity;
+using Assets.Scripts.Unity.UI_New.InGame;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
 using Random = System.Random;
+using Bounds = Assets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
 
 namespace Combloonation
 {
@@ -152,35 +154,6 @@ namespace Combloonation
             return list.ToArray();
         }
 
-        public static SortedList<float, DirectableModel> Sort(this IDirector director, IEnumerable<DirectableModel> ms)
-        {
-            var list = new SortedList<float, DirectableModel>(ms.Count());
-            list.AddValues(ms, m => director.Eval(m));
-            return list;
-        }
-
-        public static SortedList<float, Model> Sort(this IDirector director, IEnumerable<Model> ms)
-        {
-            var list = new SortedList<float, Model>(ms.Count());
-            list.AddValues<float, Model>(ms, m => director.Eval((dynamic)m));
-            return list;
-        }
-
-        public static DirectableModel Directable<M>(this M m) where M : Model
-        {
-            return new DirectableModel((dynamic)m);
-        }
-
-        public static IEnumerable<DirectableModel> Directable<M>(this IEnumerable<M> ms) where M : Model
-        {
-            return ms.Select(m => m.Directable());
-        }
-
-        public static IEnumerable<M> Cast<M>(this IEnumerable<DirectableModel> ms) where M : Model
-        {
-            return ms.Select(m => m.Cast<M>());
-        }
-
         public static Color NextColor(this Random random)
         {
             return Color.HSVToRGB((float)random.NextDouble(), 1f, 1f);
@@ -223,14 +196,6 @@ namespace Combloonation
             return tex;
         }
 
-        public static FreeplayBloonGroupModel.Bounds NewFreeplayBounds(int lowerBounds, int upperBounds)
-        {
-            var bound = new FreeplayBloonGroupModel.Bounds();
-            bound.lowerBounds = lowerBounds;
-            bound.upperBounds = upperBounds;
-            return bound;
-        }
-
         public static IEnumerable<T> Iterate<T>(this T t, Func<T, T> f)
         {
             while (true) { yield return t; t = f(t); }
@@ -241,9 +206,30 @@ namespace Combloonation
             foreach (var f in fs) f(t); return t;
         }
 
-        public static T Apply<T>(this T t, params Func<T,T>[] fs)
+        public static T Apply<T>(this T t, params Func<T, T>[] fs)
         {
             foreach (var f in fs) t = f(t); return t;
+        }
+
+        public static GameModel GetGameModel()
+        {
+            var model = InGame.instance?.bridge?.Model;
+            if (model is null) model = Game.instance.model;
+            return model;
+        }
+
+        public static Bounds NewBounds(int lowerBounds, int upperBounds)
+        {
+            var bound = new Bounds();
+            bound.lowerBounds = lowerBounds;
+            bound.upperBounds = upperBounds;
+            return bound;
+        }
+
+        public class RoundBloonGroupModel : FreeplayBloonGroupModel
+        {
+            public RoundBloonGroupModel(BloonGroupModel group, int? round) 
+                : base("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, (int)round) }, group) { }
         }
     }
 }

@@ -94,10 +94,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Helpers.cs" />
-    <Compile Include="SeededDirector.cs" />
+    <Compile Include="Director.cs" />
     <Compile Include="RegionScalarMap.cs" />
     <Compile Include="Polynomial.cs" />
-    <Compile Include="DisplaySystem.cs" />
+    <Compile Include="Display.cs" />
     <Compile Include="Labloontory.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

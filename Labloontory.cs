@@ -13,7 +13,7 @@ using System.Linq;
 using UnhollowerRuntimeLib;
 using UnhollowerBaseLib;
 using static Combloonation.Main;
-using static Combloonation.DisplaySystem;
+using static Combloonation.Display;
 using static Combloonation.Helpers;
 using System.IO;
 using UnityEngine;
@@ -280,13 +280,6 @@ namespace Combloonation
         public static BloonModel Clone(BloonModel bloon)
         {
             return bloon.Clone().Cast<BloonModel>();
-        }
-
-        public static GameModel GetGameModel()
-        {
-            var model = InGame.instance?.bridge?.Model;
-            if (model is null) model = Game.instance.model;
-            return model;
         }
 
         public static BloonModel Fuse(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)

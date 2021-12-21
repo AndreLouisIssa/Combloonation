@@ -20,7 +20,7 @@ using Assets.Scripts.Utils;
 
 namespace Combloonation
 {
-    public static class DisplaySystem
+    public static class Display
     {
         public static Color initColor = new Color(0.929f, 0.059f, 0.059f, 1);
         public static bool patchingIcons = false;

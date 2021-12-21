@@ -16,7 +16,7 @@ using BTD_Mod_Helper.Extensions;
 using Assets.Scripts.Models.Rounds;
 using static Combloonation.Labloontory;
 using static Combloonation.Helpers;
-using static Combloonation.DisplaySystem;
+using static Combloonation.Display;
 using Assets.Scripts.Models;
 using Assets.Scripts.Simulation.Bloons.Behaviors;
 using System.Reflection;
@@ -32,6 +32,7 @@ namespace Combloonation
         //public static string folderPath;
         public static int seed = 2000;
         public static System.Random random;
+        public static IDirector director = null;
         public static MethodInfo optional_HelpfulAdditions_AddCustomBloon = null;
 
         public override void OnApplicationStart()
@@ -56,14 +57,14 @@ namespace Combloonation
         public override void OnTitleScreen()
         {
             var game = GetGameModel();
-            new RoundMutatorDirector(seed).Produce(game, null);
-            //var _director = new RandomDirector(seed);
-            //var models = _director.Sort(_director.Produce<BloonModel>(null, 25));
-            //foreach (var pair in models)
-            //{
-            //    MelonLogger.Msg($"{((Model)pair.Value).name} : {pair.Key}");
-            //}
-            //Fuse(models.Values.Cast<BloonModel>());
+            director = new MainDirector(game, seed);
+            MelonLogger.Msg("Mutating rounds...");
+            var produced = director.Produce();
+            var bound = produced.Item2.SelectMany(f => f.bounds).Max(b => b.upperBounds);
+            game.freeplayGroups.Do(f => f.bounds = f.bounds.Where(b => b.upperBounds >= bound).ToArray());
+            game.freeplayGroups.SelectMany(f => f.bounds).Do(b => b.lowerBounds = Math.Max(b.lowerBounds, bound));
+            game.roundSets = produced.Item1; game.freeplayGroups = produced.Item2.Concat(game.freeplayGroups).ToArray();
+            MelonLogger.Msg("Finished mutating rounds!");
         }
 
         [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
@@ -96,16 +97,15 @@ namespace Combloonation
             }
         }
 
-        //[HarmonyPatch(typeof(FreeplayBloonGroupModel), nameof(FreeplayBloonGroupModel.CalculateScore))]
-        //public class Patch_SpawnBloonButton_CalculateScore
-        //{
-        //    [HarmonyPostfix]
-        //    public static void Postfix(FreeplayBloonGroupModel __instance, ref float __result)
-        //    {
-        //        var bloon = BloonFromName(__instance.group.bloon);
-        //        __result = __instance.group.count * BaseBloonNamesFromName(bloon.name).Select(n => BloonFromName(n)).Sum(b => b.danger) * (1 + GetProperties(bloon).Count());
-        //    }
-        //}
+        [HarmonyPatch(typeof(FreeplayBloonGroupModel), nameof(FreeplayBloonGroupModel.CalculateScore))]
+        public class Patch_SpawnBloonButton_CalculateScore
+        {
+            [HarmonyPostfix]
+            public static void Postfix(FreeplayBloonGroupModel __instance, ref float __result)
+            {
+                __result = director?.Score(__instance) ?? __result;
+            }
+        }
 
         [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleFortified))]
         public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
