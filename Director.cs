@@ -188,8 +188,10 @@ namespace Combloonation
                 groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g, j)));
                 round.groups = groups;
             }
+            var n = (goal?.count ?? 2) - 1;
+            var w = (int)(1-(goal?.strict ?? 0.5f)) * 100;
             freeplayGroups = freeplayGroups.ToArray().Iterate(l => Infuse(l, random)
-                .Apply(t => Shift(t, 100), t => Widen(t, 50), t => Buff(t, 5), Adjust)).Skip(1).Take(2).SelectMany(s => s).ToList();
+                .Apply(t => Shift(t, 100), t => Widen(t, w), t => Buff(t, 5), Adjust)).Skip(1).Take(n).SelectMany(s => s).ToList();
             if (!(goal?.props is null))
                 roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups)).Do(g => g.bloon = Fuse(new string[] { g.bloon }, goal.props).name);
             return new Tuple<RoundSetModel[], FreeplayBloonGroupModel[]>(roundSets.ToArray(), freeplayGroups.ToArray());

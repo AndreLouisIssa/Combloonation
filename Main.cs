@@ -50,7 +50,7 @@ namespace Combloonation
             var game = GetGameModel();
             director = new MainDirector(game, seed);
             MelonLogger.Msg("Mutating rounds...");
-            var produced = director.Produce(new Goal(null, null, null, new string[] { "Golden3" }, null));
+            var produced = director.Produce(new Goal(0.75f, null, 3, new string[] { "Golden3" }, null));
             var bound = produced.Item2.SelectMany(f => f.bounds).Max(b => b.upperBounds);
             game.freeplayGroups.Do(f => f.bounds = f.bounds.Where(b => b.upperBounds >= bound).ToArray());
             game.freeplayGroups = game.freeplayGroups.Where(f => f.bounds.Length > 0).ToArray();
