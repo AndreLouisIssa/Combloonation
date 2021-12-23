@@ -50,14 +50,9 @@ namespace Combloonation
             var game = GetGameModel();
             director = new MainDirector(game, seed);
             MelonLogger.Msg("Mutating rounds...");
-            var produced = director.Produce(new Goal(0.75f, null, 3, new string[] { "Golden3" }, null));
-            var bound = produced.Item2.SelectMany(f => f.bounds).Max(b => b.upperBounds);
-            game.freeplayGroups.Do(f => f.bounds = f.bounds.Where(b => b.upperBounds >= bound).ToArray());
-            game.freeplayGroups = game.freeplayGroups.Where(f => f.bounds.Length > 0).ToArray();
-            game.freeplayGroups.SelectMany(f => f.bounds).Do(b => b.lowerBounds = Math.Max(b.lowerBounds, bound));
-            game.roundSets = produced.Item1; game.freeplayGroups = produced.Item2.Concat(game.freeplayGroups).ToArray();
-            //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
+            director.Mutate(new Goal(0.75f, null, 2, new string[] { "Golden3" }, null));
             MelonLogger.Msg("Finished mutating rounds!");
+            //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
         }
 
         [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]

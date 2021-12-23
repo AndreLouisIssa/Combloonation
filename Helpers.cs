@@ -9,6 +9,7 @@ using System.Linq;
 using UnityEngine;
 using Random = System.Random;
 using Bounds = Assets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
+using BTD_Mod_Helper.Extensions;
 
 namespace Combloonation
 {
@@ -202,6 +203,16 @@ namespace Combloonation
             foreach (var f in fs) t = f(t); return t;
         }
 
+        public static IEnumerable<T> ApplyEach<T>(this IEnumerable<T> ts, params Action<T>[] fs)
+        {
+            return ts.Select(t => t.Apply(fs));
+        }
+
+        public static IEnumerable<T> ApplyEach<T>(this IEnumerable<T> ts, params Func<T, T>[] fs)
+        {
+            return ts.Select(t => t.Apply(fs));
+        }
+
         public static GameModel GetGameModel()
         {
             var model = InGame.instance?.bridge?.Model;
@@ -217,10 +228,20 @@ namespace Combloonation
             return bound;
         }
 
+        public static FreeplayBloonGroupModel Remake(this FreeplayBloonGroupModel model)
+        {
+            return new FreeplayBloonGroupModel(model.name, 0, model.bounds.Select(b => NewBounds(b.lowerBounds, b.upperBounds)).ToArray(), model.group.Duplicate());
+        }
+
+        public static RoundSetModel Remake(this RoundSetModel model)
+        {
+            return new RoundSetModel(model.name, model.rounds.Select(r => new RoundModel(r.name, r.groups.Select(g => g.Duplicate()).ToArray())).ToArray());
+        }
+
         public class RoundBloonGroupModel : FreeplayBloonGroupModel
         {
-            public RoundBloonGroupModel(BloonGroupModel group, int? round) 
-                : base("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, (int)round) }, group) { }
+            public RoundBloonGroupModel(BloonGroupModel group, int? round, int? upper = null)
+                : base("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, upper ?? (int)round) }, group) { }
         }
     }
 }
