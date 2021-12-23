@@ -193,8 +193,8 @@ namespace Combloonation
                 //round.groups = groups;
             }
             game.freeplayGroups = freeplayGroups.ToArray();
-            var n = (goal?.count ?? 2) - 1;
-            var w = (int)(- (goal?.strict ?? 0.5f)) * 100;
+            var n = goal?.count ?? 2;
+            var w = (int)(- (goal?.strict ?? 0.25f)) * 100;
             game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, rs.rounds.Take(1).ToArray())).ToArray();
             if (!(goal?.props is null))
                 game.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups)).Concat(game.freeplayGroups.Select(f => f.group)).Do(g => g.bloon = Fuse(new string[] { g.bloon }, goal.props).name);
