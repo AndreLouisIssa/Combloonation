@@ -149,6 +149,7 @@ namespace Combloonation
 
         public override bool Mutate(IGoal goal = null)
         {
+            var roundBloons = game.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b)));
             Dictionary<string, double> bloonChances = new Dictionary<string, double>();
             if (!(goal?.bloons is null)) goal.bloons.Do(b => bloonChances.Add(b, 1 / (1 + Score(BloonFromName(b)))));
             var freeplayGroups = new List<FreeplayBloonGroupModel> { };
@@ -169,8 +170,15 @@ namespace Combloonation
                     group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundSet.rounds.Length, random))).name;
                 }
                 if (!(goal?.props is null)) foreach (var group in groups) group.bloon = Fuse(new string[] { group.bloon }, goal.props).name;
-                groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j, int.MaxValue).Apply(AdjustLeft)));
+                groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j, roundSet.rounds.Length + 1).Apply(AdjustLeft)));
                 round.groups = groups;
+            }
+            var n = goal?.count ?? 3;
+            var m = Math.Max(game.roundSets.Max(rs => rs.rounds.Length) + 1, game.roundSets.Min(rs => rs.rounds.Length) * 2);
+            for (int i = 1; i < n; ++i)
+            {
+                var bloon = Fuse(roundBloons.Take(i+1));
+                freeplayGroups.Add(new RoundBloonGroupModel(new BloonGroupModel("BloonModel_", bloon.name, 0, 0, n*(n-i+1)), m));
             }
             game.freeplayGroups = freeplayGroups.ToArray();
             //game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, rs.rounds.Take(1).ToArray())).ToArray();

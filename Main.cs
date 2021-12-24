@@ -24,6 +24,7 @@ namespace Combloonation
         public static System.Random random;
         public static IDirector director = null;
         public static MethodInfo optional_HelpfulAdditions_AddCustomBloon = null;
+        public static int maxFusands = int.MaxValue;
 
         public override void OnApplicationStart()
         {
@@ -52,7 +53,7 @@ namespace Combloonation
             MelonLogger.Msg("Mutating rounds...");
             director.Mutate();
             MelonLogger.Msg("Finished mutating rounds!");
-            MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
+            //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
         }
 
         [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]

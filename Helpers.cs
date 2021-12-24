@@ -241,7 +241,7 @@ namespace Combloonation
         public class RoundBloonGroupModel : FreeplayBloonGroupModel
         {
             public RoundBloonGroupModel(BloonGroupModel group, int? round, int? upper = null)
-                : base("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, upper ?? (int)round) }, group) { }
+                : base("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, (int)round), NewBounds(upper ?? (int)round, int.MaxValue) }, group) { }
         }
     }
 }

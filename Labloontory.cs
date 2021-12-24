@@ -11,6 +11,7 @@ using UnhollowerRuntimeLib;
 using UnhollowerBaseLib;
 using static Combloonation.Display;
 using static Combloonation.Helpers;
+using static Combloonation.Main;
 using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
 using MelonLoader;
 
@@ -104,7 +105,7 @@ namespace Combloonation
             public BloonsionReactor(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
             {
                 var components = BloonsFromBloons(bloons);
-                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).Take(6);
+                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).Take(maxFusands);
                 var allProps = (props != null ? props : GetProperties(baseFusands)).ToList();
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + PropertyString(ProbeProperties(b, allProps))));
