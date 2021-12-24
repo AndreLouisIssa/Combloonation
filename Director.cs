@@ -149,14 +149,15 @@ namespace Combloonation
 
         public override bool Mutate(IGoal goal = null)
         {
-            var roundBloons = game.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b)));
+            var roundBloons = game.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b))).ToList();
             Dictionary<string, double> bloonChances = new Dictionary<string, double>();
             if (!(goal?.bloons is null)) goal.bloons.Do(b => bloonChances.Add(b, 1 / (1 + Score(BloonFromName(b)))));
             var freeplayGroups = new List<FreeplayBloonGroupModel> { };
-            foreach (var roundSet in game.roundSets) for (int j = 0; j < roundSet.rounds.Length; ++j)
+            var roundSet = game.roundSets.ArgMax(rs => rs.rounds.Length);
+            var roundsCount = roundSet.rounds.Length;
+            for (int j = 0; j < roundsCount; ++j)
             {
-                var round = roundSet.rounds[j];
-                var groups = round.groups;
+                var groups = game.roundSets.Where(rs => j < rs.rounds.Length).Select(rs => rs.rounds[j]).SelectMany(r => r.groups).ToArray();
                 if (groups.Length > 1)
                 {
                     groups = Split(groups.Select(g => new RoundBloonGroupModel(g, null)).ToArray(),
@@ -167,37 +168,40 @@ namespace Combloonation
                     IEnumerable<string> bloons;
                     if (BloonFromName(group.bloon) is FusionBloonModel fusion) bloons = BloonNamesFromBloons(fusion.fusands);
                     else bloons = new string[] { group.bloon };
-                    group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundSet.rounds.Length, random))).name;
+                    group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundsCount, random))).name;
                 }
                 if (!(goal?.props is null)) foreach (var group in groups) group.bloon = Fuse(new string[] { group.bloon }, goal.props).name;
-                groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j, roundSet.rounds.Length + 1).Apply(AdjustLeft)));
-                round.groups = groups;
+                groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j, roundsCount + 1).Apply(AdjustLeft)));
+                roundSet.rounds[j].groups = groups;
             }
-            var n = goal?.count ?? 3;
-            var m = Math.Max(game.roundSets.Max(rs => rs.rounds.Length) + 1, game.roundSets.Min(rs => rs.rounds.Length) * 2);
+            var n = goal?.count ?? 4;
+            var m = (int)Math.Max(game.roundSets.Max(rs => rs.rounds.Length) + 1, game.roundSets.Min(rs => rs.rounds.Length) * 1.5);
             for (int i = 1; i < n; ++i)
             {
-                var bloon = Fuse(roundBloons.Take(i+1));
-                freeplayGroups.Add(new RoundBloonGroupModel(new BloonGroupModel("BloonModel_", bloon.name, 0, 0, n*(n-i+1)), m));
+                var picks = Enumerable.Range(1, i).Select(_ => random.Next(1, roundBloons.Count));
+                var bloon = Fuse(picks.Select(j => roundBloons[j]).Append(roundBloons.First()));
+                freeplayGroups.Add(new RoundBloonGroupModel(new BloonGroupModel("BloonModel_", bloon.name, 0, 0, n-i), m));
             }
             game.freeplayGroups = freeplayGroups.ToArray();
-            //game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, rs.rounds.Take(1).ToArray())).ToArray();
+            m = game.roundSets.Min(rs => rs.rounds.Length);
+            var rounds = roundSet.rounds.Take(m).ToArray();
+            game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, rounds)).ToArray();
             return true;
         }
 
         public override float Score(FreeplayBloonGroupModel model)
         {
-            return 4 * Score(model.group);
+            return Score(model.group);
         }
 
         public override float Score(BloonGroupModel model)
         {
-            return 2 * (float)Math.Pow(model.count, 0.75) * Score(BloonFromName(model.bloon)) * (float)Math.Pow(1 + 1/(1 + model.end - model.start), 0.25);
+            return (float)Math.Pow(model.count, 0.75) * Score(BloonFromName(model.bloon)) * (float)Math.Pow(1 + 1/(1 + model.end - model.start), 0.25);
         }
 
         public override float Score(BloonModel model)
         {
-            return (float)(120*(1+GetProperties(model).Count())*(1+model.speed)*(1+Math.Pow(model.maxHealth,0.5)/25)/(25+model.danger));
+            return (float)((1+GetProperties(model).Count())*(1+model.speed)*(1+Math.Pow(model.maxHealth,0.5)/10)*model.danger);
         }
     }
 
