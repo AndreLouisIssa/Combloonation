@@ -50,9 +50,9 @@ namespace Combloonation
             var game = GetGameModel();
             director = new MainDirector(game, seed);
             MelonLogger.Msg("Mutating rounds...");
-            director.Mutate(new Goal(0.75f, null, 2, new string[] { "Golden3" }, null));
+            director.Mutate();
             MelonLogger.Msg("Finished mutating rounds!");
-            //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
+            MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
         }
 
         [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
@@ -64,16 +64,6 @@ namespace Combloonation
                 InGameUpdate(__instance);
             }
         }
-
-        //[HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.SpawnBloon))]
-        //public class Patch_SpawnBloonButton_SpawnBloon
-        //{
-        //    [HarmonyPostfix]
-        //    public static void Postfix(SpawnBloonButton __instance)
-        //    {
-        //        MelonLogger.Msg("Spawning " + DebugString(__instance.model.name));
-        //    }
-        //}
 
         [HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.UpdateIcon))]
         public class Patch_SpawnBloonButton_UpdateIcon

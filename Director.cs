@@ -142,26 +142,6 @@ namespace Combloonation
             return Split(inGroups, Partition(size, parts, random));
         }
 
-        public static void Shift(FreeplayBloonGroupModel f, int shift)
-        {
-            f.bounds = f.bounds.Select(b => NewBounds(b.lowerBounds + shift, b.upperBounds + shift)).ToArray();
-        }
-
-        public static void WidenBelow(FreeplayBloonGroupModel f, int margin)
-        {
-            f.bounds = f.bounds.Select(b => NewBounds(b.lowerBounds - margin, b.upperBounds)).ToArray();
-        }
-
-        public static void WidenAbove(FreeplayBloonGroupModel f, int margin)
-        {
-            f.bounds = f.bounds.Select(b => NewBounds(b.lowerBounds, b.upperBounds + margin)).ToArray();
-        }
-
-        public static void Buff(FreeplayBloonGroupModel f, float scale)
-        {
-            var g = f.group = f.group.Duplicate(); g.count = (int)(g.count * scale);
-        }
-
         public static void AdjustLeft(FreeplayBloonGroupModel f)
         {
             var g = f.group; g.end -= g.start; g.start = 0;
@@ -172,7 +152,6 @@ namespace Combloonation
             Dictionary<string, double> bloonChances = new Dictionary<string, double>();
             if (!(goal?.bloons is null)) goal.bloons.Do(b => bloonChances.Add(b, 1 / (1 + Score(BloonFromName(b)))));
             var freeplayGroups = new List<FreeplayBloonGroupModel> { };
-            //var roundSets = game.roundSets.Select(rs => { var nrs = rs.Duplicate(); nrs.rounds = rs.rounds.Select(r => r.Duplicate()).ToArray(); return nrs; }).ToList();
             foreach (var roundSet in game.roundSets) for (int j = 0; j < roundSet.rounds.Length; ++j)
             {
                 var round = roundSet.rounds[j];
@@ -189,17 +168,12 @@ namespace Combloonation
                     else bloons = new string[] { group.bloon };
                     group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundSet.rounds.Length, random))).name;
                 }
-                groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j).Apply(AdjustLeft)));
-                //round.groups = groups;
+                if (!(goal?.props is null)) foreach (var group in groups) group.bloon = Fuse(new string[] { group.bloon }, goal.props).name;
+                groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j, int.MaxValue).Apply(AdjustLeft)));
+                round.groups = groups;
             }
             game.freeplayGroups = freeplayGroups.ToArray();
-            var n = (goal?.count ?? 2) - 1;
-            var w = (int)(- (goal?.strict ?? 0.5f)) * 100;
-            game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, rs.rounds.Take(1).ToArray())).ToArray();
-            if (!(goal?.props is null))
-                game.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups)).Concat(game.freeplayGroups.Select(f => f.group)).Do(g => g.bloon = Fuse(new string[] { g.bloon }, goal.props).name);
-            game.freeplayGroups = game.freeplayGroups.Iterate(l => Infuse(l, random)
-                .ApplyEach(t => WidenBelow(t, w), t => Buff(t, 5)).ToArray()).Take(n).SelectMany(s => s).ToArray();
+            //game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, rs.rounds.Take(1).ToArray())).ToArray();
             return true;
         }
 
