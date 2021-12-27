@@ -109,6 +109,7 @@ namespace Combloonation
 
             public RegionOverlay(List<IOverlay> cs, List<float> ws, RegionScalarMap map)
             {
+                if (cs.Count != ws.Count) throw new ArgumentException("Weights list must be the same length");
                 this.cs = cs; ps = WeightsToPivots(ws); this.map = map;
             }
 
@@ -203,7 +204,10 @@ namespace Combloonation
 
         public static List<IOverlay> GetColors(this BloonModel bloon, Rect bound)
         {
-            var ids = BaseBloonNamesFromName(bloon.name);
+            IEnumerable<string> ids;
+            if (bloon is FusionBloonModel fusion)
+                ids = fusion.fusands.Select(f => f.baseId);
+            else ids = new string[] {bloon.baseId};
             var cols = new List<IOverlay> { };
             foreach (var id in ids)
             {

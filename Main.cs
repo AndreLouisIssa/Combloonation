@@ -9,6 +9,7 @@ using BTD_Mod_Helper.Extensions;
 using Assets.Scripts.Models.Rounds;
 using static Combloonation.Helpers;
 using static Combloonation.Display;
+using static Combloonation.Labloontory;
 using System.Reflection;
 using UnityEngine;
 
@@ -73,6 +74,16 @@ namespace Combloonation
             public static void Postfix(SpawnBloonButton __instance)
             {
                 SetBloonAppearance(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(SpawnBloonButton), nameof(SpawnBloonButton.SpawnBloon))]
+        public class Patch_SpawnBloonButton_SpawnBloon
+        {
+            [HarmonyPostfix]
+            public static void Postfix(SpawnBloonButton __instance)
+            {
+                MelonLogger.Msg("Spawning " + DebugString(__instance.model.name));
             }
         }
 

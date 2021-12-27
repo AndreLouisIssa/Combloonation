@@ -16,7 +16,7 @@ namespace Combloonation
     public static class Helpers
     {
         //https://stackoverflow.com/a/5807166
-        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> list, Random random = null)
+        public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> list, Random random)
         {
             random = random ?? new Random();
             var shuffledList = list.
@@ -26,7 +26,7 @@ namespace Combloonation
             return shuffledList;
         }
 
-        public static HashSet<T> RandomSubset<T>(Dictionary<T,double> chances, double scale, Random random = null)
+        public static HashSet<T> RandomSubset<T>(Dictionary<T,double> chances, double scale, Random random)
         {
             random = random ?? new Random();
             return new HashSet<T>(chances.Keys.Where(t => random.NextDouble() < 1 - Math.Pow(1 - chances[t], scale)));
@@ -75,7 +75,7 @@ namespace Combloonation
             return (ERF(((x - s) / (r - s) * 4d) - 2d) + 1d) / 2d;
         }
 
-        public static int[] Partition(int size, int parts, Random r = null)
+        public static int[] Partition(int size, int parts, Random r)
         {
             //MelonLogger.Msg(size + "/" + parts);
             r = r ?? new Random();

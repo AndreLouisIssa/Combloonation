@@ -141,13 +141,14 @@ namespace Combloonation
         {
             if (hi <= lo) throw new ArgumentException("High terminal must be greater than low terminal.");
             var t = (x - lo) / (hi - lo);
-            if (b && (Near(t, 0) || Near(t,1))) return -1;
-            for (int i = 0; i < ps.Count; i++)
+            if (b && (Near(t, 0) || Near(t, 1))) return -1;
+            int i;
+            for (i = 0; i < ps.Count; i++)
             {
                 if (b && Near(t,ps[i])) return -1;
                 if (t < ps[i]) return i;
             }
-            return ps.Count;
+            return i;
         }
     }
 
