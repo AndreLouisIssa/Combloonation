@@ -157,7 +157,7 @@ namespace Combloonation
             var roundsCount = roundSet.rounds.Length;
             for (int j = 0; j < roundsCount; ++j)
             {
-                var groups = game.roundSets.Where(rs => j < rs.rounds.Length).Select(rs => rs.rounds[j]).SelectMany(r => r.groups).ToArray();
+                var groups = game.roundSets.Where(rs => j >= roundSet.rounds.Length - rs.rounds.Length).Select(rs => rs.rounds[j - roundSet.rounds.Length + rs.rounds.Length]).SelectMany(r => r.groups).ToArray();
                 if (groups.Length > 1)
                 {
                     groups = Split(groups.Select(g => new RoundBloonGroupModel(g, null)).ToArray(),
@@ -183,9 +183,9 @@ namespace Combloonation
                 freeplayGroups.Add(new RoundBloonGroupModel(new BloonGroupModel("BloonModel_", bloon.name, 0, 0, n-i), m));
             }
             game.freeplayGroups = freeplayGroups.ToArray();
-            m = game.roundSets.Min(rs => rs.rounds.Length);
-            var rounds = roundSet.rounds.Take(m).ToArray();
-            game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, rounds)).ToArray();
+            //m = game.roundSets.Min(rs => rs.rounds.Length);
+            //var rounds = roundSet.rounds.Take(m).ToArray();
+            game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, roundSet.rounds)).ToArray();
             return true;
         }
 
