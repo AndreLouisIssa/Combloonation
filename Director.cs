@@ -125,7 +125,7 @@ namespace Combloonation
                     subgroup.bounds = new Bounds[] { bound };
                     subgroup.group.bloon = bloon.name;
                     if (bloon is FusionBloonModel fusion)
-                        subgroup.group.count = (int)Math.Ceiling(((double)subgroup.group.count) / fusion.fusands.Count());
+                        subgroup.group.count = (int)Math.Ceiling(((double)subgroup.group.count) / (fusion.danger+1));
                     fgroups.Add(subgroup);
                 }
                 bloons.Clear();
