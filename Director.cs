@@ -125,7 +125,7 @@ namespace Combloonation
                     subgroup.bounds = new Bounds[] { bound };
                     subgroup.group.bloon = bloon.name;
                     if (bloon is FusionBloonModel fusion)
-                        subgroup.group.count = (int)Math.Ceiling(((double)subgroup.group.count) / (fusion.danger+1));
+                        subgroup.group.count = (int)Math.Ceiling(((double)subgroup.group.count) / fusion.weight);
                     fgroups.Add(subgroup);
                 }
                 bloons.Clear();
@@ -173,14 +173,6 @@ namespace Combloonation
                 if (!(goal?.props is null)) foreach (var group in groups) group.bloon = Fuse(new string[] { group.bloon }, goal.props).name;
                 groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j, roundsCount + 1).Apply(AdjustLeft)));
                 roundSet.rounds[j].groups = groups;
-            }
-            var n = goal?.count ?? 4;
-            var m = (int)Math.Max(game.roundSets.Max(rs => rs.rounds.Length) + 1, game.roundSets.Min(rs => rs.rounds.Length) * 1.5);
-            for (int i = 1; i < n; ++i)
-            {
-                var picks = Enumerable.Range(1, i).Select(_ => random.Next(1, roundBloons.Count));
-                var bloon = Fuse(picks.Select(j => roundBloons[j]).Append(roundBloons.First()));
-                freeplayGroups.Add(new RoundBloonGroupModel(new BloonGroupModel("BloonModel_", bloon.name, 0, 0, n-i), m));
             }
             game.freeplayGroups = freeplayGroups.ToArray();
             //m = game.roundSets.Min(rs => rs.rounds.Length);

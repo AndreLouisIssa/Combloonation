@@ -88,6 +88,7 @@ namespace Combloonation
             public readonly BloonModel[] fusands;
             public readonly Property[] props;
             public readonly string inherit;
+            public readonly float weight;
 
             public FusionBloonModel(BloonModel f, BloonModel[] fs, Property[] ps)
                 : base(f.id, f.baseId, f.speed, f.radius, f.display, f.damageDisplayStates, f.icon, f.rotate,
@@ -95,19 +96,27 @@ namespace Combloonation
                       f.layerNumber, f.isCamo, f.isGrow, f.isFortified, f.depletionEffects, f.rotateToFollowPath, f.isMoab,
                       f.isBoss, f.bloonProperties, f.leakDamage, f.maxHealth, f.distributeDamageToChildren, f.isInvulnerable,
                       f.propertyDisplays, f.bonusDamagePerHit, f.disallowCosmetics, f.isSaved, f.loseOnLeak)
-            { fusands = fs; props = ps; inherit = PropertyString(ps.Where(p => p.heir)); }
+            { fusands = fs; props = ps; inherit = PropertyString(ps.Where(p => p.heir)); weight = danger - fusands.Min(e => e.danger) + 1; }
         }
 
         public class BloonsionReactor
         {
             public readonly FusionBloonModel fusion;
 
-            public BloonsionReactor(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
+            public static BloonModel React(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
             {
-                var components = BloonsFromBloons(bloons);
-                var baseFusands = BaseBloonsFromBloons(components).OrderByDescending(f => f.danger).Take(maxFusands);
+                var baseFusands = BaseBloonsFromBloons(BloonsFromBloons(bloons)).OrderByDescending(f => f.danger).Take(maxFusands);
                 var allProps = (props != null ? props : GetProperties(baseFusands)).ToList();
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
+                var bloon = BloonFromName(name, false);
+                if (bloon != null) return bloon;
+                var reactor = new BloonsionReactor(baseFusands, allProps, name);
+                Register(reactor.fusion);
+                return reactor.Merge().fusion;
+            }
+
+            public BloonsionReactor(IEnumerable<BloonModel> baseFusands, List<Property> allProps, string name)
+            {
                 var fusands = baseFusands.Select(b => BloonFromName(b.name + PropertyString(ProbeProperties(b, allProps))));
                 fusion = new FusionBloonModel(fusands.First(), fusands.ToArray(), allProps.ToArray());
                 fusion._name = fusion.name = fusion.id = name;
@@ -285,11 +294,7 @@ namespace Combloonation
             if (props is null) props = GetProperties(bloons);
             else props = GetProperties(bloons).Concat(props).Distinct();
             foreach (var propSet in props.ToList().Power()) {
-                var reactor = new BloonsionReactor(bloons, propSet);
-                bloon = reactor.fusion;
-                var oldBloon = BloonFromName(reactor.fusion.name, false);
-                if (oldBloon != null) bloon = oldBloon;
-                else Register(reactor.Merge().fusion);
+                bloon = BloonsionReactor.React(bloons, propSet);
             }
             return bloon;
         }
