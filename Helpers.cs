@@ -15,6 +15,18 @@ namespace Combloonation
 {
     public static class Helpers
     {
+        //https://www.geeksforgeeks.org/csharp-program-for-count-set-bits-in-an-integer/
+        public static uint Bits(uint i)
+        {
+            uint j = 0;
+            while (i > 0) {
+                j += i & 1;
+                i >>= 1;
+            }
+            return j;
+        }
+
+
         //https://stackoverflow.com/a/5807166
         public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> list, Random random)
         {

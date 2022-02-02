@@ -39,6 +39,7 @@ namespace Combloonation
             Il2CppType.Of<DamageStateModel>().FullName,
             Il2CppType.Of<GrowModel>().FullName,
             Il2CppType.Of<SetGrowToOnChildrenModel>().FullName,
+            Il2CppType.Of<DistributeCashModel>().FullName
         };
 
         public struct Property
@@ -88,7 +89,6 @@ namespace Combloonation
             public readonly BloonModel[] fusands;
             public readonly Property[] props;
             public readonly string inherit;
-            public readonly float weight;
 
             public FusionBloonModel(BloonModel f, BloonModel[] fs, Property[] ps)
                 : base(f.id, f.baseId, f.speed, f.radius, f.display, f.damageDisplayStates, f.icon, f.rotate,
@@ -96,7 +96,7 @@ namespace Combloonation
                       f.layerNumber, f.isCamo, f.isGrow, f.isFortified, f.depletionEffects, f.rotateToFollowPath, f.isMoab,
                       f.isBoss, f.bloonProperties, f.leakDamage, f.maxHealth, f.distributeDamageToChildren, f.isInvulnerable,
                       f.propertyDisplays, f.bonusDamagePerHit, f.disallowCosmetics, f.isSaved, f.loseOnLeak)
-            { fusands = fs; props = ps; inherit = PropertyString(ps.Where(p => p.heir)); weight = danger - fusands.Min(e => e.danger) + 1; }
+            { fusands = fs; props = ps; inherit = PropertyString(ps.Where(p => p.heir)); }
         }
 
         public class BloonsionReactor
@@ -197,7 +197,15 @@ namespace Combloonation
                 fusion.behaviors = fusion.fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
                     .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : !unstackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
                 fusion.childDependants = fusion.fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
-                
+
+                var cashModels = fusion.fusands.SelectMany(f => f.GetBehaviors<DistributeCashModel>());
+                var cash = cashModels.Sum(m => m.cash);
+                var additive = cashModels.Sum(m => m.additive);
+                var additionalCash = cashModels.Sum(m => m.additionalCash);
+                var multiplier = cashModels.Select(m => m.multiplier).Aggregate((a, b) => a * b);
+                var giveNoCash = cashModels.All(m => m.giveNoCash);
+                fusion.behaviors = fusion.behaviors.AddTo(new DistributeCashModel("DistributeCashModel_", cash, additionalCash, multiplier, additive, giveNoCash));
+
                 return this;
             }
 

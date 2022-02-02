@@ -86,6 +86,10 @@ namespace Combloonation
         public MainDirector(int seed) : base(seed) { }
         public MainDirector() : base() { }
 
+        public static float Weight(BloonModel b) => b.danger + b.tags.Length + Bits((uint)b.bloonProperties) + 1;
+
+        public static float Weight(BloonModel a, BloonModel b) => Weight(a) - Weight(b) + 1;
+
         public static FreeplayBloonGroupModel[] Split(FreeplayBloonGroupModel fgroup, int size, out int excess)
         {
             var group = fgroup.group;
@@ -123,9 +127,9 @@ namespace Combloonation
                 foreach (var subgroup in subfgroups)
                 {
                     subgroup.bounds = new Bounds[] { bound };
+                    var oldBloon = BloonFromName(subgroup.group.bloon);
                     subgroup.group.bloon = bloon.name;
-                    if (bloon is FusionBloonModel fusion)
-                        subgroup.group.count = (int)Math.Ceiling(((double)subgroup.group.count) / fusion.weight);
+                    subgroup.group.count = (int)Math.Ceiling(subgroup.group.count / Weight(bloon, oldBloon));
                     fgroups.Add(subgroup);
                 }
                 bloons.Clear();
