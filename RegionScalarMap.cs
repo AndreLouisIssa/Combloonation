@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using Math = Assets.Scripts.Simulation.SMath.Math;
+using Math = Il2CppAssets.Scripts.Simulation.SMath.Math;
 
 namespace Combloonation
 {

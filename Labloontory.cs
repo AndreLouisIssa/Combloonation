@@ -1,8 +1,8 @@
-﻿using Assets.Scripts.Models;
-using Assets.Scripts.Models.Bloons;
-using Assets.Scripts.Models.Bloons.Behaviors;
-using Assets.Scripts.Models.Effects;
-using Assets.Scripts.Models.GenericBehaviors;
+﻿using Il2CppAssets.Scripts.Models;
+using Il2CppAssets.Scripts.Models.Bloons;
+using Il2CppAssets.Scripts.Models.Bloons.Behaviors;
+using Il2CppAssets.Scripts.Models.Effects;
+using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using BTD_Mod_Helper.Extensions;
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ using UnhollowerBaseLib;
 using static Combloonation.Display;
 using static Combloonation.Helpers;
 using static Combloonation.Main;
-using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
 using MelonLoader;
 
 namespace Combloonation

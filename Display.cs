@@ -1,11 +1,9 @@
-﻿using BTD_Mod_Helper.Extensions;
-using System.Collections.Generic;
-using Assets.Scripts.Unity.UI_New.InGame;
-using Assets.Scripts.Simulation.Bloons;
-using System.Linq;
-using Assets.Scripts.Unity.Bridge;
-using Assets.Scripts.Unity.Display;
-using Assets.Scripts.Models.Bloons;
+﻿using System.Collections.Generic;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame;
+using Il2CppAssets.Scripts.Simulation.Bloons;
+using Il2CppAssets.Scripts.Unity.Bridge;
+using Il2CppAssets.Scripts.Unity.Display;
+using Il2CppAssets.Scripts.Models.Bloons;
 using System;
 using UnityEngine;
 using static Combloonation.Labloontory;
@@ -15,7 +13,7 @@ using static Combloonation.RegionScalarMap;
 using MelonLoader;
 using HarmonyLib;
 using UnityEngine.UI;
-using Assets.Scripts.Unity.UI_New.InGame.BloonMenu;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
 
 namespace Combloonation
 {
