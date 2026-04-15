@@ -159,7 +159,10 @@ namespace Combloonation
                 roundSet.rounds[j].groups = groups;
             }
             GameModel.freeplayGroups = freeplayGroups.ToArray();
-            GameModel.roundSet = new RoundSetModel(GameModel.roundSet.name, roundSet.rounds, roundSet.linkedIncomeSet);
+            // TODO: avoid mutating the base roundsets in the future
+            for (int i = 0; i < GameData.roundSets.Count; i++)
+                GameData.roundSets[i] = roundSet.Duplicate();
+            //GameModel.roundSet = new RoundSetModel(GameModel.roundSet.name, roundSet.rounds, roundSet.linkedIncomeSet);
             return true;
         }
 

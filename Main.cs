@@ -11,9 +11,11 @@ using Il2CppAssets.Scripts.Models.Rounds;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
 
-using static Combloonation.Display;
-using static Combloonation.Labloontory;
 using System.IO;
+
+using static Combloonation.Display;
+using static Combloonation.Helpers;
+using static Combloonation.Labloontory;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -35,7 +37,7 @@ public class Main : BloonsTD6Mod
     public override void OnApplicationStart()
     {
         base.OnApplicationStart();
-        folderPath = Path.Combine(this.GetModDirectory(), nameof(Combloonation));
+        folderPath = this.GetModDirectory();
         Log("Dumping at " + folderPath);
         Directory.CreateDirectory(folderPath);
     }
@@ -48,6 +50,9 @@ public class Main : BloonsTD6Mod
 
     public override void OnTitleScreen()
     {
+        foreach (var bloon in GetGameModel().bloons)
+            Labloontory.Register(bloon); // can be made more efficient if this is laggy, better to find the right place in the lifecycle
+
         director = new MainDirector(seed);
         Log("Mutating rounds...");
         director.Mutate();

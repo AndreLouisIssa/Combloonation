@@ -233,12 +233,6 @@ namespace Combloonation
             return model;
         }
 
-        public static Il2CppSystem.Collections.Generic.Dictionary<string, BloonModel> GetBloonsByName()
-        {
-            var lookup = GetGameModel().bloonsByName;
-            return lookup ?? throw new NullReferenceException("GameModel bloonsByName is null!");
-        }
-
         public static GameData GetGameData()
         {
             return GameData.Instance;
