@@ -8,6 +8,7 @@ using System.IO;
 using UnityEngine;
 using Random = System.Random;
 using Bounds = Il2CppAssets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
+using Il2CppAssets.Scripts.Data;
 
 namespace Combloonation
 {
@@ -230,6 +231,11 @@ namespace Combloonation
             return model;
         }
 
+        public static GameData GetGameData()
+        {
+            return GameData.Instance;
+        }
+
         public static Bounds NewBounds(int lowerBounds, int upperBounds)
         {
             var bound = new Bounds();
@@ -245,13 +251,12 @@ namespace Combloonation
 
         public static RoundSetModel Remake(this RoundSetModel model)
         {
-            return new RoundSetModel(model.name, model.rounds.Select(r => new RoundModel(r.name, r.groups.Select(g => g.Duplicate()).ToArray())).ToArray());
+            return new RoundSetModel(model.name, model.rounds.Select(r => new RoundModel(r.name, r.groups.Select(g => g.Duplicate()).ToArray())).ToArray(), model.linkedIncomeSet);
         }
 
-        public class RoundBloonGroupModel : FreeplayBloonGroupModel
+        public static FreeplayBloonGroupModel RoundBloonGroupModel(BloonGroupModel group, int? round, int? upper = null)
         {
-            public RoundBloonGroupModel(BloonGroupModel group, int? round, int? upper = null)
-                : base("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, (int)round), NewBounds(upper ?? (int)round, int.MaxValue) }, group) { }
+            return new FreeplayBloonGroupModel("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, (int)round), NewBounds(upper ?? (int)round, int.MaxValue) }, group) { };
         }
     }
 }

@@ -6,7 +6,7 @@ public static class ModHelperData
     public const string Version = "1.0.0";
     public const string Name = "Combloonation";
 
-    public const string Description = "An empty mod";
+    public const string Description = "Combining bloons in BTD6";
 
     public const string RepoOwner = "AndreLouisIssa";
     public const string RepoName = "Combloonation";

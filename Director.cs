@@ -7,6 +7,7 @@ using Il2CppAssets.Scripts.Models;
 using Bounds = Il2CppAssets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
 using HarmonyLib;
 using Il2CppAssets.Scripts.Models.Bloons;
+using Il2CppAssets.Scripts.Data;
 
 namespace Combloonation
 {
@@ -35,22 +36,30 @@ namespace Combloonation
 
     public interface IDirector
     {
-        GameModel game { get; }
+        GameModel GameModel { get; }
+
+        GameData GameData { get; }
+
         float Score(FreeplayBloonGroupModel model);
         float Score(BloonGroupModel model);
         float Score(BloonModel model);
-        bool Mutate(IGoal goal = null);
+        bool Mutate(IGoal? goal = null);
     }
 
     public abstract class Director : IDirector
     {
-        public GameModel game { get; }
-        public Director(GameModel game) { this.game = game; }
-        public Director() : this(GetGameModel()) { }
+        public GameModel GameModel { get; }
+        public GameData GameData { get; }
+
+        public Director(GameModel gameModel, GameData gameData)
+        {
+            this.GameModel = gameModel; this.GameData = gameData;
+        }
+        public Director() : this(GetGameModel(), GetGameData()) { }
         public abstract float Score(FreeplayBloonGroupModel model);
         public abstract float Score(BloonGroupModel model);
         public abstract float Score(BloonModel model);
-        public abstract bool Mutate(IGoal goal = null);
+        public abstract bool Mutate(IGoal? goal = null);
 
     }
 
@@ -59,13 +68,13 @@ namespace Combloonation
         public readonly Random random;
         public readonly int seed;
 
-        public SeededDirector(GameModel game, int seed) : base(game)
+        public SeededDirector(GameModel gameModel, GameData gameData, int seed) : base(gameModel, gameData)
         {
             random = new Random(seed);
             this.seed = seed;
         }
 
-        public SeededDirector(GameModel game) : this(game, new Random().Next()) { }
+        public SeededDirector(GameModel gameModel, GameData gameData) : this(gameModel, gameData, new Random().Next()) { }
 
         public SeededDirector(int seed) : base()
         {
@@ -79,8 +88,8 @@ namespace Combloonation
 
     public class MainDirector : SeededDirector
     {
-        public MainDirector(GameModel game, int seed) : base(game, seed) { }
-        public MainDirector(GameModel game) : base(game) { }
+        public MainDirector(GameModel gameModel, GameData gameData, int seed) : base(gameModel, gameData, seed) { }
+        public MainDirector(GameModel gameModel, GameData gameData) : base(gameModel, gameData) { }
         public MainDirector(int seed) : base(seed) { }
         public MainDirector() : base() { }
 
@@ -151,18 +160,18 @@ namespace Combloonation
 
         public override bool Mutate(IGoal goal = null)
         {
-            var roundBloons = game.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b))).ToList();
+            var roundBloons = GameData.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b))).ToList();
             Dictionary<string, double> bloonChances = new Dictionary<string, double>();
             if (!(goal?.bloons is null)) goal.bloons.Do(b => bloonChances.Add(b, 1 / (1 + Score(BloonFromName(b)))));
             var freeplayGroups = new List<FreeplayBloonGroupModel> { };
-            var roundSet = game.roundSets.ArgMax(rs => rs.rounds.Length);
+            var roundSet = GameData.roundSets.ArgMax(rs => rs.rounds.Length).Duplicate();
             var roundsCount = roundSet.rounds.Length;
             for (int j = 0; j < roundsCount; ++j)
             {
-                var groups = game.roundSets.Where(rs => j >= roundSet.rounds.Length - rs.rounds.Length).Select(rs => rs.rounds[j - roundSet.rounds.Length + rs.rounds.Length]).SelectMany(r => r.groups).ToArray();
+                var groups = GameData.roundSets.Where(rs => j >= roundSet.rounds.Length - rs.rounds.Length).Select(rs => rs.rounds[j - roundSet.rounds.Length + rs.rounds.Length]).SelectMany(r => r.groups).ToArray();
                 if (groups.Length > 1)
                 {
-                    groups = Split(groups.Select(g => new RoundBloonGroupModel(g, null)).ToArray(),
+                    groups = Split(groups.Select(g => RoundBloonGroupModel(g, null)).ToArray(),
                         Partition(groups.Sum(g => g.count), random.Next(1, groups.Length), random)).Select(f => f.group).ToArray();
                 }
                 if (!(goal?.bloons is null)) foreach (var group in groups)
@@ -173,13 +182,13 @@ namespace Combloonation
                     group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundsCount, random))).name;
                 }
                 if (!(goal?.props is null)) foreach (var group in groups) group.bloon = Fuse(new string[] { group.bloon }, goal.props).name;
-                groups.Do(g => freeplayGroups.Add(new RoundBloonGroupModel(g.Duplicate(), j, roundsCount + 1).Apply(AdjustLeft)));
+                groups.Do(g => freeplayGroups.Add(RoundBloonGroupModel(g.Duplicate(), j, roundsCount + 1).Apply(AdjustLeft)));
                 roundSet.rounds[j].groups = groups;
             }
-            game.freeplayGroups = freeplayGroups.ToArray();
+            GameModel.freeplayGroups = freeplayGroups.ToArray();
             //m = game.roundSets.Min(rs => rs.rounds.Length);
             //var rounds = roundSet.rounds.Take(m).ToArray();
-            game.roundSets = game.roundSets.Select(rs => new RoundSetModel(rs.name, roundSet.rounds)).ToArray();
+            GameModel.roundSet = new RoundSetModel(GameModel.roundSet.name, roundSet.rounds, roundSet.linkedIncomeSet);
             return true;
         }
 

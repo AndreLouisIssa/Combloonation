@@ -43,20 +43,19 @@ public class Main : BloonsTD6Mod
         random = new System.Random(seed);
     }
 
-    public override void OnApplicationLateStart()
-    {
-        Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-        Assembly helpfulAdditions = assemblies.FirstOrDefault(assembly => assembly.GetName().Name.Equals("Helpful Additions"));
-        if (helpfulAdditions is null) return;
-        System.Type mod = helpfulAdditions.GetType("HelpfulAdditions.Mod");
-        optional_HelpfulAdditions_AddCustomBloon = mod.GetMethod("AddCustomBloon", new System.Type[] {
-            typeof(string), typeof(Texture2D), typeof(Texture2D), typeof(Texture2D), typeof(Vector2?) });
-    }
+    //public override void OnApplicationLateStart()
+    //{
+    //    Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
+    //    Assembly helpfulAdditions = assemblies.FirstOrDefault(assembly => assembly.GetName().Name.Equals("Helpful Additions"));
+    //    if (helpfulAdditions is null) return;
+    //    System.Type mod = helpfulAdditions.GetType("HelpfulAdditions.Mod");
+    //    optional_HelpfulAdditions_AddCustomBloon = mod.GetMethod("AddCustomBloon", new System.Type[] {
+    //        typeof(string), typeof(Texture2D), typeof(Texture2D), typeof(Texture2D), typeof(Vector2?) });
+    //}
 
     public override void OnTitleScreen()
     {
-        var game = GetGameModel();
-        director = new MainDirector(game, seed);
+        director = new MainDirector(seed);
         MelonLogger.Msg("Mutating rounds...");
         director.Mutate();
         MelonLogger.Msg("Finished mutating rounds!");

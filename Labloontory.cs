@@ -7,8 +7,7 @@ using BTD_Mod_Helper.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnhollowerRuntimeLib;
-using UnhollowerBaseLib;
+using Il2CppInterop.Runtime;
 using static Combloonation.Display;
 using static Combloonation.Helpers;
 using static Combloonation.Main;
@@ -38,7 +37,7 @@ namespace Combloonation
             Il2CppType.Of<SpawnChildrenModel>().FullName,
             Il2CppType.Of<DamageStateModel>().FullName,
             Il2CppType.Of<GrowModel>().FullName,
-            Il2CppType.Of<SetGrowToOnChildrenModel>().FullName,
+            //Il2CppType.Of<SetGrowToOnChildrenModel>().FullName,
             Il2CppType.Of<DistributeCashModel>().FullName
         };
 
@@ -50,12 +49,12 @@ namespace Combloonation
                     b.isGrow = true;
                     b.tags = b.tags.Append("Grow").ToArray();
                     var rate = 3;
-                    b.AddBehavior(new GrowModel("GrowModel_", rate, ""));
+                    b.AddBehavior(new GrowModel("GrowModel_", rate, "", null));
                     foreach (var child in b.childBloonModels) {
                         var grows = child.GetBehaviors<GrowModel>();
                         var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromName(g.growToId, false)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
-                        GrowModel grow = new GrowModel("GrowModel_", crate, b.baseId + b.inherit);
+                        GrowModel grow = new GrowModel("GrowModel_", crate, b.baseId + b.inherit, null);
                         if (cgrow != default) grow.growToId = cgrow.growToId;
                         child.RemoveBehaviors<GrowModel>();
                         child.AddBehavior(grow);
@@ -86,16 +85,26 @@ namespace Combloonation
 
         public class FusionBloonModel : BloonModel
         {
+            //TODO: convert this subclass into a weak associative map on BloonModel instances
+            //      constructors and properties become extension methods on BloonModel
+
             public readonly BloonModel[] fusands;
             public readonly Property[] props;
             public readonly string inherit;
 
             public FusionBloonModel(BloonModel f, BloonModel[] fs, Property[] ps)
-                : base(f.id, f.baseId, f.speed, f.radius, f.display, f.damageDisplayStates, f.icon, f.rotate,
-                      f.behaviors, f.overlayClass, f.tags, f.mods, f.collisionGroup, f.danger, f.hasChildrenWithDifferentTotalHealths,
-                      f.layerNumber, f.isCamo, f.isGrow, f.isFortified, f.depletionEffects, f.rotateToFollowPath, f.isMoab,
-                      f.isBoss, f.bloonProperties, f.leakDamage, f.maxHealth, f.distributeDamageToChildren, f.isInvulnerable,
-                      f.propertyDisplays, f.bonusDamagePerHit, f.disallowCosmetics, f.isSaved, f.loseOnLeak)
+                : base(
+                      f.id,f.baseId,f.speed,f.radius,f.display,f.damageDisplayStates,f.icon
+                      ,f.behaviors,f.overlayClass,f.tags,f.mods,f.collisionGroup,f.danger,
+                      f.hasChildrenWithDifferentTotalHealths,f.layerNumber,f.isCamo,f.isGrow,
+                      f.isFortified,f.depletionEffects,f.isMoab,f.isBoss,f.bloonProperties,
+                      f.leakDamage,f.leakDamageSet,f.maxHealth,f.distributeDamageToChildren,
+                      f.isInvulnerable,f.bonusDamagePerHit,f.disallowCosmetics,f.isSaved,
+                      f.currentOverlays,f.dontShowInSandbox,f.dontShowInSandboxOnRelease,
+                      f.alwaysRecordsDamage,f.isImmuneToSlow,f.isBossSegment,f.basicTypeFlags,
+                      f.propertyFlags,f.armourMultiplier,f.legendsType,f.variantName,
+                      f.variantPrefix,f.isFixedMaxHealth
+                      )
             { fusands = fs; props = ps; inherit = PropertyString(ps.Where(p => p.heir)); }
         }
 
@@ -131,10 +140,10 @@ namespace Combloonation
 
             public BloonsionReactor MergeDisplay()
             {
-                fusion.overlayClass = fusion.baseId;
+                fusion.overlayClass = fusion.overlayClass;
                 fusion.damageDisplayStates = new DamageStateModel[] { };
-                fusion.depletionEffects = new Il2CppReferenceArray<EffectModel>(fusion.fusands.SelectMany(f => f.depletionEffects).ToArray());
-                fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays ?? new Il2CppStringArray(new string[]{ })).ToArray());
+                fusion.depletionEffects = fusion.fusands.SelectMany(f => f.depletionEffects).ToIl2CppReferenceArray();
+                //fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays ?? new Il2CppStringArray(new string[]{ })).ToArray());
 
                 //var prefix = $"{folderPath}/{DebugString(fusion.name)}";
                 //var texturePath = prefix + ".texture.png";
@@ -158,18 +167,18 @@ namespace Combloonation
                 
                 fusion.tags = fusion.fusands.SelectMany(f => f.tags).Append(fusionTag).Distinct().ToArray();
                 fusion.bloonProperties = fusion.fusands.Select(f => f.bloonProperties).Aggregate((a, b) => a | b);
-                foreach (var child in fusion.childBloonModels)
-                    fusion.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", child.baseId, fusion.baseId));
+                //foreach (var child in fusion.childBloonModels)
+                //    fusion.AddBehavior(new SetGrowToOnChildrenModel("SetGrowToOnChildrenModel_", child.baseId, fusion.baseId));
                 if (fusion.isGrow) 
                 {
                     var grows = fusion.fusands.SelectMany(f => f.GetBehaviors<GrowModel>());
                     var rate = Math.Max(3,grows.Max(g => g.rate));
-                    fusion.AddBehavior(new GrowModel("GrowModel_", rate, ""));
+                    fusion.AddBehavior(new GrowModel("GrowModel_", rate, "", null));
                     foreach (var child in fusion.childBloonModels) {
                         grows = child.GetBehaviors<GrowModel>();
                         var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromName(g.growToId, false)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
-                        GrowModel grow = new GrowModel("GrowModel_", crate, fusion.baseId + fusion.inherit);
+                        GrowModel grow = new GrowModel("GrowModel_", crate, fusion.baseId + fusion.inherit, null);
                         if (cgrow != default) grow.growToId = cgrow.growToId;
                         child.RemoveBehaviors<GrowModel>();
                         child.AddBehavior(grow);
@@ -182,13 +191,15 @@ namespace Combloonation
             public BloonsionReactor MergeStats()
             {
                 fusion.maxHealth = fusion.fusands.Max(f => f.maxHealth) * fusion.fusands.Count();
-                fusion.leakDamage = fusion.fusands.Max(f => f.leakDamage)*fusion.fusands.Count();
+                fusion.leakDamage = fusion.fusands.Max(f => f.leakDamage) * fusion.fusands.Count();
+                fusion.leakDamageSet = fusion.fusands.Max(f => f.leakDamageSet) * fusion.fusands.Count();
                 fusion.isInvulnerable = fusion.fusands.Any(f => f.isInvulnerable);
-                fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
+                //fusion.loseOnLeak = fusion.fusands.Any(f => f.loseOnLeak);
+    
                 fusion.speed = fusion.fusands.Max(f => f.speed);
                 fusion.distributeDamageToChildren = fusion.fusands.All(f => f.distributeDamageToChildren);
-                fusion.totalLeakDamage = fusion.leakDamage + fusion.childBloonModels.ToList().Sum(c => c.totalLeakDamage);
-                if (fusion.isMoab && fusion.isGrow) fusion.maxHealth *= 1.25f;
+                fusion.totalLeakDamage = new Il2CppSystem.Nullable<float>(fusion.leakDamage + fusion.childBloonModels.ToList().Sum(c => c.totalLeakDamage.GetValueOrDefault(c.leakDamage)));
+                if (fusion.isMoab && fusion.isGrow) fusion.maxHealth = (int)(fusion.maxHealth * 1.25f);
                 return this;
             }
 

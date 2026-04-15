@@ -458,7 +458,7 @@ namespace Combloonation
 
         public static void SetBloonAppearance(Bloon bloon)
         {
-            var graphic = bloon?.display?.node?.graphic;
+            var graphic = bloon?.Display?.node?.graphic;
             if (graphic is null) return;
             if (BloonFromName(bloon.bloonModel.name) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
         }
