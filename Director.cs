@@ -177,7 +177,8 @@ namespace Combloonation
                 if (!(goal?.bloons is null)) foreach (var group in groups)
                 {
                     IEnumerable<string> bloons;
-                    if (BloonFromName(group.bloon) is FusionBloonModel fusion) bloons = BloonNamesFromBloons(fusion.fusands);
+                    var fusion = BloonFromName(group.bloon)?.GetFusion();
+                    if (fusion != null) bloons = BloonNamesFromBloons(fusion.fusands);
                     else bloons = new string[] { group.bloon };
                     group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundsCount, random))).name;
                 }

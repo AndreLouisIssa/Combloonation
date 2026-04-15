@@ -9,6 +9,7 @@ using UnityEngine;
 using Random = System.Random;
 using Bounds = Il2CppAssets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
 using Il2CppAssets.Scripts.Data;
+using Il2CppAssets.Scripts.Models.Bloons;
 
 namespace Combloonation
 {
@@ -228,7 +229,18 @@ namespace Combloonation
         {
             var model = InGame.instance?.bridge?.Model;
             if (model is null) model = Game.instance.model;
+            if (model is null) throw new NullReferenceException("GameModel is null!");
             return model;
+        }
+
+        public static Il2CppSystem.Collections.Generic.Dictionary<string, BloonModel> GetBloonsByName()
+        {
+            var lookup = GetGameModel().bloonsByName;
+            if (lookup == null)
+            {
+                throw new NullReferenceException("GameModel bloonsByName is null!");
+            }
+            return lookup;
         }
 
         public static GameData GetGameData()

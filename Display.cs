@@ -203,7 +203,8 @@ namespace Combloonation
         public static List<IOverlay> GetColors(this BloonModel bloon, Rect bound)
         {
             IEnumerable<string> ids;
-            if (bloon is FusionBloonModel fusion)
+            var fusion = bloon.GetFusion();
+            if (fusion != null)
                 ids = fusion.fusands.Select(f => f.baseId);
             else ids = new string[] {bloon.baseId};
             var cols = new List<IOverlay> { };
@@ -302,19 +303,21 @@ namespace Combloonation
             return new Rect(-w2, -h2, w, h);
         }
 
-        public static Texture2D NewMergedTexture(this FusionBloonModel bloon, Texture texture, bool fromMesh, Rect? proj = null)
+        public static Texture2D NewMergedTexture(this Fusion fusion, Texture texture, bool fromMesh, Rect? proj = null)
         {
-            if (bloon is null) throw new ArgumentNullException(nameof(bloon));
+            if (fusion is null) throw new ArgumentNullException(nameof(fusion));
+            var bloon = fusion.bloon;
+
             var bound = GetRegionRect(texture, proj);
-            var cols = GetColors(bloon, bound);
+            var cols = GetColors(fusion.bloon, bound);
             var r = Math.Min(bound.width, bound.height) / 2;
             var dx = 0f; var dy = 0f;
-            var fbase = bloon.fusands.First();
+            var fbase = fusion.fusands.First();
             var tcols = cols.Skip(1).ToList();
             IOverlay dcol = null; IOverlay ddcol = emptyColor;
             if (cols.Count > 1)
             {
-                var ws = bloon.fusands.Skip(1).Select(b => b.danger).ToList();
+                var ws = fusion.fusands.Skip(1).Select(b => b.danger).ToList();
                 var map = Regions.spiral(1.3f, 0.6f)(bound.x, bound.x + bound.width, bound.y, bound.y + bound.height);
                 r *= ws[0] / fbase.danger;
                 dcol = new RegionOverlay(tcols, ws, map);
@@ -372,46 +375,54 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + bound.x), y + (int)(dy + bound.y)), proj);
         }
 
-        public static Texture2D GetMergedTexture(this FusionBloonModel bloon, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
+        public static Texture2D GetMergedTexture(this Fusion fusion, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
         {
-            if (bloon is null) throw new ArgumentNullException(nameof(bloon));
+            if (fusion is null) throw new ArgumentNullException(nameof(fusion));
+            var bloon = fusion.bloon;
+
             if (oldTexture is null) return null;//throw new ArgumentNullException(nameof(oldTexture));
             if (oldTexture.isReadable) return null;
             var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
-            texture = bloon.NewMergedTexture(oldTexture, fromMesh, proj);
+            texture = fusion.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture is null) return null;
             computed[bloon.name] = texture;
             //texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
-            if (computed == computedIcons) bloon.SetHelpfulAdditionsBloon();
+            //if (computed == computedIcons) fusion.SetHelpfulAdditionsBloon();
             return texture;
         }
 
-        public static void SetBloonAppearance(this FusionBloonModel bloon, UnityDisplayNode graphic)
+        public static void SetBloonAppearance(this Fusion fusion, UnityDisplayNode graphic)
         {
+            if (fusion is null) throw new ArgumentNullException(nameof(fusion));
+            var bloon = fusion.bloon;
+
             var sprite = graphic.sprite;
             if (sprite is null)
             {
                 var renderer = graphic.genericRenderers.First(mainRenderer);
-                var texture = bloon.GetMergedTexture(renderer.material.mainTexture, computedTextures, true, "texture");
+                var texture = fusion.GetMergedTexture(renderer.material.mainTexture, computedTextures, true, "texture");
                 if (texture is null) return;
                 graphic.genericRenderers.Where(mainRenderer).Do(r => r.SetMainTexture(texture));
             }
             else
             {
-                var texture = bloon.GetMergedTexture(sprite.sprite.texture, computedIcons, false, "icon", sprite.sprite.textureRect);
+                var texture = fusion.GetMergedTexture(sprite.sprite.texture, computedIcons, false, "icon", sprite.sprite.textureRect);
                 if (texture is null) return;
                 sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
             }
 
         }
 
-        public static void SetBloonAppearance(this FusionBloonModel bloon, Image icon)
+        public static void SetBloonAppearance(this Fusion fusion, Image icon)
         {
+            if (fusion is null) throw new ArgumentNullException(nameof(fusion));
+            var bloon = fusion.bloon;
+
             var sprite = icon.sprite;
             if (sprite.texture.isReadable) return;
             if (!patchedIcons && !computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
-            var texture = bloon.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
+            var texture = fusion.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
             if (texture != null)
             {
                 icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
@@ -431,45 +442,50 @@ namespace Combloonation
             }
         }
 
-        public static void SetHelpfulAdditionsBloon(this FusionBloonModel bloon)
-        {
-            if (optional_HelpfulAdditions_AddCustomBloon is null) return;
-            if (!helpfulAdditionsArgsCache.TryGetValue(bloon.name, out var args))
-            {
-                Func<float, float, float> ms = (x, y) => x * x + y * y;
-                var ox = 25; var oy = 50; var or = ox * ox;
-                var ix = 20; var ir = ix * ix;
-                var name = bloon.name;
-                var icon = computedIcons[name];
-                var bound = new Rect(0, 0, ox, oy);
-                var cols = GetColors(bloon, bound); cols.Reverse();
-                var map = Regions.vertical(0, ox, 0, oy);
-                var ws = bloon.fusands.Select(b => 1f).ToList();
-                var bcol = boundaryColor;
-                var mcol = new RegionOverlay(cols, ws, map);
-                var scol = new PipeOverlay(mcol, new BoundOverlay(emptyColor, bcol, (x, y) => Math.Abs(y - ox) > ix));
-                var span = new Texture2D(ox, oy).Duplicate((x, y, c) => scol.Pixel(c, x, y));
-                var ecol = new BoundOverlay(new PipeOverlay(mcol, new BoundOverlay(emptyColor, bcol, (x, y) => ms(x - ox, y - ox) > ir)), invisColor, (x, y) => ms(x - ox, y - ox) > or);
-                var edge = new Texture2D(ox, oy).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
-                args = new object[] { name, icon, edge, span, new Vector2(icon.width * 2, icon.height * 2) };
-            }
-            optional_HelpfulAdditions_AddCustomBloon.Invoke(null, args);
-        }
+        //public static void SetHelpfulAdditionsBloon(this Fusion fusion)
+        //{
+        //    if (fusion is null) throw new ArgumentNullException(nameof(fusion));
+        //    var bloon = fusion.bloon;
+
+        //    if (optional_HelpfulAdditions_AddCustomBloon is null) return;
+        //    if (!helpfulAdditionsArgsCache.TryGetValue(bloon.name, out var args))
+        //    {
+        //        Func<float, float, float> ms = (x, y) => x * x + y * y;
+        //        var ox = 25; var oy = 50; var or = ox * ox;
+        //        var ix = 20; var ir = ix * ix;
+        //        var name = bloon.name;
+        //        var icon = computedIcons[name];
+        //        var bound = new Rect(0, 0, ox, oy);
+        //        var cols = GetColors(bloon, bound); cols.Reverse();
+        //        var map = Regions.vertical(0, ox, 0, oy);
+        //        var ws = fusion.fusands.Select(b => 1f).ToList();
+        //        var bcol = boundaryColor;
+        //        var mcol = new RegionOverlay(cols, ws, map);
+        //        var scol = new PipeOverlay(mcol, new BoundOverlay(emptyColor, bcol, (x, y) => Math.Abs(y - ox) > ix));
+        //        var span = new Texture2D(ox, oy).Duplicate((x, y, c) => scol.Pixel(c, x, y));
+        //        var ecol = new BoundOverlay(new PipeOverlay(mcol, new BoundOverlay(emptyColor, bcol, (x, y) => ms(x - ox, y - ox) > ir)), invisColor, (x, y) => ms(x - ox, y - ox) > or);
+        //        var edge = new Texture2D(ox, oy).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
+        //        args = new object[] { name, icon, edge, span, new Vector2(icon.width * 2, icon.height * 2) };
+        //    }
+        //    optional_HelpfulAdditions_AddCustomBloon.Invoke(null, args);
+        //}
 
         public static void SetBloonAppearance(Bloon bloon)
         {
             var graphic = bloon?.Display?.node?.graphic;
             if (graphic is null) return;
-            if (BloonFromName(bloon.bloonModel.name) is FusionBloonModel fusion) SetBloonAppearance(fusion, graphic);
+            var fusion = BloonFromName(bloon.bloonModel.name)?.GetFusion();
+            if (fusion != null) SetBloonAppearance(fusion, graphic);
         }
 
         public static void SetBloonAppearance(SpawnBloonButton button)
         {
             if (patchingIcons)
             {
-                if (BloonFromName(button.model.name) is FusionBloonModel bloon)
+                var fusion = BloonFromName(button.model.name)?.GetFusion();
+                if (fusion != null)
                 {
-                    bloon.SetBloonAppearance(button.Button.image);
+                    fusion.SetBloonAppearance(button.Button.image);
                     if (!patchedIcons && bloonMenuFusions.Count == 0)
                     {
                         patchedIcons = true;
@@ -503,7 +519,7 @@ namespace Combloonation
             menu.CreateBloonButtons(bloons.ToIl2CppList());
             if (!patchingIcons && !patchedIcons) {
                 MelonLogger.Msg("Setting icons...");
-                bloonMenuFusions = bloons.Select(b => b.name).Where(n => BloonFromName(n) is FusionBloonModel bloon).ToList();
+                bloonMenuFusions = bloons.Select(b => b.name).Where(n => BloonFromName(n)?.GetFusion() != null).ToList();
                 patchingIcons = true;
             }
         }
