@@ -8,7 +8,6 @@ using Combloonation;
 using HarmonyLib;
 
 using System.Reflection;
-using UnityEngine;
 
 using Il2CppAssets.Scripts.Models.Rounds;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
@@ -26,40 +25,23 @@ namespace Combloonation;
 public class Main : BloonsTD6Mod
 {
 
-    //public static string folderPath;
-    public static int seed = 2000;
-    public static System.Random random;
-    public static IDirector director = null;
-    public static MethodInfo optional_HelpfulAdditions_AddCustomBloon = null;
-    public static int maxFusands = int.MaxValue;
+    public static readonly int seed = 2000;
+    public static readonly int maxFusands = int.MaxValue;
 
-    public override void OnApplicationStart()
+    public static readonly System.Random random = new System.Random(seed);
+    private static IDirector? director = null;
+
+    public static void Log(string message)
     {
-        base.OnApplicationStart();
-        MelonLogger.Msg("Combloonations loaded!");
-        //folderPath = FileIOUtil.GetSandboxPath() + "/Combloonation";
-        //MelonLogger.Msg("Dumping at " + folderPath);
-        //Directory.CreateDirectory(folderPath);
-        random = new System.Random(seed);
+        ModHelper.Msg<Main>(message);
     }
-
-    //public override void OnApplicationLateStart()
-    //{
-    //    Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-    //    Assembly helpfulAdditions = assemblies.FirstOrDefault(assembly => assembly.GetName().Name.Equals("Helpful Additions"));
-    //    if (helpfulAdditions is null) return;
-    //    System.Type mod = helpfulAdditions.GetType("HelpfulAdditions.Mod");
-    //    optional_HelpfulAdditions_AddCustomBloon = mod.GetMethod("AddCustomBloon", new System.Type[] {
-    //        typeof(string), typeof(Texture2D), typeof(Texture2D), typeof(Texture2D), typeof(Vector2?) });
-    //}
 
     public override void OnTitleScreen()
     {
         director = new MainDirector(seed);
-        MelonLogger.Msg("Mutating rounds...");
+        Log("Mutating rounds...");
         director.Mutate();
-        MelonLogger.Msg("Finished mutating rounds!");
-        //MelonLogger.Msg(string.Join("\n",game.freeplayGroups.OrderBy(f => f.CalculateScore(game)).Select(f => $"${f.CalculateScore(game)}: {f.group.count} x {f.group.bloon} ~> [{f.group.start},{f.group.end}] | {string.Join(", ", f.bounds.Select(b => $"[{b.lowerBounds},{b.upperBounds}]"))}")));
+        Log("Finished mutating rounds!");
     }
 
     [HarmonyPatch(typeof(InGame), nameof(InGame.Update))]
@@ -88,7 +70,7 @@ public class Main : BloonsTD6Mod
         [HarmonyPostfix]
         public static void Postfix(SpawnBloonButton __instance)
         {
-            MelonLogger.Msg("Spawning " + DebugString(__instance.model.name));
+            Log("Spawning " + DebugString(__instance.model.name));
         }
     }
 

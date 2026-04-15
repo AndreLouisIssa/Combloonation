@@ -158,7 +158,7 @@ namespace Combloonation
             var g = f.group; g.end -= g.start; g.start = 0;
         }
 
-        public override bool Mutate(IGoal goal = null)
+        public override bool Mutate(IGoal? goal = null)
         {
             var roundBloons = GameData.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b))).ToList();
             Dictionary<string, double> bloonChances = new Dictionary<string, double>();
@@ -177,7 +177,7 @@ namespace Combloonation
                 if (!(goal?.bloons is null)) foreach (var group in groups)
                 {
                     IEnumerable<string> bloons;
-                    var fusion = BloonFromName(group.bloon)?.GetFusion();
+                    var fusion = FusionFromNameSafe(group.bloon);
                     if (fusion != null) bloons = BloonNamesFromBloons(fusion.fusands);
                     else bloons = new string[] { group.bloon };
                     group.bloon = Fuse(bloons.Concat(RandomSubset(bloonChances, ((double)j)/roundsCount, random))).name;

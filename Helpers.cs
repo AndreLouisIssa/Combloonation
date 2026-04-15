@@ -38,10 +38,10 @@ namespace Combloonation
             return shuffledList;
         }
 
-        public static HashSet<T> RandomSubset<T>(Dictionary<T,double> chances, double scale, Random random)
+        public static HashSet<T> RandomSubset<T>(Dictionary<T,double> chances, double scale, Random random) where T: notnull
         {
             random = random ?? new Random();
-            return new HashSet<T>(chances.Keys.Where(t => random.NextDouble() < 1 - Math.Pow(1 - chances[t], scale)));
+            return [.. chances.Keys.Where(t => random.NextDouble() < 1 - Math.Pow(1 - chances[t], scale))];
         }
 
         public static double HeartCurve(double x, double y)
@@ -89,7 +89,7 @@ namespace Combloonation
 
         public static int[] Partition(int size, int parts, Random r)
         {
-            //MelonLogger.Msg(size + "/" + parts);
+            //Log(size + "/" + parts);
             r = r ?? new Random();
             var _pivots = new HashSet<int>(parts - 1) { 0, size };
             for (int i = 1; i < parts; i++)
@@ -101,14 +101,14 @@ namespace Combloonation
             }
             var pivots = _pivots.OrderBy(n => n);
             var sizes = new List<int> { };
-            //MelonLogger.Msg(string.Join("->",pivots));
+            //Log(string.Join("->",pivots));
             var s = pivots.First();
             foreach (var pivot in pivots.Skip(1))
             {
                 sizes.Add(pivot - s);
                 s = pivot;
             }
-            //MelonLogger.Msg(string.Join("|",sizes));
+            //Log(string.Join("|",sizes));
             return sizes.ToArray();
         }
 

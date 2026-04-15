@@ -31,7 +31,7 @@ namespace Combloonation
         public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
         public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
         public static Dictionary<string, object[]> helpfulAdditionsArgsCache = new Dictionary<string, object[]>();
-        public static List<string> bloonMenuFusions = null;
+        public static List<string>? bloonMenuFusions = null;
         public static string bloonMenuProperties = "";
 
         public static IOverlay invisColor = new DelegateOverlay((c, x, y) => new Color(0, 0, 0, 0));
@@ -101,19 +101,24 @@ namespace Combloonation
 
         public class RegionOverlay : IOverlay
         {
-            public List<IOverlay> cs;
+            public readonly List<IOverlay> cs;
             public List<float> ps;
             public RegionScalarMap map;
 
             public RegionOverlay(List<IOverlay> cs, List<float> ws, RegionScalarMap map)
             {
+                if (cs == null) throw new ArgumentNullException(nameof(cs));
                 if (cs.Count != ws.Count) throw new ArgumentException("Weights list must be the same length");
                 this.cs = cs; ps = WeightsToPivots(ws); this.map = map;
             }
 
             public Color Pixel(Color c, float x, float y)
             {
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
                 return cs.SplitRange(ps, null, map, x, y).Pixel(c, x, y);
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
             }
         }
         public class CheckeredOverlay : IOverlay
@@ -139,7 +144,7 @@ namespace Combloonation
         public class TintOverlay : IOverlay
         {
             public float t = 0.8f;
-            public Func<float, float, float> tf;
+            public Func<float, float, float>? tf;
             public IOverlay c;
 
             public TintOverlay(IOverlay c) { this.c = c; }
@@ -171,7 +176,7 @@ namespace Combloonation
             public IOverlay ci;
             public IOverlay co;
             public float b = 1f;
-            public Func<float, float, bool> bf;
+            public Func<float, float, bool>? bf;
 
             public BoundOverlay(IOverlay ci, IOverlay co) { this.ci = ci; this.co = co; }
             public BoundOverlay(IOverlay ci, IOverlay co, float b) : this(ci, co) { this.b = b; }
@@ -211,7 +216,7 @@ namespace Combloonation
             foreach (var id in ids)
             {
                 var got = baseColors.TryGetValue(id, out var col);
-                if (got) cols.Add(col);
+                if (got && col != null) cols.Add(col);
                 else cols.Add(GetMissingColor(id, bound));
             }
             return cols;
@@ -220,7 +225,7 @@ namespace Combloonation
         private static IOverlay GetMissingColor(string id, Rect b)
         {
             var got = missingColors.TryGetValue(id, out var col);
-            if (!got) col = missingColors[id] = new ColorOverlay(random.NextColor());
+            if (!got || col == null) col = missingColors[id] = new ColorOverlay(random.NextColor());
             var r = (float)Math.Min(b.width, b.height) / 8;
             return new CheckeredOverlay(new List<IOverlay> { invertColor, col }, r, r);
         }
@@ -314,7 +319,7 @@ namespace Combloonation
             var dx = 0f; var dy = 0f;
             var fbase = fusion.fusands.First();
             var tcols = cols.Skip(1).ToList();
-            IOverlay dcol = null; IOverlay ddcol = emptyColor;
+            IOverlay? dcol = null; IOverlay ddcol = emptyColor;
             if (cols.Count > 1)
             {
                 var ws = fusion.fusands.Skip(1).Select(b => b.danger).ToList();
@@ -375,20 +380,19 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + bound.x), y + (int)(dy + bound.y)), proj);
         }
 
-        public static Texture2D GetMergedTexture(this Fusion fusion, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
+        public static Texture2D? GetMergedTexture(this Fusion fusion, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
         {
             if (fusion is null) throw new ArgumentNullException(nameof(fusion));
             var bloon = fusion.bloon;
 
-            if (oldTexture is null) return null;//throw new ArgumentNullException(nameof(oldTexture));
+            if (oldTexture is null) return null;
             if (oldTexture.isReadable) return null;
             var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
             texture = fusion.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture is null) return null;
             computed[bloon.name] = texture;
-            //texture.SaveToPNG($"{folderPath}/{DebugString(bloon.name)}.{postfix}.png");
-            //if (computed == computedIcons) fusion.SetHelpfulAdditionsBloon();
+
             return texture;
         }
 
@@ -421,60 +425,34 @@ namespace Combloonation
 
             var sprite = icon.sprite;
             if (sprite.texture.isReadable) return;
+
+            if (bloonMenuFusions is null) throw new NullReferenceException($"{bloonMenuFusions} is null!"); // TODO: can we just guard this null check?
+
             if (!patchedIcons && !computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
+
             var texture = fusion.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
-            if (texture != null)
+            if (texture == null) return;
+
+            icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
+            float w = texture.width; float h = texture.height;
+            float s = Math.Max(w, h);
+            if (s > 150)
             {
-                icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
-                float w = texture.width; float h = texture.height;
-                float s = Math.Max(w, h);
-                if (s > 150)
-                {
-                    var r = 150 / s;
-                    w *= r; h *= r;
-                }
-                var rt = icon.rectTransform;
-                sizeDelta = rt.sizeDelta; rt.sizeDelta = new Vector2(2, 2);
-                localScale = rt.localScale; rt.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
-                bloonMenuFusions.Remove(bloon.name);
-                patchedImages.Add(icon);
-                //MelonLogger.Msg("Set icon of " + DebugString(bloon.name));
+                var r = 150 / s;
+                w *= r; h *= r;
             }
+            var rt = icon.rectTransform;
+            sizeDelta = rt.sizeDelta; rt.sizeDelta = new Vector2(2, 2);
+            localScale = rt.localScale; rt.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
+            bloonMenuFusions.Remove(bloon.name);
+            patchedImages.Add(icon);
         }
-
-        //public static void SetHelpfulAdditionsBloon(this Fusion fusion)
-        //{
-        //    if (fusion is null) throw new ArgumentNullException(nameof(fusion));
-        //    var bloon = fusion.bloon;
-
-        //    if (optional_HelpfulAdditions_AddCustomBloon is null) return;
-        //    if (!helpfulAdditionsArgsCache.TryGetValue(bloon.name, out var args))
-        //    {
-        //        Func<float, float, float> ms = (x, y) => x * x + y * y;
-        //        var ox = 25; var oy = 50; var or = ox * ox;
-        //        var ix = 20; var ir = ix * ix;
-        //        var name = bloon.name;
-        //        var icon = computedIcons[name];
-        //        var bound = new Rect(0, 0, ox, oy);
-        //        var cols = GetColors(bloon, bound); cols.Reverse();
-        //        var map = Regions.vertical(0, ox, 0, oy);
-        //        var ws = fusion.fusands.Select(b => 1f).ToList();
-        //        var bcol = boundaryColor;
-        //        var mcol = new RegionOverlay(cols, ws, map);
-        //        var scol = new PipeOverlay(mcol, new BoundOverlay(emptyColor, bcol, (x, y) => Math.Abs(y - ox) > ix));
-        //        var span = new Texture2D(ox, oy).Duplicate((x, y, c) => scol.Pixel(c, x, y));
-        //        var ecol = new BoundOverlay(new PipeOverlay(mcol, new BoundOverlay(emptyColor, bcol, (x, y) => ms(x - ox, y - ox) > ir)), invisColor, (x, y) => ms(x - ox, y - ox) > or);
-        //        var edge = new Texture2D(ox, oy).Duplicate((x, y, c) => ecol.Pixel(c, x, y));
-        //        args = new object[] { name, icon, edge, span, new Vector2(icon.width * 2, icon.height * 2) };
-        //    }
-        //    optional_HelpfulAdditions_AddCustomBloon.Invoke(null, args);
-        //}
 
         public static void SetBloonAppearance(Bloon bloon)
         {
-            var graphic = bloon?.Display?.node?.graphic;
+            var graphic = bloon.Display?.node?.graphic;
             if (graphic is null) return;
-            var fusion = BloonFromName(bloon.bloonModel.name)?.GetFusion();
+            var fusion = FusionFromNameSafe(bloon.bloonModel.name);
             if (fusion != null) SetBloonAppearance(fusion, graphic);
         }
 
@@ -482,15 +460,15 @@ namespace Combloonation
         {
             if (patchingIcons)
             {
-                var fusion = BloonFromName(button.model.name)?.GetFusion();
+                var fusion = FusionFromNameSafe(button.model.name);
                 if (fusion != null)
                 {
                     fusion.SetBloonAppearance(button.Button.image);
-                    if (!patchedIcons && bloonMenuFusions.Count == 0)
+                    if (!patchedIcons && (bloonMenuFusions != null && bloonMenuFusions.Count == 0))
                     {
                         patchedIcons = true;
                         patchingIcons = false;
-                        MelonLogger.Msg("Finished setting icons!");
+                        Log("Finished setting icons!");
                     }
                 }
             }
@@ -518,8 +496,8 @@ namespace Combloonation
             if (patchedIcons) bloons = bloons.Where(b => PropertyString(GetProperties(b)) == bloonMenuProperties);
             menu.CreateBloonButtons(bloons.ToIl2CppList());
             if (!patchingIcons && !patchedIcons) {
-                MelonLogger.Msg("Setting icons...");
-                bloonMenuFusions = bloons.Select(b => b.name).Where(n => BloonFromName(n)?.GetFusion() != null).ToList();
+                Log("Setting icons...");
+                bloonMenuFusions = bloons.Select(b => b.name).Where(n => FusionFromNameSafe(n) != null).ToList();
                 patchingIcons = true;
             }
         }

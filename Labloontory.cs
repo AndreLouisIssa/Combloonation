@@ -54,7 +54,7 @@ namespace Combloonation
                     b.AddBehavior(new GrowModel("GrowModel_", rate, "", null));
                     foreach (var child in b.childBloonModels) {
                         var grows = child.GetBehaviors<GrowModel>();
-                        var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromName(g.growToId)?.danger ?? float.PositiveInfinity).FirstOrDefault();
+                        var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromNameSafe(g.growToId)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
                         GrowModel grow = new GrowModel("GrowModel_", crate, b.baseId + f.heir, null);
                         if (cgrow != default) grow.growToId = cgrow.growToId;
@@ -121,12 +121,12 @@ namespace Combloonation
             public readonly BloonModel bloon;
             public readonly BloonModel[] fusands;
 
-            public static BloonModel React(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
+            public static BloonModel React(IEnumerable<BloonModel> bloons, IEnumerable<Property>? props = null)
             {
                 var baseFusands = BaseBloonsFromBloons(BloonsFromBloons(bloons)).OrderByDescending(f => f.danger).Take(maxFusands);
                 var allProps = (props != null ? props : GetProperties(baseFusands)).ToList();
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
-                var bloon = BloonFromName(name);
+                var bloon = BloonFromNameSafe(name);
                 if (bloon != null) return bloon;
                 var reactor = new BloonsionReactor(baseFusands, allProps, name);
                 Register(reactor.fusion.bloon);
@@ -135,7 +135,7 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> baseFusands, List<Property> allProps, string name)
             {
-                fusands = baseFusands.Select(b => BloonFromNameDirect(b.name + PropertyString(ProbeProperties(b, allProps)))).ToArray();
+                fusands = baseFusands.Select(b => BloonFromName(b.name + PropertyString(ProbeProperties(b, allProps)))).ToArray();
                 var fusand = fusands.First();
                 if (fusand == null)
                 {
@@ -149,7 +149,7 @@ namespace Combloonation
 
             public BloonsionReactor Merge()
             {
-                //MelonLogger.Msg("Creating " + DebugString(fusion.name));
+                //Log("Creating " + DebugString(fusion.name));
                 return MergeBehaviors().MergeDisplay().MergeChildren().MergeSpawnBloonsActionModel().MergeProperties().MergeStats();
             }
 
@@ -192,7 +192,7 @@ namespace Combloonation
                     bloon.AddBehavior(new GrowModel("GrowModel_", rate, "", null));
                     foreach (var child in bloon.childBloonModels) {
                         grows = child.GetBehaviors<GrowModel>();
-                        var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromName(g.growToId)?.danger ?? float.PositiveInfinity).FirstOrDefault();
+                        var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromNameSafe(g.growToId)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
                         GrowModel grow = new GrowModel("GrowModel_", crate, bloon.baseId + fusion.heir, null);
                         if (cgrow != default) grow.growToId = cgrow.growToId;
@@ -324,15 +324,16 @@ namespace Combloonation
             return bloon.Clone().Cast<BloonModel>();
         }
 
-        public static BloonModel? Fuse(IEnumerable<BloonModel> bloons, IEnumerable<Property> props = null)
+        public static BloonModel Fuse(IEnumerable<BloonModel> bloons, IEnumerable<Property>? props = null)
         {
-            if (bloons.Count() == 0) return null;
-            BloonModel bloon = null;
+            if (bloons.Count() == 0) throw new ArgumentException("Must have at least one fusand", nameof(bloons));
+            BloonModel? bloon = null;
             if (props is null) props = GetProperties(bloons);
             else props = GetProperties(bloons).Concat(props).Distinct();
             foreach (var propSet in props.ToList().Power()) {
                 bloon = BloonsionReactor.React(bloons, propSet);
             }
+            if (bloon == null) throw new NullReferenceException($"{nameof(bloon)} is null!");
             return bloon;
         }
 
@@ -343,11 +344,16 @@ namespace Combloonation
             if (!model.bloons.Contains(bloon)) model.bloons = model.bloons.Prepend(bloon).ToArray();
             model.bloonsByName[bloon.name] = bloon;
             model.AddChildDependant(bloon);
-            //MelonLogger.Msg("Registered " + DebugString(bloon.name));
+            //Log("Registered " + DebugString(bloon.name));
             return bloon;
         }
 
-        public static BloonModel? BloonFromName(string name)
+        public static Fusion? FusionFromNameSafe(string name)
+        {
+            return BloonFromNameSafe(name)?.GetFusion();
+        }
+
+        public static BloonModel? BloonFromNameSafe(string name)
         {
             if (BloonsByName.TryGetValue(name, out var modelA) && modelA != null) return modelA;
             var lookup = GetGameModel().bloonsByName;
@@ -355,7 +361,7 @@ namespace Combloonation
             return null;
         }
 
-        public static BloonModel BloonFromNameDirect(string name)
+        public static BloonModel BloonFromName(string name)
         {
             var exists = BloonsByName.TryGetValue(name, out var model);
             if (exists && model != null) return model;
@@ -389,14 +395,14 @@ namespace Combloonation
             return name;
         }
 
-        public static IEnumerable<Property> ProbeProperties(BloonModel bloon, List<Property> allProps = null)
+        public static IEnumerable<Property> ProbeProperties(BloonModel bloon, List<Property>? allProps = null)
         {
             var props = new List<Property>();
             var id = bloon.baseId;
             allProps = allProps ?? Property.all;
             foreach (var p in allProps.ToArray())
             {
-                var _bloon = BloonFromName(id + p.name);
+                var _bloon = BloonFromNameSafe(id + p.name);
                 if (_bloon != null && _bloon.GetFusion() == null) props.Add(p);
             }
             return props;
@@ -476,7 +482,7 @@ namespace Combloonation
             return bloons.SelectMany(b => GetBaseProperties(b)).Distinct();
         }
 
-        public static BloonModel Fuse(IEnumerable<string> bloons, string props = null)
+        public static BloonModel Fuse(IEnumerable<string> bloons, string? props = null)
         {
             return Fuse(bloons.Select(b => BloonFromName(b)), props != null ? GetExtraProperties(props) : null);
         }
