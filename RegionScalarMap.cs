@@ -8,12 +8,12 @@ namespace Combloonation
     {
         public static class Maps
         {
-            public static Func<float, float, float> vertical = (x, y) => y;
-            public static Func<float, float, float> horizontal = (x, y) => x;
-            public static Func<float, float, float> annular = (x, y) => Magnitude(x, y);
-            public static Func<float, float, float> radial = (x, y) => PositiveArgument(x, y);
-            public static Func<float, Func<float, float, float>> linear = (a) => (x, y) => Math.Cos(a) * y - Math.Sin(a) * x;
-            public static Func<float, float, Func<float, float, float>> spiral = (r, a) => (x, y) =>
+            public static readonly Func<float, float, float> vertical = (x, y) => y;
+            public static readonly Func<float, float, float> horizontal = (x, y) => x;
+            public static readonly Func<float, float, float> annular = (x, y) => Magnitude(x, y);
+            public static readonly Func<float, float, float> radial = (x, y) => PositiveArgument(x, y);
+            public static readonly Func<float, Func<float, float, float>> linear = (a) => (x, y) => Math.Cos(a) * y - Math.Sin(a) * x;
+            public static readonly Func<float, float, Func<float, float, float>> spiral = (r, a) => (x, y) =>
             {
                 return Modulo(Math.Atan2(-x, y) + a * (float)System.Math.Log(Magnitude(x, y), r) + Math.PI, Math.TWOPI) - Math.PI;
             };
@@ -21,17 +21,17 @@ namespace Combloonation
 
         public static class Regions
         {
-            public static Func<float, float, float, float, RegionScalarMap> vertical = (xlo, xhi, ylo, yhi) =>
+            public static readonly Func<float, float, float, float, RegionScalarMap> vertical = (xlo, xhi, ylo, yhi) =>
             {
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, ylo, yhi, Maps.vertical);
             };
 
-            public static Func<float, float, float, float, RegionScalarMap> horizontal = (xlo, xhi, ylo, yhi) =>
+            public static readonly Func<float, float, float, float, RegionScalarMap> horizontal = (xlo, xhi, ylo, yhi) =>
             {
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, xlo, xhi, Maps.horizontal);
             };
 
-            public static Func<float, float, float, float, RegionScalarMap> annular = (xlo, xhi, ylo, yhi) =>
+            public static readonly Func<float, float, float, float, RegionScalarMap> annular = (xlo, xhi, ylo, yhi) =>
             {
                 float x; float y;
                 if (xlo < 0 && 0 < xhi) x = 0; else x = MinBound(xlo, xhi);
@@ -41,17 +41,17 @@ namespace Combloonation
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, zlo, zhi, Maps.annular);
             };
 
-            public static Func<float, float, float, float, RegionScalarMap> radial = (xlo, xhi, ylo, yhi) =>
+            public static readonly Func<float, float, float, float, RegionScalarMap> radial = (xlo, xhi, ylo, yhi) =>
             {
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, 0, Math.TWOPI, Maps.radial);
             };
 
-            public static Func<float, Func<float, float, float, float, RegionScalarMap>> linear = (a) => (xlo, xhi, ylo, yhi) =>
+            public static readonly Func<float, Func<float, float, float, float, RegionScalarMap>> linear = (a) => (xlo, xhi, ylo, yhi) =>
             {
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, Math.Cos(a) * ylo - Math.Sin(a) * xlo, Math.Cos(a) * yhi - Math.Sin(a) * xhi, Maps.linear(a));
             };
 
-            public static Func<float, float, Func<float, float, float, float, RegionScalarMap>> spiral = (r, a) => (xlo, xhi, ylo, yhi) =>
+            public static readonly Func<float, float, Func<float, float, float, float, RegionScalarMap>> spiral = (r, a) => (xlo, xhi, ylo, yhi) =>
             {
                 return new RegionScalarMap(xlo, xhi, ylo, yhi, -Math.PI, Math.PI, Maps.spiral(r, a));
             };

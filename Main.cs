@@ -7,15 +7,13 @@ using Combloonation;
 
 using HarmonyLib;
 
-using System.Reflection;
-
 using Il2CppAssets.Scripts.Models.Rounds;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
 
 using static Combloonation.Display;
-using static Combloonation.Helpers;
 using static Combloonation.Labloontory;
+using System.IO;
 
 [assembly: MelonInfo(typeof(Combloonation.Main), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -28,8 +26,20 @@ public class Main : BloonsTD6Mod
     public static readonly int seed = 2000;
     public static readonly int maxFusands = int.MaxValue;
 
-    public static readonly System.Random random = new System.Random(seed);
+    public static readonly System.Random random = new(seed);
     private static IDirector? director = null;
+
+    public static string? FolderPath { get => folderPath; }
+    private static string? folderPath = null;
+
+    public override void OnApplicationStart()
+    {
+        base.OnApplicationStart();
+        folderPath = Path.Combine(this.GetModDirectory(), nameof(Combloonation));
+        Log("Dumping at " + folderPath);
+        Directory.CreateDirectory(folderPath);
+    }
+
 
     public static void Log(string message)
     {
@@ -85,11 +95,11 @@ public class Main : BloonsTD6Mod
     }
 
     [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleFortified))]
-    public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
+    public class Patch_BloonMenu_ToggleFortified { [HarmonyPrefix] public static bool Prefix() => RepatchIcons(); }
     [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleCamo))]
-    public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
+    public class Patch_BloonMenu_ToggleCamo { [HarmonyPrefix] public static bool Prefix() => RepatchIcons(); }
     [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.ToggleRegen))]
-    public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() => patchingIcons = patchedIcons; }
+    public class Patch_BloonMenu_ToggleRegen { [HarmonyPrefix] public static bool Prefix() => RepatchIcons(); }
 
     [HarmonyPatch(typeof(BloonMenu), nameof(BloonMenu.SortBloons))]
     public class Patch_BloonMenu_SortBloons

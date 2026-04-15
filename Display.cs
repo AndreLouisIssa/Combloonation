@@ -10,7 +10,6 @@ using static Combloonation.Labloontory;
 using static Combloonation.Main;
 using static Combloonation.Helpers;
 using static Combloonation.RegionScalarMap;
-using MelonLoader;
 using HarmonyLib;
 using UnityEngine.UI;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
@@ -19,32 +18,29 @@ namespace Combloonation
 {
     public static class Display
     {
-        public static Color initColor = new Color(0.929f, 0.059f, 0.059f, 1);
-        public static bool patchingIcons = false;
-        public static bool patchedIcons = false;
-        public static List<Image> patchedImages = new List<Image>();
-        public static Vector2 sizeDelta = default;
-        public static Vector3 localScale = default;
-        public static int maxIconSize = 256;
+        private static Color initColor = new(0.929f, 0.059f, 0.059f, 1);
+        private static bool patchingIcons = false;
+        private static bool patchedIcons = false;
+        private static readonly List<Image> patchedImages = [];
+        private static Vector2 sizeDelta = default;
+        private static Vector3 localScale = default;
 
-        public static Func<Renderer, bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
-        public static Dictionary<string, Texture2D> computedTextures = new Dictionary<string, Texture2D>();
-        public static Dictionary<string, Texture2D> computedIcons = new Dictionary<string, Texture2D>();
-        public static Dictionary<string, object[]> helpfulAdditionsArgsCache = new Dictionary<string, object[]>();
-        public static List<string>? bloonMenuFusions = null;
-        public static string bloonMenuProperties = "";
+        private static readonly Func<Renderer, bool> mainRenderer = r => r.name == "Body" || r.name.Contains("Base") || r.name == "RightTurbine";
+        private static readonly Dictionary<string, Texture2D> computedTextures = [];
+        private static readonly Dictionary<string, Texture2D> computedIcons = [];
+        private static List<string>? bloonMenuFusions = null;
+        private static string bloonMenuProperties = "";
 
-        public static IOverlay invisColor = new DelegateOverlay((c, x, y) => new Color(0, 0, 0, 0));
-        public static IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
-        public static IOverlay invertColor = new DelegateOverlay((c, x, y) => { var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a); });
-        public static IOverlay boundaryColor = new DelegateOverlay((c, x, y) => c.RGBMultiplied(0.5f));
-        public static IOverlay fortifiedColorA = new ColorOverlay(HexColor("cd5d10"));
-        public static IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
-        public static Tuple<List<IOverlay>, List<float>> fortifiedColors = new Tuple<List<IOverlay>, List<float>>(
-            new List<IOverlay> { emptyColor, fortifiedColorB, fortifiedColorA, fortifiedColorB, emptyColor, fortifiedColorB, fortifiedColorA, fortifiedColorB, emptyColor },
-            new List<float> { 30f, 2f, 8f, 2f, 30f, 2f, 8f, 2f, 30f });
+        private static readonly IOverlay emptyColor = new DelegateOverlay((c, x, y) => c);
+        private static readonly IOverlay invertColor = new DelegateOverlay((c, x, y) => { var t = (float)Math.Round(1 - c.grayscale); return new Color(t, t, t, c.a); });
+        private static readonly IOverlay boundaryColor = new DelegateOverlay((c, x, y) => c.RGBMultiplied(0.5f));
+        private static readonly IOverlay fortifiedColorA = new ColorOverlay(HexColor("cd5d10"));
+        private static readonly IOverlay fortifiedColorB = new ColorOverlay(HexColor("cecece"));
+        private static readonly Tuple<List<IOverlay>, List<float>> fortifiedColors = new(
+            [emptyColor, fortifiedColorB, fortifiedColorA, fortifiedColorB, emptyColor, fortifiedColorB, fortifiedColorA, fortifiedColorB, emptyColor],
+            [30f, 2f, 8f, 2f, 30f, 2f, 8f, 2f, 30f]);
 
-        public static Dictionary<string, IOverlay> baseColors = new Dictionary<string, IOverlay>()
+        private static readonly Dictionary<string, IOverlay> baseColors = new()
         {
             { "Red",     new ColorOverlay(HexColor("fe2020")) },
             { "Blue",    new ColorOverlay(HexColor("2f9ae0")) },
@@ -64,18 +60,16 @@ namespace Combloonation
             { "Ddt",     new ColorOverlay(HexColor("454b41")) },
             { "Bad",     new ColorOverlay(HexColor("bb00c6")) },
         };
-        public static Dictionary<string, IOverlay> missingColors = new Dictionary<string, IOverlay>();
+        private static readonly Dictionary<string, IOverlay> missingColors = [];
 
         public interface IOverlay
         {
             Color Pixel(Color c, float x, float y);
         }
 
-        public class DelegateOverlay : IOverlay
+        public class DelegateOverlay(Func<Color, float, float, Color> func) : IOverlay
         {
-            public Func<Color, float, float, Color> func;
-
-            public DelegateOverlay(Func<Color, float, float, Color> func) { this.func = func; }
+            public Func<Color, float, float, Color> func = func;
 
             public Color Pixel(Color c, float x, float y)
             {
@@ -83,15 +77,11 @@ namespace Combloonation
             }
         }
 
-        public class PipeOverlay : IOverlay
+        public class PipeOverlay(Display.IOverlay a, Display.IOverlay b) : IOverlay
         {
-            public IOverlay a;
-            public IOverlay b;
+            public IOverlay a = a;
+            public IOverlay b = b;
 
-            public PipeOverlay(IOverlay a, IOverlay b)
-            {
-                this.a = a; this.b = b;
-            }
             public Color Pixel(Color c, float x, float y)
             {
                 var _c = a.Pixel(c, x, y);
@@ -121,16 +111,11 @@ namespace Combloonation
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
             }
         }
-        public class CheckeredOverlay : IOverlay
+        public class CheckeredOverlay(List<Display.IOverlay> cs, float sx, float sy) : IOverlay
         {
-            public List<IOverlay> cs;
-            float sx;
-            float sy;
-
-            public CheckeredOverlay(List<IOverlay> cs, float sx, float sy)
-            {
-                this.cs = cs; this.sx = sx; this.sy = sy;
-            }
+            public List<IOverlay> cs = cs;
+            readonly float sx = sx;
+            readonly float sy = sy;
 
             public Color Pixel(Color c, float x, float y)
             {
@@ -141,13 +126,12 @@ namespace Combloonation
             }
         }
 
-        public class TintOverlay : IOverlay
+        public class TintOverlay(Display.IOverlay c) : IOverlay
         {
             public float t = 0.8f;
             public Func<float, float, float>? tf;
-            public IOverlay c;
+            public IOverlay c = c;
 
-            public TintOverlay(IOverlay c) { this.c = c; }
             public TintOverlay(IOverlay c, float t) : this(c) { this.t = t; }
             public TintOverlay(IOverlay c, Func<float, float, float> tf) : this(c) { this.tf = tf; }
 
@@ -159,26 +143,25 @@ namespace Combloonation
             }
         }
 
-        public class ColorOverlay : IOverlay
+        public class ColorOverlay(Color c) : IOverlay
         {
 
-            public Color c;
-            public ColorOverlay(Color c) { this.c = c; }
+            public Color c = c;
+
             public Color Pixel(Color c, float x, float y)
             {
                 return new Color(this.c.r, this.c.g, this.c.b, c.a);
             }
         }
 
-        public class BoundOverlay : IOverlay
+        public class BoundOverlay(Display.IOverlay ci, Display.IOverlay co) : IOverlay
         {
 
-            public IOverlay ci;
-            public IOverlay co;
+            public IOverlay ci = ci;
+            public IOverlay co = co;
             public float b = 1f;
             public Func<float, float, bool>? bf;
 
-            public BoundOverlay(IOverlay ci, IOverlay co) { this.ci = ci; this.co = co; }
             public BoundOverlay(IOverlay ci, IOverlay co, float b) : this(ci, co) { this.b = b; }
             public BoundOverlay(IOverlay ci, IOverlay co, Func<float, float, bool> bf) : this(ci, co) { this.bf = bf; }
 
@@ -194,10 +177,12 @@ namespace Combloonation
 
         public static Color HexColor(string hex)
         {
+#pragma warning disable IDE0057 // Use range operator
             byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
             byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
             byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
             return new Color32(r, g, b, 255);
+#pragma warning restore IDE0057 // Use range operator
         }
 
         public static Color Average(this Color a, Color b)
@@ -211,7 +196,7 @@ namespace Combloonation
             var fusion = bloon.GetFusion();
             if (fusion != null)
                 ids = fusion.fusands.Select(f => f.baseId);
-            else ids = new string[] {bloon.baseId};
+            else ids = [bloon.baseId];
             var cols = new List<IOverlay> { };
             foreach (var id in ids)
             {
@@ -227,7 +212,7 @@ namespace Combloonation
             var got = missingColors.TryGetValue(id, out var col);
             if (!got || col == null) col = missingColors[id] = new ColorOverlay(random.NextColor());
             var r = (float)Math.Min(b.width, b.height) / 8;
-            return new CheckeredOverlay(new List<IOverlay> { invertColor, col }, r, r);
+            return new CheckeredOverlay([invertColor, col], r, r);
         }
 
         public static IEnumerable<Tuple<int, int>> GetEnumerator(this Texture2D texture)
@@ -240,14 +225,14 @@ namespace Combloonation
 
         public static Texture2D Duplicate(this Texture texture, Rect? proj = null)
         {
-            if (proj is null) proj = new Rect(0, 0, texture.width, texture.height);
+            proj ??= new Rect(0, 0, texture.width, texture.height);
             var rect = (Rect)proj;
             texture.filterMode = FilterMode.Point;
             RenderTexture rt = RenderTexture.GetTemporary(texture.width, texture.height);
             rt.filterMode = FilterMode.Point;
             RenderTexture.active = rt;
             Graphics.Blit(texture, rt);
-            Texture2D texture2 = new Texture2D((int)rect.width, (int)rect.height);
+            Texture2D texture2 = new((int)rect.width, (int)rect.height);
             texture2.ReadPixels(new Rect(rect.x, texture.height - rect.height - rect.y, rect.width, rect.height), 0, 0);
             texture2.Apply();
             RenderTexture.active = null;
@@ -272,7 +257,7 @@ namespace Combloonation
 
         public static Texture2D Duplicate(this Texture texture, Func<int, int, Color, Color> func, Rect? proj = null)
         {
-            if (proj is null) { proj = new Rect(0, 0, texture.width, texture.height); }
+            proj ??= new Rect(0, 0, texture.width, texture.height);
             var t = texture.Duplicate(proj);
             foreach (var xy in t.GetEnumerator())
             {
@@ -370,8 +355,8 @@ namespace Combloonation
                     Regions.vertical(bound.x, bound.x + bound.width, bound.y, bound.y + bound.height)));
             }
             r_iob = r * 0.6f; r_iib = 0.85f * r_iob; r_oob = r_iob * 1.15f;
-            Func<float, float, float> tf = (x, y) => (float)TERF(curve(x / r_oob, y / r_oob), 1f, -1f);
-            if (dcol is null) dcol = emptyColor;
+            float tf(float x, float y) => (float)TERF(curve(x / r_oob, y / r_oob), 1f, -1f);
+            dcol ??= emptyColor;
             var bcol = new BoundOverlay(dcol, ddcol, (x, y) => curve(x / r_iib, y / r_iib) >= 0);
             var bbcol = new BoundOverlay(bcol, dcol, (x, y) => curve(x / r_iob, y / r_iob) >= 0);
             var tcol = new TintOverlay(bbcol, tf);
@@ -380,7 +365,7 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + bound.x), y + (int)(dy + bound.y)), proj);
         }
 
-        public static Texture2D? GetMergedTexture(this Fusion fusion, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix, Rect? proj = null)
+        public static Texture2D? GetMergedTexture(this Fusion fusion, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix = "", Rect? proj = null)
         {
             if (fusion is null) throw new ArgumentNullException(nameof(fusion));
             var bloon = fusion.bloon;
@@ -392,7 +377,7 @@ namespace Combloonation
             texture = fusion.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture is null) return null;
             computed[bloon.name] = texture;
-
+            texture.SaveToPNG($"{FolderPath}/{DebugString(bloon.name)}.{postfix}.png");
             return texture;
         }
 
@@ -434,13 +419,7 @@ namespace Combloonation
             if (texture == null) return;
 
             icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));
-            float w = texture.width; float h = texture.height;
-            float s = Math.Max(w, h);
-            if (s > 150)
-            {
-                var r = 150 / s;
-                w *= r; h *= r;
-            }
+
             var rt = icon.rectTransform;
             sizeDelta = rt.sizeDelta; rt.sizeDelta = new Vector2(2, 2);
             localScale = rt.localScale; rt.localScale = new Vector3(texture.width / 110f, texture.height / 110f);
@@ -497,10 +476,14 @@ namespace Combloonation
             menu.CreateBloonButtons(bloons.ToIl2CppList());
             if (!patchingIcons && !patchedIcons) {
                 Log("Setting icons...");
-                bloonMenuFusions = bloons.Select(b => b.name).Where(n => FusionFromNameSafe(n) != null).ToList();
+                bloonMenuFusions = [.. bloons.Select(b => b.name).Where(n => FusionFromNameSafe(n) != null)];
                 patchingIcons = true;
             }
         }
 
+        public static bool RepatchIcons()
+        {
+            return patchingIcons = patchedIcons;
+        }
     }
 }

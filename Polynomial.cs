@@ -23,7 +23,7 @@ namespace Combloonation
         public Polynomial(Func<C, C, C> add, Func<C, C, C> mult, IEqualityComparer<T>? compare = null)
         {
             this.compare = compare; this.add = add; this.mult = mult;
-            terms = compare != null ? new Dictionary<T, C>(compare) : new Dictionary<T, C>();
+            terms = compare != null ? new Dictionary<T, C>(compare) : [];
         }
 
         public Polynomial(Polynomial<T, V, C> p)
@@ -117,7 +117,7 @@ namespace Combloonation
 
         public Combinomial(IEnumerable<V> forms) : this()
         {
-            terms[new HashSet<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
                 var k = new HashSet<V> { form };
@@ -128,7 +128,7 @@ namespace Combloonation
 
         public Combinomial(IEnumerable<Tuple<V, int>> forms) : this()
         {
-            terms[new HashSet<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
                 var k = new HashSet<V> { form.Item1 };
@@ -165,7 +165,7 @@ namespace Combloonation
 
         public Ordinomial(IEnumerable<V> forms) : this()
         {
-            terms[new List<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
                 var k = new List<V> { form };
@@ -174,14 +174,16 @@ namespace Combloonation
             }
         }
 
-        public Ordinomial(IEnumerable<Tuple<V, int>> forms) : this()
+        public record struct Power(V Var, int Pow);
+
+        public Ordinomial(IEnumerable<Power> forms) : this()
         {
-            terms[new List<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
-                var k = new List<V> { form.Item1 };
+                var k = new List<V> { form.Var };
                 terms.TryGetValue(k, out int d);
-                terms[k] = form.Item2 + d;
+                terms[k] = form.Pow + d;
             }
         }
 

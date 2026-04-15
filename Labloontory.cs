@@ -3,7 +3,7 @@ using Il2CppAssets.Scripts.Models.Bloons;
 using Il2CppAssets.Scripts.Models.Bloons.Behaviors;
 using Il2CppAssets.Scripts.Models.GenericBehaviors;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.BloonMenu;
-
+using Il2CppAssets.Scripts.Utils;
 using Il2CppInterop.Runtime;
 
 using System;
@@ -19,8 +19,8 @@ namespace Combloonation
     public static class Labloontory
     {
 
-        public static readonly Dictionary<string, BloonModel> BloonsByName = new Dictionary<string, BloonModel>();
-        private static readonly Dictionary<BloonModel, Fusion> fusionBloons = new Dictionary<BloonModel, Fusion>();
+        public static readonly Dictionary<string, BloonModel> BloonsByName = [];
+        private static readonly Dictionary<BloonModel, Fusion> fusionBloons = [];
 
         public static readonly string FusionTag = "Fusion";
         public static readonly string FusionComponentDelim = "ˇ";
@@ -28,24 +28,24 @@ namespace Combloonation
         public static readonly string FusionPropertiesDelim = "‑";
         public static readonly string FusionPropertiesDebuglim = "-";
 
-        internal static HashSet<string> unstackableBehaviors = new HashSet<string>
-        {
+        internal static HashSet<string> unstackableBehaviors =
+        [
             Il2CppType.Of<DisplayModel>().FullName,
-        };
-        internal static HashSet<string> removeBehaviors = new HashSet<string>
-        {
+        ];
+        internal static HashSet<string> removeBehaviors =
+        [
             Il2CppType.Of<SpawnBloonsActionModel>().FullName,
             Il2CppType.Of<SpawnChildrenModel>().FullName,
             Il2CppType.Of<DamageStateModel>().FullName,
             Il2CppType.Of<GrowModel>().FullName,
             //Il2CppType.Of<SetGrowToOnChildrenModel>().FullName,
             Il2CppType.Of<DistributeCashModel>().FullName
-        };
+        ];
 
-        public struct Property
+        public readonly struct Property(string name, string tag, bool heir, Func<BloonModel, bool> has, Func<BloonMenu, bool> menu, Action<Labloontory.Fusion> add)
         {
-            public static List<Property> all = new List<Property>
-            {
+            public static readonly List<Property> all =
+            [
                 new Property( "Regrow", "Grow", true, b => b.isGrow, m => m.regen, f => {
                     var b = f.bloon;
                     b.isGrow = true;
@@ -56,7 +56,7 @@ namespace Combloonation
                         var grows = child.GetBehaviors<GrowModel>();
                         var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromNameSafe(g.growToId)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
-                        GrowModel grow = new GrowModel("GrowModel_", crate, b.baseId + f.heir, null);
+                        GrowModel grow = new("GrowModel_", crate, b.baseId + f.heir, null);
                         if (cgrow != default) grow.growToId = cgrow.growToId;
                         child.RemoveBehaviors<GrowModel>();
                         child.AddBehavior(grow);
@@ -73,18 +73,14 @@ namespace Combloonation
                     b.isCamo = true;
                     b.tags = b.tags.Append("Camo").ToArray();
                 }),
-            };
+            ];
 
-            public readonly string name;
-            public readonly string tag;
-            public readonly bool heir;
-            public readonly Func<BloonModel, bool> has;
-            public readonly Func<BloonMenu, bool> menu;
-            public readonly Action<Fusion> add;
-            public Property(string name, string tag, bool heir, Func<BloonModel, bool> has, Func<BloonMenu, bool> menu, Action<Fusion> add)
-            {
-                this.name = name; this.tag = tag; this.heir = heir; this.has = has; this.menu = menu; this.add = add;
-            }
+            public readonly string name = name;
+            public readonly string tag = tag;
+            public readonly bool heir = heir;
+            public readonly Func<BloonModel, bool> has = has;
+            public readonly Func<BloonMenu, bool> menu = menu;
+            public readonly Action<Fusion> add = add;
         }
 
         private static Fusion NewFusion(this BloonModel bloon, BloonModel[] fusands, Property[] properties)
@@ -124,7 +120,7 @@ namespace Combloonation
             public static BloonModel React(IEnumerable<BloonModel> bloons, IEnumerable<Property>? props = null)
             {
                 var baseFusands = BaseBloonsFromBloons(BloonsFromBloons(bloons)).OrderByDescending(f => f.danger).Take(maxFusands);
-                var allProps = (props != null ? props : GetProperties(baseFusands)).ToList();
+                var allProps = (props ?? GetProperties(baseFusands)).ToList();
                 var name = BloonNameFromBloons(baseFusands.Select(f => f.name), allProps);
                 var bloon = BloonFromNameSafe(name);
                 if (bloon != null) return bloon;
@@ -135,13 +131,9 @@ namespace Combloonation
 
             public BloonsionReactor(IEnumerable<BloonModel> baseFusands, List<Property> allProps, string name)
             {
-                fusands = baseFusands.Select(b => BloonFromName(b.name + PropertyString(ProbeProperties(b, allProps)))).ToArray();
-                var fusand = fusands.First();
-                if (fusand == null)
-                {
-                    throw new ArgumentException("There must be at least one fusand!", nameof(baseFusands));
-                }
-                fusion = fusand.NewFusion(fusands.ToArray(), allProps.ToArray());
+                fusands = [.. baseFusands.Select(b => BloonFromName(b.name + PropertyString(ProbeProperties(b, allProps))))];
+                var fusand = fusands.First() ?? throw new ArgumentException("There must be at least one fusand!", nameof(baseFusands));
+                fusion = fusand.NewFusion([.. fusands], [.. allProps]);
                 bloon = fusion.bloon;
                 bloon._name = bloon.name = bloon.id = name;
                 bloon.baseId = BaseBloonNameFromName(bloon.name);
@@ -157,7 +149,7 @@ namespace Combloonation
             {
                 var bloon = fusion.bloon;
                 //bloon.overlayClass = bloon.overlayClass;
-                bloon.damageDisplayStates = new DamageStateModel[] { };
+                bloon.damageDisplayStates = Array.Empty<DamageStateModel>();
                 bloon.depletionEffects = fusion.fusands.SelectMany(f => f.depletionEffects).ToIl2CppReferenceArray();
                 //fusion.propertyDisplays = new Il2CppStringArray(fusion.fusands.SelectMany(f => f.propertyDisplays ?? new Il2CppStringArray(new string[]{ })).ToArray());
 
@@ -194,7 +186,7 @@ namespace Combloonation
                         grows = child.GetBehaviors<GrowModel>();
                         var cgrow = grows.Where(g => g.growToId != "").OrderBy(g => BloonFromNameSafe(g.growToId)?.danger ?? float.PositiveInfinity).FirstOrDefault();
                         var crate = Math.Max(rate, grows.Max(g => g.rate));
-                        GrowModel grow = new GrowModel("GrowModel_", crate, bloon.baseId + fusion.heir, null);
+                        GrowModel grow = new("GrowModel_", crate, bloon.baseId + fusion.heir, null);
                         if (cgrow != default) grow.growToId = cgrow.growToId;
                         child.RemoveBehaviors<GrowModel>();
                         child.AddBehavior(grow);
@@ -224,7 +216,7 @@ namespace Combloonation
             public BloonsionReactor MergeBehaviors()
             {
                 bloon.behaviors = fusands.SelectMany(f => f.behaviors.ToList()).GroupBy(b => b.GetIl2CppType().FullName)
-                    .SelectMany(g => removeBehaviors.Contains(g.Key) ? new List<Model> { } : !unstackableBehaviors.Contains(g.Key) ? g.ToList() : new List<Model> { g.First() }).ToIl2CppReferenceArray();
+                    .SelectMany(g => removeBehaviors.Contains(g.Key) ? [] : !unstackableBehaviors.Contains(g.Key) ? g.ToList() : [g.First()]).ToIl2CppReferenceArray();
                 bloon.childDependants = fusands.SelectMany(f => f.childDependants.ToList()).ToIl2CppList();
 
                 var cashModels = fusands.SelectMany(f => f.GetBehaviors<DistributeCashModel>());
@@ -242,7 +234,7 @@ namespace Combloonation
             {
                 var _behaviors = fusands.Select(f => f.GetBehaviors<SpawnChildrenModel>());
                 var _children = _behaviors.Select(l => l.SelectMany(b => b.children));
-                if (_behaviors.Count() == 0 || _behaviors.All(l => l.Count == 0)) return this;
+                if (!_behaviors.Any() || _behaviors.All(l => l.Count == 0)) return this;
                 var behavior = _behaviors.First(l => l.Count > 0).First().Duplicate();
 
                 var bound = _children.Max(c => c.Count());
@@ -257,20 +249,26 @@ namespace Combloonation
                 return this;
             }
 
+            private record struct Spawner(SpawnBloonsActionModel Spawn, string Name);
+
             public BloonsionReactor MergeSpawnBloonsActionModel()
             {
                 var _behaviors = fusion.fusands.Select(f => f.GetBehaviors<SpawnBloonsActionModel>());
-                var _children = _behaviors.Select(l => l.Select(m => new Tuple<Tuple<SpawnBloonsActionModel, string>, int>(new Tuple<SpawnBloonsActionModel, string>(m, m.bloonType), m.spawnCount)));
+                var _children = _behaviors.Select(l => l.Select(m => new Ordinomial<Spawner>.Power(new Spawner(m, m.bloonType), m.spawnCount)));
 
-                var bound = _behaviors.Max(l => l.Count == 0 ? 0 : l.Max(m => m.spawnCount));
-                var children = _children.Select(c => new Ordinomial<Tuple<SpawnBloonsActionModel, string>>(c)).Aggregate((a, b) => a.Product(b).Cull().BoundAbove(bound));
-                var models = children.Terms().SelectMany(p => {
-                    if (p.Key.Count == 0) return new List<Model> { };
-                    var model = p.Key.First().Item1.Duplicate();
+                // find max spawn count
+                var bound = 0;
+                foreach (var l in _behaviors) foreach (var m in l)
+                    if (bound < m.spawnCount) bound = m.spawnCount;
+
+                var children = _children.Select(c => new Ordinomial<Spawner>(c)).Aggregate((a, b) => a.Product(b).Cull().BoundAbove(bound));
+
+                var models = children.Terms().Where(p => p.Key.Count > 0).Select(p => {
+                    var bloon = Fuse(p.Key.Select(t => t.Name), fusion.heir);
+                    var model = p.Key.First().Spawn.Duplicate();
                     model.spawnCount = p.Value;
-                    var bloon = Fuse(p.Key.Select(t => t.Item2), fusion.heir);
                     model.bloonType = bloon.name;
-                    return new List<Model> { model };
+                    return model;
                 });
 
                 bloon.behaviors = bloon.behaviors.Concat(models).ToIl2CppReferenceArray();
@@ -298,18 +296,18 @@ namespace Combloonation
 
         public static string[] Split(this string s, string d)
         {
-            if (s == "") return new string[] { };
-            if (d == "") return s.Select(c => c.ToString()).ToArray();
+            if (s == "") return [];
+            if (d == "") return [.. s.Select(c => c.ToString())];
             int i = s.IndexOf(d);
             var b = new List<string>();
             while (i >= 0)
             {
-                b.Add(s.Substring(0, i));
-                s = s.Substring(i + d.Length);
+                b.Add(s[..i]);
+                s = s[(i + d.Length)..];
                 i = s.IndexOf(d);
             }
             b.Add(s);
-            return b.ToArray();
+            return [.. b];
         }
 
         public static string PropertyString(IEnumerable<Property> props)
@@ -326,7 +324,7 @@ namespace Combloonation
 
         public static BloonModel Fuse(IEnumerable<BloonModel> bloons, IEnumerable<Property>? props = null)
         {
-            if (bloons.Count() == 0) throw new ArgumentException("Must have at least one fusand", nameof(bloons));
+            if (!bloons.Any()) throw new ArgumentException("Must have at least one fusand", nameof(bloons));
             BloonModel? bloon = null;
             if (props is null) props = GetProperties(bloons);
             else props = GetProperties(bloons).Concat(props).Distinct();
@@ -356,7 +354,6 @@ namespace Combloonation
         public static BloonModel? BloonFromNameSafe(string name)
         {
             if (BloonsByName.TryGetValue(name, out var modelA) && modelA != null) return modelA;
-            var lookup = GetGameModel().bloonsByName;
             if (GetBloonsByName().TryGetValue(name, out var modelB)) return modelB;
             return null;
         }
@@ -399,7 +396,7 @@ namespace Combloonation
         {
             var props = new List<Property>();
             var id = bloon.baseId;
-            allProps = allProps ?? Property.all;
+            allProps ??= Property.all;
             foreach (var p in allProps.ToArray())
             {
                 var _bloon = BloonFromNameSafe(id + p.name);
