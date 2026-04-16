@@ -343,7 +343,7 @@ namespace Combloonation
             if (!model.bloons.Contains(bloon))
             {
                 model.bloons = model.bloons.Prepend(bloon).ToArray();
-                if (model.bloonsByName != null) model.bloonsByName[bloon.name] = bloon; // TODO: populate it if it ever becomes non-null
+                model.bloonsByName?[bloon.name] = bloon; // TODO: populate it if it ever becomes non-null
                 model.AddChildDependant(bloon);
                 //Log("Registered NEW " + DebugString(bloon.name));
             }// else Log("Registered OLD " + DebugString(bloon.name));

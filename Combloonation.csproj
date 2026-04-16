@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
+		<PlatformTarget>x64</PlatformTarget>
         <TargetFramework>net6.0</TargetFramework>
         <RootNamespace>Combloonation</RootNamespace>
         <Configurations>Debug;Release</Configurations>
