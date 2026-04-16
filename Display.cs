@@ -77,7 +77,7 @@ namespace Combloonation
             }
         }
 
-        public class PipeOverlay(Display.IOverlay a, Display.IOverlay b) : IOverlay
+        public class PipeOverlay(IOverlay a, IOverlay b) : IOverlay
         {
             public IOverlay a = a;
             public IOverlay b = b;
@@ -104,14 +104,14 @@ namespace Combloonation
 
             public Color Pixel(Color c, float x, float y)
             {
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+                #pragma warning disable CS8602 // Dereference of a possibly null reference.
+                #pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
                 return cs.SplitRange(ps, null, map, x, y).Pixel(c, x, y);
-#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                #pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+                #pragma warning restore CS8602 // Dereference of a possibly null reference.
             }
         }
-        public class CheckeredOverlay(List<Display.IOverlay> cs, float sx, float sy) : IOverlay
+        public class CheckeredOverlay(List<IOverlay> cs, float sx, float sy) : IOverlay
         {
             public List<IOverlay> cs = cs;
             readonly float sx = sx;
@@ -126,7 +126,7 @@ namespace Combloonation
             }
         }
 
-        public class TintOverlay(Display.IOverlay c) : IOverlay
+        public class TintOverlay(IOverlay c) : IOverlay
         {
             public float t = 0.8f;
             public Func<float, float, float>? tf;
@@ -154,7 +154,7 @@ namespace Combloonation
             }
         }
 
-        public class BoundOverlay(Display.IOverlay ci, Display.IOverlay co) : IOverlay
+        public class BoundOverlay(IOverlay ci,  IOverlay co) : IOverlay
         {
 
             public IOverlay ci = ci;
@@ -177,12 +177,12 @@ namespace Combloonation
 
         public static Color HexColor(string hex)
         {
-#pragma warning disable IDE0057 // Use range operator
+            #pragma warning disable IDE0057 // Use range operator
             byte r = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
             byte g = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
             byte b = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
             return new Color32(r, g, b, 255);
-#pragma warning restore IDE0057 // Use range operator
+            #pragma warning restore IDE0057 // Use range operator
         }
 
         public static Color Average(this Color a, Color b)
@@ -365,19 +365,26 @@ namespace Combloonation
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + bound.x), y + (int)(dy + bound.y)), proj);
         }
 
-        public static Texture2D? GetMergedTexture(this Fusion fusion, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, string postfix = "", Rect? proj = null)
+        public static Texture2D? GetMergedTexture(this Fusion fusion, Texture oldTexture, Dictionary<string, Texture2D> computed, bool fromMesh, Rect? proj = null)
         {
             if (fusion is null) throw new ArgumentNullException(nameof(fusion));
             var bloon = fusion.bloon;
 
-            if (oldTexture is null) return null;
-            if (oldTexture.isReadable) return null;
             var exists = computed.TryGetValue(bloon.name, out var texture);
             if (exists) return texture;
+
+            var postfix = fromMesh ? "texture" : "icon";
+            // TODO: restore option to get texture from file?
+
+            if (oldTexture is null) return null;
+            //if (oldTexture.isReadable) return null;
+
             texture = fusion.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture is null) return null;
             computed[bloon.name] = texture;
-            texture.SaveToPNG($"{FolderPath}/{DebugString(bloon.name)}.{postfix}.png");
+
+            texture.SaveToPNG($"{FolderPath}/{DebugString(bloon.name)}.{postfix}.png"); // TODO: guard by option?
+
             return texture;
         }
 
@@ -390,13 +397,13 @@ namespace Combloonation
             if (sprite is null)
             {
                 var renderer = graphic.genericRenderers.First(mainRenderer);
-                var texture = fusion.GetMergedTexture(renderer.material.mainTexture, computedTextures, true, "texture");
+                var texture = fusion.GetMergedTexture(renderer.material.mainTexture, computedTextures, true);
                 if (texture is null) return;
                 graphic.genericRenderers.Where(mainRenderer).Do(r => r.SetMainTexture(texture));
             }
             else
             {
-                var texture = fusion.GetMergedTexture(sprite.sprite.texture, computedIcons, false, "icon", sprite.sprite.textureRect);
+                var texture = fusion.GetMergedTexture(sprite.sprite.texture, computedIcons, false, sprite.sprite.textureRect);
                 if (texture is null) return;
                 sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
             }
@@ -409,13 +416,13 @@ namespace Combloonation
             var bloon = fusion.bloon;
 
             var sprite = icon.sprite;
-            if (sprite.texture.isReadable) return;
+            //if (sprite.texture.isReadable) return;
 
             if (bloonMenuFusions is null) throw new NullReferenceException($"{bloonMenuFusions} is null!"); // TODO: can we just guard this null check?
 
-            if (!patchedIcons && !computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
+            //if (!patchedIcons && !computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
 
-            var texture = fusion.GetMergedTexture(sprite.texture, computedIcons, false, "icon", sprite.textureRect);
+            var texture = fusion.GetMergedTexture(sprite.texture, computedIcons, false, sprite.textureRect);
             if (texture == null) return;
 
             icon.SetSprite(texture.CreateSpriteFromTexture(sprite.pixelsPerUnit));

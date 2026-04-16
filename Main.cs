@@ -39,7 +39,7 @@ public class Main : BloonsTD6Mod
         base.OnApplicationStart();
         folderPath = this.GetModDirectory();
         Log("Dumping at " + folderPath);
-        Directory.CreateDirectory(folderPath);
+        Directory.CreateDirectory(folderPath);  // TODO: guard by option?
     }
 
 
