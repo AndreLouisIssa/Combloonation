@@ -129,17 +129,23 @@ namespace Combloonation
             var g = f.group; g.end -= g.start; g.start = 0;
         }
 
+        public static bool ValidRoundSet(RoundSetModel roundSet)
+        {
+            return roundSet.name == "DefaultRoundSet" || roundSet.name == "AlternateRoundSet";
+        }
+
         public override bool Mutate(Goal? goal = null)
         {
-            var roundBloons = GameData.roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b))).ToList();
+            var roundSets = GameData.roundSets.Where(ValidRoundSet).ToArray();
+            var roundBloons = roundSets.SelectMany(rs => rs.rounds.SelectMany(r => r.groups.Select(g => g.bloon))).Distinct().OrderByDescending(b => Score(BloonFromName(b))).ToList();
             Dictionary<string, double> bloonChances = [];
             goal?.Bloons?.Do(b => bloonChances.Add(b, 1 / (1 + Score(BloonFromName(b)))));
             var freeplayGroups = new List<FreeplayBloonGroupModel> { };
-            var roundSet = GameData.roundSets.ArgMax(rs => rs.rounds.Length).Duplicate();
+            var roundSet = roundSets.ArgMax(rs => rs.rounds.Length).Duplicate();
             var roundsCount = roundSet.rounds.Length;
             for (int j = 0; j < roundsCount; ++j)
             {
-                var groups = GameData.roundSets.Where(rs => j >= roundSet.rounds.Length - rs.rounds.Length).Select(rs => rs.rounds[j - roundSet.rounds.Length + rs.rounds.Length]).SelectMany(r => r.groups).ToArray();
+                var groups = roundSets.Where(rs => j >= roundSet.rounds.Length - rs.rounds.Length).Select(rs => rs.rounds[j - roundSet.rounds.Length + rs.rounds.Length]).SelectMany(r => r.groups).ToArray();
                 if (groups.Length > 1)
                 {
                     groups = [.. Split([.. groups.Select(g => RoundBloonGroupModel(g, null))],
@@ -162,8 +168,9 @@ namespace Combloonation
             // TODO: avoid mutating the base roundsets in the future
             for (int i = 0; i < GameData.roundSets.Count; i++)
             {
-                var nrs = roundSet.Duplicate();
                 var ors = GameData.roundSets[i];
+                if (!ValidRoundSet(ors)) continue;
+                var nrs = roundSet.Duplicate();
                 nrs.name = ors.name;
                 GameData.roundSets[i] = nrs;
             }
