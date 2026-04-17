@@ -362,6 +362,7 @@ namespace Combloonation
             var tcol = new TintOverlay(bbcol, tf);
             var bbbcol = new BoundOverlay(tcol, emptyColor, (x, y) => curve(x / r_oob, y / r_oob) >= 0);
             col = new PipeOverlay(col, bbbcol);
+
             return texture.Duplicate((x, y, c) => col.Pixel(c, x + (int)(dx + bound.x), y + (int)(dy + bound.y)), proj);
         }
 
@@ -377,13 +378,13 @@ namespace Combloonation
             // TODO: restore option to get texture from file?
 
             if (oldTexture is null) return null;
-            //if (oldTexture.isReadable) return null;
+            if (oldTexture.isReadable) return null;
 
             texture = fusion.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture is null) return null;
             computed[bloon.name] = texture;
 
-            texture.SaveToPNG($"{FolderPath}/{DebugString(bloon.name)}.{postfix}.png"); // TODO: guard by option?
+            if (FolderPath != null) texture.SaveToPNG($"{FolderPath}/{DebugString(bloon.name)}.{postfix}.png");
 
             return texture;
         }
@@ -403,7 +404,11 @@ namespace Combloonation
             }
             else
             {
-                var texture = fusion.GetMergedTexture(sprite.sprite.texture, computedIcons, false, sprite.sprite.textureRect);
+                var ssprite = sprite.sprite;
+                var correction = new Vector2(0,3910);
+                Rect rect = new(ssprite.textureRect.position - correction, ssprite.textureRect.size);
+
+                var texture = fusion.GetMergedTexture(ssprite.texture, computedIcons, false, rect);
                 if (texture is null) return;
                 sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
             }
@@ -416,11 +421,11 @@ namespace Combloonation
             var bloon = fusion.bloon;
 
             var sprite = icon.sprite;
-            //if (sprite.texture.isReadable) return;
+            if (sprite.texture.isReadable) return;
 
             if (bloonMenuFusions is null) throw new NullReferenceException($"{bloonMenuFusions} is null!"); // TODO: can we just guard this null check?
 
-            //if (!patchedIcons && !computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
+            if (!patchedIcons && !computedIcons.ContainsKey(bloon.name) && sprite.GetCenterColor().IsSimilar(initColor)) return;
 
             var texture = fusion.GetMergedTexture(sprite.texture, computedIcons, false, sprite.textureRect);
             if (texture == null) return;
