@@ -6,6 +6,8 @@
 Combloonation
 </h1>
 
-Combining bloons in BTD6
+Combining bloons in BTD6.
+
+Not guaranteed to work fully, but good enough to try out.
 
 [![Requires BTD6 Mod Helper](https://raw.githubusercontent.com/gurrenm3/BTD-Mod-Helper/master/banner.png)](https://github.com/gurrenm3/BTD-Mod-Helper#readme)
