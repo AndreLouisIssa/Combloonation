@@ -1,25 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Combloonation
 {
-    public class Polynomial<T, V, C> where T : ICollection<V>, new() where C : IComparable<C>
+    /// <summary>
+    /// Represents a polynomial comprised of non-commutative formal variables
+    /// </summary>
+    /// <typeparam name="T">A term is a collection of variables</typeparam>
+    /// <typeparam name="V">A variable can be anything</typeparam>
+    /// <typeparam name="C">A coefficient of a given term</typeparam>
+    public class Polynomial<T, V, C> where T : notnull, ICollection<V>, new() where C : notnull, IComparable<C>
     {
-
-        public string scalarOp = " ";
-        public string vectorOp = " ";
-        public string directOp = ", ";
+        public readonly string scalarOp = " ";
+        public readonly string vectorOp = " ";
+        public readonly string directOp = ", ";
 
         public readonly Dictionary<T, C> terms;
-        public readonly IEqualityComparer<T> compare;
+        public readonly IEqualityComparer<T>? compare;
         public readonly Func<C, C, C> add;
         public readonly Func<C, C, C> mult;
 
-        public Polynomial(Func<C, C, C> add, Func<C, C, C> mult, IEqualityComparer<T> compare = null)
+        public Polynomial(Func<C, C, C> add, Func<C, C, C> mult, IEqualityComparer<T>? compare = null)
         {
             this.compare = compare; this.add = add; this.mult = mult;
-            terms = compare != null ? new Dictionary<T, C>(compare) : new Dictionary<T, C>();
+            terms = compare != null ? new Dictionary<T, C>(compare) : [];
         }
 
         public Polynomial(Polynomial<T, V, C> p)
@@ -27,20 +31,26 @@ namespace Combloonation
             compare = p.compare; add = p.add; mult = p.mult;
             terms = compare != null ? new Dictionary<T, C>(p.terms, compare) : new Dictionary<T, C>(p.terms);
         }
+
         public Polynomial<T, V, C> Product(Polynomial<T, V, C> p)
         {
-            //polynomial product
+            //convolution
             var r = new Polynomial<T, V, C>(add, mult, compare);
-            foreach (var i in terms.Keys)
+            foreach (var i in terms.Keys) foreach (var j in p.terms.Keys)
             {
-                foreach (var j in p.terms.Keys)
-                {
-                    var k = new T();
-                    foreach (var v in i.Concat(j)) k.Add(v);
-                    r.terms.TryGetValue(k, out var d);
-                    r.terms[k] = add(mult(terms[i], p.terms[j]), d);
-                }
+                // concatenate terms
+                var k = new T();
+                foreach (var v in i.Concat(j)) k.Add(v);
+
+                // multiply coefficients
+                C c = mult(terms[i], p.terms[j]);
+
+                // accumulate sum
+                if (r.terms.TryGetValue(k, out var s) && s != null)
+                    c = add(c, s);
+                r.terms[k] = c;
             }
+
             return r;
         }
 
@@ -107,7 +117,7 @@ namespace Combloonation
 
         public Combinomial(IEnumerable<V> forms) : this()
         {
-            terms[new HashSet<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
                 var k = new HashSet<V> { form };
@@ -118,7 +128,7 @@ namespace Combloonation
 
         public Combinomial(IEnumerable<Tuple<V, int>> forms) : this()
         {
-            terms[new HashSet<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
                 var k = new HashSet<V> { form.Item1 };
@@ -155,7 +165,7 @@ namespace Combloonation
 
         public Ordinomial(IEnumerable<V> forms) : this()
         {
-            terms[new List<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
                 var k = new List<V> { form };
@@ -164,14 +174,16 @@ namespace Combloonation
             }
         }
 
-        public Ordinomial(IEnumerable<Tuple<V, int>> forms) : this()
+        public record struct Power(V Var, int Pow);
+
+        public Ordinomial(IEnumerable<Power> forms) : this()
         {
-            terms[new List<V> { }] = 1;
+            terms[[]] = 1;
             foreach (var form in forms)
             {
-                var k = new List<V> { form.Item1 };
+                var k = new List<V> { form.Var };
                 terms.TryGetValue(k, out int d);
-                terms[k] = form.Item2 + d;
+                terms[k] = form.Pow + d;
             }
         }
 

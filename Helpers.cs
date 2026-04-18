@@ -1,15 +1,15 @@
-﻿using Assets.Scripts.Models;
-using Assets.Scripts.Models.Rounds;
-using Assets.Scripts.Unity;
-using Assets.Scripts.Unity.UI_New.InGame;
+﻿using Il2CppAssets.Scripts.Models;
+using Il2CppAssets.Scripts.Models.Rounds;
+using Il2CppAssets.Scripts.Unity;
+using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using UnityEngine;
 using Random = System.Random;
-using Bounds = Assets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
-using BTD_Mod_Helper.Extensions;
+using Bounds = Il2CppAssets.Scripts.Models.Rounds.FreeplayBloonGroupModel.Bounds;
+using Il2CppAssets.Scripts.Data;
+using Il2CppAssets.Scripts.Models.Bloons;
 
 namespace Combloonation
 {
@@ -30,7 +30,7 @@ namespace Combloonation
         //https://stackoverflow.com/a/5807166
         public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> list, Random random)
         {
-            random = random ?? new Random();
+            random ??= new Random();
             var shuffledList = list.
                 Select(x => new { Number = random.Next(), Item = x }).
                 OrderBy(x => x.Number).
@@ -38,10 +38,10 @@ namespace Combloonation
             return shuffledList;
         }
 
-        public static HashSet<T> RandomSubset<T>(Dictionary<T,double> chances, double scale, Random random)
+        public static HashSet<T> RandomSubset<T>(Dictionary<T,double> chances, double scale, Random random) where T: notnull
         {
-            random = random ?? new Random();
-            return new HashSet<T>(chances.Keys.Where(t => random.NextDouble() < 1 - Math.Pow(1 - chances[t], scale)));
+            random ??= new Random();
+            return [.. chances.Keys.Where(t => random.NextDouble() < 1 - Math.Pow(1 - chances[t], scale))];
         }
 
         public static double HeartCurve(double x, double y)
@@ -89,8 +89,8 @@ namespace Combloonation
 
         public static int[] Partition(int size, int parts, Random r)
         {
-            //MelonLogger.Msg(size + "/" + parts);
-            r = r ?? new Random();
+            //Log(size + "/" + parts);
+            r ??= new Random();
             var _pivots = new HashSet<int>(parts - 1) { 0, size };
             for (int i = 1; i < parts; i++)
             {
@@ -101,29 +101,29 @@ namespace Combloonation
             }
             var pivots = _pivots.OrderBy(n => n);
             var sizes = new List<int> { };
-            //MelonLogger.Msg(string.Join("->",pivots));
+            //Log(string.Join("->",pivots));
             var s = pivots.First();
             foreach (var pivot in pivots.Skip(1))
             {
                 sizes.Add(pivot - s);
                 s = pivot;
             }
-            //MelonLogger.Msg(string.Join("|",sizes));
-            return sizes.ToArray();
+            //Log(string.Join("|",sizes));
+            return [.. sizes];
         }
 
         //https://stackoverflow.com/questions/50300125/how-to-find-consecutive-same-values-items-as-a-linq-group
         public static IEnumerable<IEnumerable<T>> GroupWhile<T>(this IEnumerable<T> seq, Func<T, T, bool> condition)
         {
             T prev = seq.First();
-            List<T> list = new List<T>() { prev };
+            List<T> list = [prev];
 
             foreach (T item in seq.Skip(1))
             {
                 if (condition(prev, item) == false)
                 {
                     yield return list;
-                    list = new List<T>();
+                    list = [];
                 }
                 list.Add(item);
                 prev = item;
@@ -137,7 +137,7 @@ namespace Combloonation
             var n = val.Length;
             int _i = 0; int w = 0;
             var vals = val.Select(i => new Tuple<int, int>(i, _i++)).OrderByDescending(i => i.Item1).ToArray();
-            Tuple<int, int>[] best = Enumerable.Repeat(new Tuple<int, int>(0, 0), total + 1).ToArray();
+            Tuple<int, int>[] best = [.. Enumerable.Repeat(new Tuple<int, int>(0, 0), total + 1)];
             for (int i = 0; i <= total; i++) for (int j = 0; j < n; j++)
                 {
                     if (vals[j].Item1 > i) continue;
@@ -153,9 +153,9 @@ namespace Combloonation
                 k = best[w].Item2 - 1;
                 if (k < 0) break;
                 list.Add(vals[k].Item2);
-                w = w - vals[k].Item1;
+                w -= vals[k].Item1;
             }
-            return list.ToArray();
+            return [.. list];
         }
 
         public static Color NextColor(this Random random)
@@ -185,17 +185,17 @@ namespace Combloonation
             List<List<T>> power(List<List<T>> p, List<T> s)
             {
                 if (s.Count == 0) return p;
-                if (s.Count > 1) p = power(p, s.Skip(1).ToList());
+                if (s.Count > 1) p = power(p, [.. s.Skip(1)]);
                 var n = s.First();
-                return p.Concat(p.Select(e => e.Append(n).ToList())).ToList();
+                return [.. p, .. p.Select(e => e.Append(n).ToList())];
             }
-            return power(new List<List<T>> { new List<T> { } }, list);
+            return power([[]], list);
         }
 
         public static Texture2D LoadTexture(string path)
         {
             byte[] data = File.ReadAllBytes(path);
-            Texture2D tex = new Texture2D(0, 0) { wrapMode = TextureWrapMode.Clamp };
+            Texture2D tex = new(0, 0) { wrapMode = TextureWrapMode.Clamp };
             ImageConversion.LoadImage(tex, data);
             return tex;
         }
@@ -228,15 +228,23 @@ namespace Combloonation
         public static GameModel GetGameModel()
         {
             var model = InGame.instance?.bridge?.Model;
-            if (model is null) model = Game.instance.model;
+            model ??= Game.instance.model;
+            if (model is null) throw new NullReferenceException("GameModel is null!");
             return model;
+        }
+
+        public static GameData GetGameData()
+        {
+            return GameData.Instance;
         }
 
         public static Bounds NewBounds(int lowerBounds, int upperBounds)
         {
-            var bound = new Bounds();
-            bound.lowerBounds = lowerBounds;
-            bound.upperBounds = upperBounds;
+            var bound = new Bounds
+            {
+                lowerBounds = lowerBounds,
+                upperBounds = upperBounds
+            };
             return bound;
         }
 
@@ -247,13 +255,12 @@ namespace Combloonation
 
         public static RoundSetModel Remake(this RoundSetModel model)
         {
-            return new RoundSetModel(model.name, model.rounds.Select(r => new RoundModel(r.name, r.groups.Select(g => g.Duplicate()).ToArray())).ToArray());
+            return new RoundSetModel(model.name, model.rounds.Select(r => new RoundModel(r.name, r.groups.Select(g => g.Duplicate()).ToArray())).ToArray(), model.linkedIncomeSet);
         }
 
-        public class RoundBloonGroupModel : FreeplayBloonGroupModel
+        public static FreeplayBloonGroupModel RoundBloonGroupModel(BloonGroupModel group, int? round, int? upper = null)
         {
-            public RoundBloonGroupModel(BloonGroupModel group, int? round, int? upper = null)
-                : base("", 0, round is null ? new Bounds[] { } : new Bounds[] { NewBounds((int)round, (int)round), NewBounds(upper ?? (int)round, int.MaxValue) }, group) { }
+            return new FreeplayBloonGroupModel("", 0, round is null ? [] : new Bounds[] { NewBounds((int)round, (int)round), NewBounds(upper ?? (int)round, int.MaxValue) }, group) { };
         }
     }
 }
