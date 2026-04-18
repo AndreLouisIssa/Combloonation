@@ -378,7 +378,7 @@ namespace Combloonation
             // TODO: restore option to get texture from file?
 
             if (oldTexture is null) return null;
-            if (oldTexture.isReadable) return null;
+            //if (oldTexture.isReadable) return null;
 
             texture = fusion.NewMergedTexture(oldTexture, fromMesh, proj);
             if (texture is null) return null;
@@ -404,15 +404,12 @@ namespace Combloonation
             }
             else
             {
-                var ssprite = sprite.sprite;
-                var correction = new Vector2(0,3910);
-                Rect rect = new(ssprite.textureRect.position - correction, ssprite.textureRect.size);
+                var texture = sprite.sprite.GetReadableTexture();
 
-                var texture = fusion.GetMergedTexture(ssprite.texture, computedIcons, false, rect);
+                texture = fusion.GetMergedTexture(texture, computedIcons, false);
                 if (texture is null) return;
                 sprite.sprite = texture.CreateSpriteFromTexture(sprite.sprite.pixelsPerUnit);
             }
-
         }
 
         public static void SetBloonAppearance(this Fusion fusion, Image icon)
